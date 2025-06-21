@@ -40,7 +40,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/" # App source code path
+          app_location: "dist/demo" # App source code path
           api_location: "" # Api source code path - optional
           output_location: "dist/demo" # Built app content directory
           skip_app_build: true # We already built the app in previous step
