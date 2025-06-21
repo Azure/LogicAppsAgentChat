@@ -5,7 +5,8 @@ import {
   formatPart,
   getLanguageFromFilename,
   formatCodeContent,
-  createArtifactMessage
+  createArtifactMessage,
+  createGroupedArtifactMessage
 } from './messageUtils';
 import type { Part } from '../a2aclient/types';
 
@@ -153,7 +154,9 @@ describe('messageUtils', () => {
       expect(message.content).toContain(content);
       expect(message.metadata).toEqual({
         isArtifact: true,
-        artifactName: 'Main.java'
+        artifactName: 'Main.java',
+        rawContent: content,
+        isCodeFile: true
       });
     });
 
@@ -164,12 +167,62 @@ describe('messageUtils', () => {
       expect(message.content).toBe('**readme.txt**\n\nThis is a text file');
       expect(message.metadata).toEqual({
         isArtifact: true,
-        artifactName: 'readme.txt'
+        artifactName: 'readme.txt',
+        rawContent: content,
+        isCodeFile: false
       });
     });
 
     it('should have correct message properties', () => {
       const message = createArtifactMessage('test.py', 'print("test")');
+
+      expect(message.sender).toBe('assistant');
+      expect(message.status).toBe('sent');
+      expect(message.id).toBeTruthy();
+      expect(message.timestamp).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('createGroupedArtifactMessage', () => {
+    it('should create grouped artifact message for multiple files', () => {
+      const artifacts = [
+        { name: 'index.html', content: '<html></html>' },
+        { name: 'style.css', content: 'body { margin: 0; }' },
+        { name: 'script.js', content: 'console.log("test");' }
+      ];
+
+      const message = createGroupedArtifactMessage(artifacts);
+
+      expect(message.content).toContain('**3 files generated**');
+      expect(message.content).toContain('• index.html');
+      expect(message.content).toContain('• style.css');
+      expect(message.content).toContain('• script.js');
+      expect(message.metadata).toEqual({
+        isGroupedArtifact: true,
+        artifacts: [
+          { name: 'index.html', rawContent: '<html></html>', isCodeFile: true },
+          { name: 'style.css', rawContent: 'body { margin: 0; }', isCodeFile: true },
+          { name: 'script.js', rawContent: 'console.log("test");', isCodeFile: true }
+        ]
+      });
+    });
+
+    it('should handle artifacts with explicit isCodeFile property', () => {
+      const artifacts = [
+        { name: 'code.js', content: 'const x = 1;', isCodeFile: true },
+        { name: 'readme.txt', content: 'Hello', isCodeFile: false }
+      ];
+
+      const message = createGroupedArtifactMessage(artifacts);
+
+      expect(message.metadata?.artifacts).toEqual([
+        { name: 'code.js', rawContent: 'const x = 1;', isCodeFile: true },
+        { name: 'readme.txt', rawContent: 'Hello', isCodeFile: false }
+      ]);
+    });
+
+    it('should have correct message properties', () => {
+      const message = createGroupedArtifactMessage([{ name: 'test.txt', content: 'test' }]);
 
       expect(message.sender).toBe('assistant');
       expect(message.status).toBe('sent');

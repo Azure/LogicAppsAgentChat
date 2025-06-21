@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useChatConnection } from './useChatConnection';
@@ -53,7 +54,7 @@ describe('useChatConnection', () => {
     mockChatStore.clearMessages = vi.fn();
     
     mockUseChatStore.mockReturnValue(mockChatStore);
-    mockUseA2AClient.mockReturnValue(mockA2AClient);
+    mockUseA2AClient.mockReturnValue(mockA2AClient as any);
     mockCreateMessage.mockImplementation((content, sender, attachments) => ({
       id: 'msg-' + Date.now(),
       content,
@@ -78,6 +79,7 @@ describe('useChatConnection', () => {
       onConnectionChange: expect.any(Function),
       onMessage: expect.any(Function),
       onTypingChange: expect.any(Function),
+      onUpdateMessage: expect.any(Function),
     });
     
     expect(result.current.isConnected).toBe(true);
@@ -353,7 +355,7 @@ describe('useChatConnection', () => {
       isConnected: false,
       agentName: 'Updated Agent',
     };
-    mockUseA2AClient.mockReturnValue(updatedClient);
+    mockUseA2AClient.mockReturnValue(updatedClient as any);
     
     rerender();
     

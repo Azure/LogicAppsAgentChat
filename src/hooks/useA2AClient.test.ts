@@ -551,10 +551,12 @@ describe('useA2AClient', () => {
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onMessage = vi.fn();
+    const onUpdateMessage = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
       agentUrl: 'http://test.agent',
       onMessage,
+      onUpdateMessage,
     }));
     
     await waitFor(() => {
@@ -564,6 +566,7 @@ describe('useA2AClient', () => {
     const mockStreamEvents: any[] = [
       {
         kind: 'status-update',
+        taskId: 'task123',  // Added taskId
         status: {
           state: 'agent-processing',
           message: {
@@ -575,6 +578,7 @@ describe('useA2AClient', () => {
       },
       {
         kind: 'status-update',
+        taskId: 'task123',  // Same taskId
         status: {
           state: 'complete',
           message: {
@@ -598,8 +602,11 @@ describe('useA2AClient', () => {
       await result.current.sendMessage('Test', 'msg123');
     });
     
-    // Only the final empty message should be sent
-    expect(onMessage).toHaveBeenCalledTimes(1);
+    // No messages created since both status updates have empty/whitespace-only content
+    expect(onMessage).not.toHaveBeenCalled();
+    
+    // No update messages since we're not tracking status updates anymore
+    expect(onUpdateMessage).not.toHaveBeenCalled();
   });
 
   it('handles input-required state without clearing task ID', async () => {

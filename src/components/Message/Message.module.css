@@ -31,6 +31,304 @@
   color: var(--chat-color-text-secondary);
   margin-bottom: calc(var(--chat-spacing-unit) * 0.5);
   padding: 0 calc(var(--chat-spacing-unit) * 1);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 1);
+}
+
+/* Old download button styles - deprecated */
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 0.5);
+  padding: calc(var(--chat-spacing-unit) * 0.5) calc(var(--chat-spacing-unit) * 1);
+  background-color: transparent;
+  color: var(--chat-color-primary);
+  border: 1px solid var(--chat-color-primary);
+  border-radius: var(--chat-radius-medium);
+  font-size: var(--chat-font-size-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.downloadButton:hover {
+  background-color: var(--chat-color-primary);
+  color: white;
+}
+
+.downloadButton:active {
+  transform: scale(0.98);
+}
+
+.downloadButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Artifact container styles */
+.artifactContainer {
+  width: 100%;
+}
+
+.artifactHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--chat-spacing-unit) * 3) calc(var(--chat-spacing-unit) * 3);
+  background-color: var(--chat-color-surface);
+  border: 1px solid var(--chat-color-border);
+  border-radius: var(--chat-radius-large);
+  margin-bottom: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.artifactInfo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 1.5);
+  min-width: 0;
+  flex: 1;
+}
+
+.fileIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--chat-color-text-secondary);
+  flex-shrink: 0;
+}
+
+.artifactName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--chat-color-text);
+  word-break: break-word;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.artifactActions {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 1);
+  flex-shrink: 0;
+  margin-left: calc(var(--chat-spacing-unit) * 3);
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 0.5);
+  padding: calc(var(--chat-spacing-unit) * 0.75) calc(var(--chat-spacing-unit) * 1.5);
+  border-radius: var(--chat-radius-medium);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.primaryButton {
+  background-color: var(--chat-color-primary);
+  color: white;
+  border-color: var(--chat-color-primary);
+}
+
+.primaryButton:hover {
+  background-color: #0052a3;
+  border-color: #0052a3;
+}
+
+.primaryButton:active {
+  transform: scale(0.98);
+}
+
+.secondaryButton {
+  background-color: transparent;
+  color: var(--chat-color-text-secondary);
+  border-color: var(--chat-color-border);
+}
+
+.secondaryButton:hover {
+  background-color: var(--chat-color-surface);
+  color: var(--chat-color-text);
+}
+
+.secondaryButton:active {
+  transform: scale(0.98);
+}
+
+.primaryButton svg,
+.secondaryButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.artifactContentWrapper {
+  margin-top: calc(var(--chat-spacing-unit) * 1);
+  padding-top: 0;
+  border-top: none;
+}
+
+.codeBlock {
+  background-color: var(--chat-color-surface);
+  border: 1px solid var(--chat-color-border);
+  border-radius: var(--chat-radius-medium);
+  padding: calc(var(--chat-spacing-unit) * 2);
+  margin: calc(var(--chat-spacing-unit) * 1) 0 0 0;
+  overflow-x: auto;
+  font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.codeBlock code {
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Adjust artifact message styles */
+.messageWrapper.artifact .message {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+}
+
+.messageWrapper.artifact .artifactContentWrapper .markdownContent {
+  padding: calc(var(--chat-spacing-unit) * 2);
+  background-color: var(--chat-color-surface);
+  border: 1px solid var(--chat-color-border);
+  border-radius: var(--chat-radius-medium);
+  margin-top: calc(var(--chat-spacing-unit) * 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Grouped artifacts styles */
+.groupedArtifactContainer {
+  width: 100%;
+}
+
+.groupedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--chat-spacing-unit) * 3) calc(var(--chat-spacing-unit) * 3);
+  background-color: var(--chat-color-surface);
+  border: 1px solid var(--chat-color-border);
+  border-radius: var(--chat-radius-large);
+  margin-bottom: calc(var(--chat-spacing-unit) * 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: calc(var(--chat-spacing-unit) * 3);
+}
+
+.groupedInfo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 1.5);
+  min-width: 0;
+  flex: 1;
+}
+
+.folderIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--chat-color-primary);
+  flex-shrink: 0;
+}
+
+.groupedTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--chat-color-text);
+}
+
+.artifactList {
+  background-color: var(--chat-color-surface);
+  border: 1px solid var(--chat-color-border);
+  border-radius: var(--chat-radius-large);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.artifactItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--chat-spacing-unit) * 2) calc(var(--chat-spacing-unit) * 2.5);
+  border-bottom: 1px solid var(--chat-color-border);
+  transition: background-color 0.15s ease;
+}
+
+.artifactItem:last-child {
+  border-bottom: none;
+}
+
+.artifactItem:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.artifactItemInfo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 1);
+  min-width: 0;
+  flex: 1;
+}
+
+.artifactItemName {
+  font-weight: 500;
+  color: var(--chat-color-text);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.artifactItemActions {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--chat-spacing-unit) * 0.5);
+  flex-shrink: 0;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  color: var(--chat-color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--chat-radius-medium);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.iconButton:hover {
+  background-color: var(--chat-color-surface);
+  border-color: var(--chat-color-border);
+  color: var(--chat-color-text);
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.iconButton svg {
+  width: 16px;
+  height: 16px;
 }
 
 .messageWrapper.user .senderName {
@@ -289,3 +587,4 @@
   font-size: 0.9em;
   color: inherit;
 }
+

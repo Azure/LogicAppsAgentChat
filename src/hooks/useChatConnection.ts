@@ -39,7 +39,8 @@ export function useChatConnection({
     agentUrl,
     onConnectionChange: handleConnectionChange,
     onMessage: handleMessage,
-    onTypingChange: handleTypingChange
+    onTypingChange: handleTypingChange,
+    onUpdateMessage: updateMessage
   });
 
   const sendMessage = useCallback(async (content: string, attachments?: Attachment[]) => {

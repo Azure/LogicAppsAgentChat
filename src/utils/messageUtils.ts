@@ -82,7 +82,7 @@ export function formatCodeContent(content: string, filename: string): string {
 }
 
 export function createArtifactMessage(artifactName: string, content: string): Message {
-  const isCodeFile = /\.(cs|js|ts|py|java|cpp|c|h)$/.test(artifactName);
+  const isCodeFile = /\.(cs|js|ts|tsx|jsx|py|java|cpp|c|h|rb|go|rs|php|swift|kt|scala|r|sql|sh|bash|ps1|yaml|yml|json|xml|html|css|scss|sass|less|md)$/.test(artifactName);
   const formattedContent = isCodeFile ? formatCodeContent(content, artifactName) : content;
   
   return {
@@ -91,6 +91,38 @@ export function createArtifactMessage(artifactName: string, content: string): Me
     sender: 'assistant',
     timestamp: new Date(),
     status: 'sent',
-    metadata: { isArtifact: true, artifactName }
+    metadata: { 
+      isArtifact: true, 
+      artifactName,
+      rawContent: content,
+      isCodeFile
+    }
+  };
+}
+
+export interface ArtifactData {
+  name: string;
+  content: string;
+  isCodeFile?: boolean;
+}
+
+export function createGroupedArtifactMessage(artifacts: ArtifactData[]): Message {
+  // Format content for display (just a summary)
+  const content = `**${artifacts.length} files generated**\n\n${artifacts.map(a => `• ${a.name}`).join('\n')}`;
+  
+  return {
+    id: generateMessageId(),
+    content,
+    sender: 'assistant',
+    timestamp: new Date(),
+    status: 'sent',
+    metadata: { 
+      isGroupedArtifact: true,
+      artifacts: artifacts.map(artifact => ({
+        name: artifact.name,
+        rawContent: artifact.content,
+        isCodeFile: artifact.isCodeFile ?? /\.(cs|js|ts|tsx|jsx|py|java|cpp|c|h|rb|go|rs|php|swift|kt|scala|r|sql|sh|bash|ps1|yaml|yml|json|xml|html|css|scss|sass|less|md)$/.test(artifact.name)
+      }))
+    }
   };
 }
