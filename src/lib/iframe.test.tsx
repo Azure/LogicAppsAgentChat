@@ -33,10 +33,10 @@ describe('iframe', () => {
     originalLocation = window.location;
     originalReadyState = document.readyState;
     
-    // Create a mock document element with dataset
-    const mockDocumentElement = document.createElement('html');
-    Object.defineProperty(document, 'documentElement', {
-      value: mockDocumentElement,
+    // Mock dataset on documentElement for happy-dom v18
+    const mockDataset: Record<string, string> = {};
+    Object.defineProperty(document.documentElement, 'dataset', {
+      value: mockDataset,
       writable: true,
       configurable: true,
     });
@@ -51,6 +51,12 @@ describe('iframe', () => {
     // Mock console.error
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
+    // Ensure document.body exists before setting innerHTML
+    if (!document.body) {
+      const body = document.createElement('body');
+      document.documentElement.appendChild(body);
+    }
+    
     // Create chat-root element
     document.body.innerHTML = '<div id="chat-root"></div>';
     
@@ -63,12 +69,12 @@ describe('iframe', () => {
   });
   
   afterEach(() => {
-    // Restore original values
-    Object.defineProperty(document, 'documentElement', {
-      value: originalDocumentElement,
-      writable: true,
-      configurable: true,
+    // Clean up dataset by clearing all properties
+    Object.keys(document.documentElement.dataset).forEach(key => {
+      delete document.documentElement.dataset[key];
     });
+    
+    // Restore original values
     Object.defineProperty(window, 'location', {
       value: originalLocation,
       writable: true,

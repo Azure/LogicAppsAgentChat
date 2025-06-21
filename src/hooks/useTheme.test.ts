@@ -4,29 +4,16 @@ import { useTheme } from './useTheme';
 import type { ChatTheme } from '../types';
 
 describe('useTheme', () => {
-  let mockDocumentElement: {
-    style: {
-      setProperty: ReturnType<typeof vi.fn>;
-    };
-  };
+  let setPropertySpy: ReturnType<typeof vi.spyOn>;
   
   beforeEach(() => {
-    // Mock document.documentElement.style.setProperty
-    mockDocumentElement = {
-      style: {
-        setProperty: vi.fn(),
-      },
-    };
-    
-    Object.defineProperty(document, 'documentElement', {
-      value: mockDocumentElement,
-      writable: true,
-      configurable: true,
-    });
+    // Spy on the existing setProperty method instead of mocking the entire element
+    setPropertySpy = vi.spyOn(document.documentElement.style, 'setProperty');
   });
   
   afterEach(() => {
     vi.clearAllMocks();
+    setPropertySpy.mockRestore();
   });
 
   it('returns default theme when no custom theme provided', () => {
@@ -89,32 +76,32 @@ describe('useTheme', () => {
     renderHook(() => useTheme());
     
     // Check color CSS variables
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-primary', '#0066cc');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-background', '#ffffff');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-surface', '#f5f5f5');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-text', '#333333');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-text-secondary', '#666666');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-border', '#e0e0e0');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-error', '#d32f2f');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-success', '#388e3c');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#0066cc');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-background', '#ffffff');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-surface', '#f5f5f5');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-text', '#333333');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-text-secondary', '#666666');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-border', '#e0e0e0');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-error', '#d32f2f');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-success', '#388e3c');
     
     // Check typography CSS variables
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith(
+    expect(setPropertySpy).toHaveBeenCalledWith(
       '--chat-font-family',
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     );
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-font-size-small', '0.875rem');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-font-size-base', '1rem');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-font-size-large', '1.125rem');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-small', '0.875rem');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-base', '1rem');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-large', '1.125rem');
     
     // Check spacing CSS variable
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-spacing-unit', '8px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '8px');
     
     // Check border radius CSS variables
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-radius-small', '4px');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-radius-medium', '8px');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-radius-large', '12px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-radius-small', '4px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-radius-medium', '8px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-radius-large', '12px');
   });
 
   it('applies custom theme values to document root', () => {
@@ -129,8 +116,8 @@ describe('useTheme', () => {
     
     renderHook(() => useTheme(customTheme));
     
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-primary', '#ff0000');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-spacing-unit', '16px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#ff0000');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '16px');
   });
 
   it('handles complete custom theme override', () => {
@@ -259,8 +246,8 @@ describe('useTheme', () => {
     
     renderHook(() => useTheme(customTheme));
     
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-text-secondary', '#666666');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-text-secondary', '#666666');
   });
 
   it('handles partial typography override correctly', () => {
@@ -306,7 +293,7 @@ describe('useTheme', () => {
       }
     );
     
-    const initialCallCount = mockDocumentElement.style.setProperty.mock.calls.length;
+    const initialCallCount = setPropertySpy.mock.calls.length;
     
     const customTheme: Partial<ChatTheme> = {
       colors: {
@@ -316,8 +303,8 @@ describe('useTheme', () => {
     
     rerender({ theme: customTheme });
     
-    expect(mockDocumentElement.style.setProperty.mock.calls.length).toBeGreaterThan(initialCallCount);
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-color-primary', '#00ff00');
+    expect(setPropertySpy.mock.calls.length).toBeGreaterThan(initialCallCount);
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#00ff00');
   });
 
   it('handles empty custom theme objects', () => {
@@ -348,6 +335,6 @@ describe('useTheme', () => {
     
     renderHook(() => useTheme(customTheme));
     
-    expect(mockDocumentElement.style.setProperty).toHaveBeenCalledWith('--chat-spacing-unit', '0px');
+    expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '0px');
   });
 });

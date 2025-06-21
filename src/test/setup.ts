@@ -8,6 +8,12 @@ global.fetch = vi.fn();
 // Reset fetch mock before each test
 beforeEach(() => {
   vi.mocked(global.fetch).mockReset();
+  
+  // Ensure document.body exists for happy-dom v18
+  if (!document.body) {
+    const body = document.createElement('body');
+    document.documentElement.appendChild(body);
+  }
 });
 
 // Mock TextDecoderStream for SSE parsing tests
