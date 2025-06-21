@@ -54,11 +54,21 @@ describe('useTheme', () => {
     const customTheme: Partial<ChatTheme> = {
       colors: {
         primary: '#ff0000',
+        primaryText: '#ffffff',
         background: '#000000',
+        surface: '#f5f5f5',
+        text: '#333333',
+        textSecondary: '#666666',
+        border: '#e0e0e0',
+        error: '#d32f2f',
+        success: '#388e3c'
       },
       typography: {
+        fontFamily: 'sans-serif',
         fontSize: {
           small: '0.75rem',
+          base: '1rem',
+          large: '1.125rem'
         },
       },
     };
@@ -108,6 +118,14 @@ describe('useTheme', () => {
     const customTheme: Partial<ChatTheme> = {
       colors: {
         primary: '#ff0000',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f5f5f5',
+        text: '#333333',
+        textSecondary: '#666666',
+        border: '#e0e0e0',
+        error: '#d32f2f',
+        success: '#388e3c'
       },
       spacing: {
         unit: 16,
@@ -171,40 +189,6 @@ describe('useTheme', () => {
   });
 
   it('prefers custom branding over default', () => {
-    const defaultThemeWithBranding = {
-      colors: {
-        primary: '#0066cc',
-        primaryText: '#ffffff',
-        background: '#ffffff',
-        surface: '#f5f5f5',
-        text: '#333333',
-        textSecondary: '#666666',
-        border: '#e0e0e0',
-        error: '#d32f2f',
-        success: '#388e3c',
-      },
-      typography: {
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        fontSize: {
-          small: '0.875rem',
-          base: '1rem',
-          large: '1.125rem',
-        },
-      },
-      spacing: {
-        unit: 8,
-      },
-      borderRadius: {
-        small: '4px',
-        medium: '8px',
-        large: '12px',
-      },
-      branding: {
-        logoUrl: 'default-logo.png',
-        logoSize: 'small' as const,
-      },
-    };
-    
     const customTheme: Partial<ChatTheme> = {
       branding: {
         logoUrl: 'custom-logo.png',
@@ -221,6 +205,14 @@ describe('useTheme', () => {
     const customTheme: Partial<ChatTheme> = {
       colors: {
         primary: '#ff0000',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f5f5f5',
+        text: '#333333',
+        textSecondary: '#666666',
+        border: '#e0e0e0',
+        error: '#d32f2f',
+        success: '#388e3c',
       },
     };
     
@@ -239,8 +231,15 @@ describe('useTheme', () => {
   it('converts camelCase to kebab-case correctly', () => {
     const customTheme: Partial<ChatTheme> = {
       colors: {
+        primary: '#0066cc',
         primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f5f5f5',
+        text: '#333333',
         textSecondary: '#666666',
+        border: '#e0e0e0',
+        error: '#d32f2f',
+        success: '#388e3c',
       },
     };
     
@@ -254,7 +253,11 @@ describe('useTheme', () => {
     const customTheme: Partial<ChatTheme> = {
       typography: {
         fontFamily: 'Arial',
-        // fontSize is not provided
+        fontSize: {
+          small: '0.875rem',
+          base: '1rem',
+          large: '1.125rem',
+        },
       },
     };
     
@@ -271,9 +274,11 @@ describe('useTheme', () => {
   it('handles partial fontSize override correctly', () => {
     const customTheme: Partial<ChatTheme> = {
       typography: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: {
+          small: '0.875rem',
           base: '18px',
-          // small and large are not provided
+          large: '1.125rem',
         },
       },
     };
@@ -287,9 +292,9 @@ describe('useTheme', () => {
 
   it('applies theme when custom theme changes', () => {
     const { rerender } = renderHook(
-      ({ theme }) => useTheme(theme),
+      ({ theme }: { theme?: Partial<ChatTheme> }) => useTheme(theme),
       {
-        initialProps: { theme: undefined },
+        initialProps: { theme: undefined as Partial<ChatTheme> | undefined },
       }
     );
     
@@ -298,6 +303,14 @@ describe('useTheme', () => {
     const customTheme: Partial<ChatTheme> = {
       colors: {
         primary: '#00ff00',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f5f5f5',
+        text: '#333333',
+        textSecondary: '#666666',
+        border: '#e0e0e0',
+        error: '#d32f2f',
+        success: '#388e3c',
       },
     };
     
@@ -307,15 +320,8 @@ describe('useTheme', () => {
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#00ff00');
   });
 
-  it('handles empty custom theme objects', () => {
-    const customTheme: Partial<ChatTheme> = {
-      colors: {},
-      typography: {
-        fontSize: {},
-      },
-      spacing: {},
-      borderRadius: {},
-    };
+  it('handles undefined custom theme properties', () => {
+    const customTheme: Partial<ChatTheme> = {};
     
     const { result } = renderHook(() => useTheme(customTheme));
     

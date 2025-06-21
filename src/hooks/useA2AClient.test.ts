@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable require-yield */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useA2AClient } from './useA2AClient';
 import { A2AClient } from '../a2aclient/A2AClient';
-import type { AgentCard, SendMessageStreamEvent, Message as A2AMessage } from '../a2aclient/types';
+import type { AgentCard, Message as A2AMessage } from '../a2aclient/types';
 
 // Mock dependencies
 vi.mock('../a2aclient/A2AClient');
@@ -64,8 +66,14 @@ describe('useA2AClient', () => {
     const mockAgentCard: AgentCard = {
       name: 'Test Agent',
       description: 'A test agent',
-      agent_uri: 'http://test.agent',
-      sseEnabled: true,
+      url: 'http://test.agent',
+      capabilities: {
+        streaming: true
+      },
+      defaultInputModes: ['text'],
+      defaultOutputModes: ['text'],
+      skills: [],
+      version: '1.0.0'
     };
     
     mockClientInstance.getAgentCard.mockResolvedValue(mockAgentCard);
@@ -128,7 +136,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    rerender({ agentUrl: undefined });
+    rerender({ agentUrl: '' });
     
     expect(result.current.isConnected).toBe(false);
   });
@@ -155,7 +163,7 @@ describe('useA2AClient', () => {
     });
     
     // Mock streaming response
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'status-update',
         taskId: 'task123',
@@ -349,7 +357,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'artifact-update',
         artifact: {
@@ -410,7 +418,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'message',
         role: 'agent',
@@ -458,7 +466,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'task',
         id: 'new-task-123',
@@ -553,7 +561,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'status-update',
         status: {
@@ -610,7 +618,7 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    const mockStreamEvents: SendMessageStreamEvent[] = [
+    const mockStreamEvents: any[] = [
       {
         kind: 'status-update',
         taskId: 'input-task',

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Message } from '.';
@@ -107,7 +108,7 @@ vi.mock('prismjs/components/prism-diff', () => ({}));
 vi.mock('prismjs/components/prism-scss', () => ({}));
 
 // Mock Intl.DateTimeFormat
-const mockFormat = vi.fn((date: Date) => '2:30 PM');
+const mockFormat = vi.fn(() => '2:30 PM');
 global.Intl.DateTimeFormat = vi.fn(() => ({
   format: mockFormat,
   resolvedOptions: vi.fn(),

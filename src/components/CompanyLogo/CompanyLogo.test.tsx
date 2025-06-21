@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CompanyLogo } from '.';
 import { useTheme } from '../../hooks/useTheme';
@@ -9,61 +9,67 @@ vi.mock('../../hooks/useTheme');
 describe('CompanyLogo', () => {
   const mockUseTheme = vi.mocked(useTheme);
 
+  interface Branding {
+    logoUrl?: string;
+    logoSize?: 'small' | 'medium' | 'large';
+  }
+
+  const createMockTheme = (branding?: Branding) => ({
+    colors: {
+      primary: '#000',
+      primaryText: '#fff',
+      background: '#fff',
+      surface: '#f0f0f0',
+      text: '#000',
+      textSecondary: '#666',
+      border: '#ddd',
+      error: '#ff0000',
+      success: '#00ff00'
+    },
+    typography: {
+      fontFamily: 'sans-serif',
+      fontSize: {
+        small: '0.875rem',
+        base: '1rem',
+        large: '1.125rem'
+      }
+    },
+    spacing: {
+      unit: 8
+    },
+    borderRadius: {
+      small: '4px',
+      medium: '8px',
+      large: '12px'
+    },
+    branding
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders nothing when logoUrl is not provided', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: undefined,
-    });
+    mockUseTheme.mockReturnValue(createMockTheme(undefined));
 
     const { container } = render(<CompanyLogo />);
     expect(container.firstChild).toBeNull();
   });
 
   it('renders nothing when branding exists but logoUrl is empty', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
-        logoUrl: '',
-        logoSize: 'medium',
-      },
-    });
+    mockUseTheme.mockReturnValue(createMockTheme({
+      logoUrl: '',
+      logoSize: 'medium',
+    }));
 
     const { container } = render(<CompanyLogo />);
     expect(container.firstChild).toBeNull();
   });
 
   it('renders logo with medium size by default', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl: 'https://example.com/logo.png',
-      },
-    });
+    }));
 
     render(<CompanyLogo />);
     
@@ -77,20 +83,10 @@ describe('CompanyLogo', () => {
   });
 
   it('renders logo with small size', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl: 'https://example.com/logo.png',
         logoSize: 'small',
-      },
-    });
+    }));
 
     render(<CompanyLogo />);
     
@@ -102,20 +98,10 @@ describe('CompanyLogo', () => {
   });
 
   it('renders logo with large size', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl: 'https://example.com/logo.png',
         logoSize: 'large',
-      },
-    });
+    }));
 
     render(<CompanyLogo />);
     
@@ -127,20 +113,10 @@ describe('CompanyLogo', () => {
   });
 
   it('applies custom className prop', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl: 'https://example.com/logo.png',
         logoSize: 'medium',
-      },
-    });
+    }));
 
     render(<CompanyLogo className="custom-class" />);
     
@@ -153,20 +129,10 @@ describe('CompanyLogo', () => {
 
   it('renders img element with correct attributes', () => {
     const logoUrl = 'https://example.com/company-logo.svg';
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl,
         logoSize: 'medium',
-      },
-    });
+    }));
 
     render(<CompanyLogo />);
     
@@ -176,20 +142,10 @@ describe('CompanyLogo', () => {
   });
 
   it('handles undefined logoSize gracefully', () => {
-    mockUseTheme.mockReturnValue({
-      name: 'default',
-      colors: {
-        primary: '#000',
-        background: '#fff',
-        text: '#000',
-        messageBubbleUser: '#000',
-        messageBubbleAssistant: '#000',
-      },
-      branding: {
+    mockUseTheme.mockReturnValue(createMockTheme({
         logoUrl: 'https://example.com/logo.png',
         logoSize: undefined,
-      },
-    });
+    }));
 
     render(<CompanyLogo />);
     
