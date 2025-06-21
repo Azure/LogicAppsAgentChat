@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import fs from 'fs';
+import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const isLibMode = mode === 'lib';
@@ -63,14 +65,38 @@ export default defineConfig(({ mode }) => {
   }
 
   if (isDemoMode) {
+    // Custom plugin to flatten the output structure
+    const flattenOutputPlugin = () => {
+      return {
+        name: 'flatten-output',
+        closeBundle() {
+          const demoDir = path.join(__dirname, 'dist/demo/demo');
+          const targetDir = path.join(__dirname, 'dist/demo');
+          
+          if (fs.existsSync(demoDir)) {
+            // Move all files from demo/demo to demo
+            const files = fs.readdirSync(demoDir);
+            files.forEach(file => {
+              fs.renameSync(
+                path.join(demoDir, file),
+                path.join(targetDir, file)
+              );
+            });
+            // Remove the empty demo directory
+            fs.rmdirSync(demoDir);
+          }
+        }
+      };
+    };
+
     return {
-      plugins: [react()],
+      plugins: [react(), flattenOutputPlugin()],
+      base: '/demo/',
       build: {
         rollupOptions: {
           input: {
-            main: resolve(__dirname, 'demo/index.html'),
-            iframe: resolve(__dirname, 'demo/iframe.html'),
-            landing: resolve(__dirname, 'demo/index-landing.html')
+            index: resolve(__dirname, 'demo/index.html'),
+            iframe: resolve(__dirname, 'demo/iframe.html')
           }
         },
         outDir: 'dist/demo',
