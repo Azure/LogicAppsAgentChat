@@ -4,14 +4,17 @@ A lightweight, customizable chat interface library that can be distributed via N
 
 ## Features
 
-- 🚀 **Small bundle size**: React as peer dependency
+- 🚀 **Small bundle size**: ~45KB limit with React as peer dependency
 - 📦 **Dual distribution**: NPM package + iframe embed
 - 🎨 **Fully customizable**: CSS variables for runtime theming
-- 📝 **Markdown support**: Rich text formatting for messages
-- 📎 **File uploads**: Built-in file attachment support
+- 📝 **Markdown support**: Rich text formatting with syntax highlighting
+- 📎 **File uploads**: Built-in file attachment support with progress tracking
 - 🏢 **Company branding**: Add your logo to the chat interface
-- ⚛️ **React compatible**: Works seamlessly with React applications
+- ⚛️ **React 18+ compatible**: Works seamlessly with modern React applications
 - 🤖 **A2A Protocol Support**: Built-in integration with A2A-compliant agents
+- ✅ **TypeScript**: Full type safety and IntelliSense support
+- 🧪 **Well tested**: Comprehensive test suite with Vitest
+- 🔄 **CI/CD**: Automated testing and builds with GitHub Actions
 
 ## Installation
 
@@ -31,12 +34,12 @@ import '@microsoft/a2achat/styles.css';
 function App() {
   return (
     <ChatWindow
-      serverUrl="wss://chat.example.com"
-      // Optional: Use A2A agent instead of WebSocket
       agentUrl="https://my-a2a-agent.example.com"
       theme={{
         colors: {
-          primary: '#0066cc'
+          primary: '#0066cc',
+          primaryText: '#ffffff',
+          background: '#f5f5f5'
         },
         branding: {
           logoUrl: 'https://example.com/logo.png',
@@ -46,6 +49,10 @@ function App() {
       }}
       welcomeMessage="Hello! How can I help you today?"
       allowFileUpload={true}
+      maxFileSize={10 * 1024 * 1024} // 10MB
+      allowedFileTypes={['image/*', 'application/pdf', '.doc', '.docx']}
+      onMessage={(message) => console.log('New message:', message)}
+      onConnectionChange={(connected) => console.log('Connected:', connected)}
     />
   );
 }
@@ -56,15 +63,41 @@ function App() {
 ```html
 <iframe 
   src="https://cdn.example.com/chat-widget/index.html"
-  data-server-url="wss://chat.example.com"
+  data-agent-url="https://my-a2a-agent.example.com"
   data-theme-primary="#0066cc"
+  data-theme-background="#f5f5f5"
   data-logo-url="https://example.com/logo.png"
+  data-logo-size="medium"
   data-logo-position="header"
+  data-welcome-message="Hello! How can I help you today?"
+  data-allow-file-upload="true"
+  data-max-file-size="10485760"
   style="width: 400px; height: 600px; border: none;"
 />
 ```
 
+#### iFrame Data Attributes
+
+All configuration options can be passed via `data-*` attributes:
+
+- `data-agent-url`: A2A agent URL (required)
+- `data-theme-*`: Theme customization (e.g., `data-theme-primary`, `data-theme-background`)
+- `data-logo-url`: Company logo URL
+- `data-logo-size`: Logo size (small, medium, large)
+- `data-logo-position`: Logo position (header, footer)
+- `data-welcome-message`: Initial welcome message
+- `data-allow-file-upload`: Enable file uploads (true/false)
+- `data-max-file-size`: Maximum file size in bytes
+- `data-placeholder`: Input placeholder text
+
 ## Development
+
+### Prerequisites
+
+- Node.js 18+ or 20+
+- npm 7+
+
+### Getting Started
 
 ```bash
 # Install dependencies
@@ -73,15 +106,45 @@ npm install
 # Start development server
 npm run dev
 
+# Run tests
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
 # Build library
 npm run build:lib
 
 # Build iframe version
 npm run build:iframe
 
-# Build both
+# Build demo site
+npm run build:demo
+
+# Build all distributions
 npm run build
 ```
+
+### CI/CD
+
+This project uses GitHub Actions for continuous integration. On every push to `main` and on pull requests:
+
+- Runs TypeScript type checking
+- Runs ESLint for code quality
+- Runs full test suite
+- Builds all distributions
+- Checks bundle size limits
+
+The CI workflow tests against Node.js 18.x and 20.x to ensure compatibility.
 
 ## Configuration
 
@@ -128,8 +191,7 @@ interface ChatTheme {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `serverUrl` | `string` | WebSocket server URL (required) |
-| `agentUrl` | `string` | Optional A2A agent URL for AI-powered chat |
+| `agentUrl` | `string` | A2A agent URL (required) |
 | `theme` | `Partial<ChatTheme>` | Custom theme configuration |
 | `userId` | `string` | User identifier |
 | `metadata` | `Record<string, any>` | Additional metadata |
@@ -140,6 +202,66 @@ interface ChatTheme {
 | `allowedFileTypes` | `string[]` | Allowed file types |
 | `onMessage` | `(message: Message) => void` | Message callback |
 | `onConnectionChange` | `(connected: boolean) => void` | Connection status callback |
+
+## A2A Protocol Support
+
+This library includes built-in support for the A2A (Agent-to-Agent) protocol, enabling seamless integration with AI agents. When using an A2A agent:
+
+- **Streaming Support**: Real-time message streaming with Server-Sent Events (SSE)
+- **Task Management**: Track and manage long-running tasks
+- **Artifact Support**: Handle code snippets and structured data from agents
+- **Status Updates**: Real-time progress updates for agent operations
+
+### Using with A2A Agents
+
+```tsx
+<ChatWindow
+  agentUrl="https://my-a2a-agent.example.com"
+  // The library automatically detects agent capabilities
+  // and enables streaming if supported
+/>
+```
+
+## Bundle Size
+
+The library is optimized for small bundle size:
+
+- **Library**: ~45KB (gzipped, excluding React)
+- **Styles**: ~5KB (gzipped)
+- **Total**: ~50KB with all features enabled
+
+Bundle size is monitored in CI to prevent regression.
+
+## Browser Support
+
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers (iOS Safari 14+, Chrome Android 90+)
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test src/components/ChatWindow/ChatWindow.test.tsx
+
+# Run with coverage
+npm run test:coverage
+```
+
+### Code Quality
+
+- All code must pass TypeScript type checking
+- ESLint rules must be followed
+- Tests must pass with 100% success rate
+- New features should include tests
 
 ## License
 
