@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2A Chat Demo - @microsoft/a2achat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--fontFamilyBase, 'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif);
+      background: #faf9f8;
+      color: #323130;
+      line-height: 1.5;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Fluent UI 9 inspired header */
+    .header {
+      background: #ffffff;
+      border-bottom: 1px solid #e1e1e1;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
+    }
+
+    .header-content {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 20px;
+      color: #323130;
+    }
+
+    .header-title svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .header-subtitle {
+      font-weight: 400;
+      font-size: 12px;
+      color: #605e5c;
+      margin-left: 4px;
+    }
+
+    /* Navigation tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 2px;
+      background: #f3f2f1;
+      padding: 2px;
+      border-radius: 4px;
+    }
+
+    .nav-tab {
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: #424242;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.1s;
+      outline: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .nav-tab:hover {
+      background: rgba(0,0,0,0.05);
+      color: #424242;
+    }
+
+    .nav-tab.active {
+      background: #ffffff;
+      color: #323130;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .github-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #605e5c;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .github-link:hover {
+      color: #323130;
+    }
+
+    /* Main layout */
+    .main-container {
+      display: flex;
+      height: calc(100vh - 48px);
+      background: #faf9f8;
+    }
+
+    /* Embedded mode styles */
+    body.embedded .header,
+    body.embedded .sidebar {
+      display: none;
+    }
+
+    body.embedded .main-container {
+      height: 100vh;
+    }
+
+    body.embedded .content-area {
+      padding: 0;
+    }
+
+    body.embedded .preview-card {
+      border-radius: 0;
+      height: 100%;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    body.embedded .preview-header {
+      display: none;
+    }
+
+    body.embedded .chat-container {
+      border-radius: 0;
+      height: 100%;
+    }
+
+    /* Left sidebar */
+    .sidebar {
+      width: 380px;
+      background: #ffffff;
+      border-right: 1px solid #e1e1e1;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    /* Right content area */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow: hidden;
+      height: calc(100vh - 48px);
+    }
+
+    .section {
+      padding: 24px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #323130;
+      margin-bottom: 8px;
+    }
+
+    .section-description {
+      color: #605e5c;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: #323130;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .form-help {
+      font-size: 12px;
+      color: #605e5c;
+      margin-top: 4px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #605e5c;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.1s;
+      background: #ffffff;
+      outline: none;
+    }
+
+    .input:hover {
+      border-color: #323130;
+    }
+
+    .input:focus {
+      border-color: #0078d4;
+      border-width: 2px;
+      padding: 5px 7px;
+    }
+
+    /* Fluent UI 9 buttons */
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .button {
+      padding: 5px 12px;
+      min-height: 32px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.1s;
+      border: none;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      outline: none;
+      position: relative;
+      width: 100%;
+    }
+
+    .button-primary {
+      background: #0078d4;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: #106ebe;
+    }
+
+    .button-primary:active {
+      background: #005a9e;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #f3f2f1;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.connected {
+      background: #dff6dd;
+      color: #107c10;
+    }
+
+    .status-badge.disconnected {
+      background: #f3f2f1;
+      color: #605e5c;
+    }
+
+    .status-badge.connecting {
+      background: #fff4ce;
+      color: #8a6d3b;
+    }
+
+    .status-badge .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .theme-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .theme-option {
+      width: 100%;
+      height: 40px;
+      border: 2px solid transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .theme-option:hover {
+      border-color: #d1d1d1;
+    }
+
+    .theme-option.selected {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 1px #0078d4;
+    }
+
+    .theme-option::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      opacity: 0;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .theme-option.selected::after {
+      opacity: 1;
+    }
+
+    /* Preview section */
+    .preview-card {
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03), 0 4px 8px rgba(0,0,0,0.04);
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .preview-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #323130;
+    }
+
+    .chat-container {
+      background: #faf9f8;
+      border: 1px solid #e1e1e1;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #chat-mount {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .placeholder-icon {
+      width: 64px;
+      height: 64px;
+      background: #f3f2f1;
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .placeholder-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #323130;
+      margin-bottom: 8px;
+    }
+
+    .placeholder-text {
+      color: #605e5c;
+      max-width: 400px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    /* Chat widget specific styles */
+    .chat-widget-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 320px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #e1e1e1;
+      }
+      
+      .content-area {
+        padding: 16px;
+      }
+      
+      .nav-tabs {
+        display: none;
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/main-Dj7HFdap.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-C4Oi3vhD.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="header-title">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2ZM12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4Z" fill="#0078d4"/>
+            <path d="M12 7C12.5523 7 13 7.44772 13 8V12C13 12.5523 12.5523 13 12 13C11.4477 13 11 12.5523 11 12V8C11 7.44772 11.4477 7 12 7Z" fill="#0078d4"/>
+            <path d="M12 15C12.5523 15 13 15.4477 13 16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16C11 15.4477 11.4477 15 12 15Z" fill="#0078d4"/>
+          </svg>
+          <span>A2A Chat Widget</span>
+          <span class="header-subtitle">Interactive Demo</span>
+        </div>
+        <nav class="nav-tabs">
+          <a href="/demo/index.html" class="nav-tab active">Chat Demo</a>
+          <a href="/demo/iframe.html" class="nav-tab">iframe Integration</a>
+        </nav>
+      </div>
+      <a href="https://github.com/microsoft/a2achat" class="github-link" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <div class="section">
+        <h2 class="section-title">Configuration</h2>
+        <p class="section-description">Connect to your A2A-compliant agent and customize the chat experience.</p>
+        
+        <form>
+          <div class="form-group">
+            <label class="form-label" for="agent-url">A2A Agent URL</label>
+            <input 
+              type="url" 
+              id="agent-url" 
+              class="input" 
+              placeholder="https://your-a2a-agent.azurewebsites.net"
+              value=""
+            />
+            <p class="form-help">Enter the URL of your A2A-compliant agent endpoint</p>
+          </div>
+
+
+          <div class="form-group">
+            <label class="form-label">Theme</label>
+            <div class="theme-options">
+              <button type="button" class="theme-option selected" data-theme="default" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"></button>
+              <button type="button" class="theme-option" data-theme="blue" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"></button>
+              <button type="button" class="theme-option" data-theme="green" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%)"></button>
+              <button type="button" class="theme-option" data-theme="red" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"></button>
+              <button type="button" class="theme-option" data-theme="purple" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"></button>
+              <button type="button" class="theme-option" data-theme="teal" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)"></button>
+              <button type="button" class="theme-option" data-theme="orange" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%)"></button>
+              <button type="button" class="theme-option" data-theme="pink" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%)"></button>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button type="button" id="connect-btn" class="button button-primary">Connect to Agent</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Content Area -->
+    <div class="content-area">
+      <div class="preview-card">
+        <div class="preview-header">
+          <h3 class="preview-title">Chat Interface</h3>
+          <span id="status" class="status-badge disconnected">
+            <span class="status-dot"></span>
+            <span id="status-text">Not Connected</span>
+          </span>
+        </div>
+        <div class="chat-container">
+          <div id="chat-mount" style="height: 100%;">
+            <div class="chat-placeholder">
+              <div class="placeholder-icon">💬</div>
+              <h3 class="placeholder-title">Ready to Chat</h3>
+              <p class="placeholder-text">
+                Enter an A2A agent URL and click "Connect to Agent" to start chatting.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

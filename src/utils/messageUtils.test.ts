@@ -1,0 +1,179 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  generateMessageId,
+  createMessage,
+  formatPart,
+  getLanguageFromFilename,
+  formatCodeContent,
+  createArtifactMessage
+} from './messageUtils';
+import type { Part } from '../a2aclient/types';
+
+describe('messageUtils', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('generateMessageId', () => {
+    it('should generate unique IDs', () => {
+      const id1 = generateMessageId();
+      const id2 = generateMessageId();
+      
+      expect(id1).toBeTruthy();
+      expect(id2).toBeTruthy();
+      expect(id1).not.toBe(id2);
+    });
+
+    it('should generate IDs with expected format', () => {
+      const id = generateMessageId();
+      expect(id).toMatch(/^\d+-[a-z0-9]+$/);
+    });
+  });
+
+  describe('createMessage', () => {
+    it('should create a user message with correct properties', () => {
+      const content = 'Hello, world!';
+      const message = createMessage(content, 'user');
+
+      expect(message).toMatchObject({
+        content,
+        sender: 'user',
+        status: 'sending'
+      });
+      expect(message.id).toBeTruthy();
+      expect(message.timestamp).toBeInstanceOf(Date);
+    });
+
+    it('should create an assistant message with correct properties', () => {
+      const content = 'Hello, human!';
+      const message = createMessage(content, 'assistant');
+
+      expect(message).toMatchObject({
+        content,
+        sender: 'assistant',
+        status: 'sent'
+      });
+    });
+
+    it('should include attachments when provided', () => {
+      const attachments = [
+        { id: '1', name: 'file.txt', type: 'text/plain', size: 100 }
+      ];
+      const message = createMessage('Message with attachment', 'user', attachments);
+
+      expect(message.attachments).toEqual(attachments);
+    });
+  });
+
+  describe('formatPart', () => {
+    it('should format text parts correctly', () => {
+      const part: Part = { kind: 'text', text: 'Hello, world!' };
+      expect(formatPart(part)).toBe('Hello, world!');
+    });
+
+    it('should format file parts correctly', () => {
+      const part: Part = {
+        kind: 'file',
+        file: { name: 'document.pdf', mimeType: 'application/pdf' }
+      };
+      expect(formatPart(part)).toBe('[File: document.pdf]');
+    });
+
+    it('should handle unnamed files', () => {
+      const part: Part = {
+        kind: 'file',
+        file: { mimeType: 'application/pdf' }
+      };
+      expect(formatPart(part)).toBe('[File: Unnamed]');
+    });
+
+    it('should format data parts correctly', () => {
+      const part: Part = {
+        kind: 'data',
+        data: { key: 'value', number: 42 }
+      };
+      expect(formatPart(part)).toBe('[Data: {"key":"value","number":42}]');
+    });
+
+    it('should handle unknown part types', () => {
+      const part = { kind: 'unknown' } as any;
+      expect(formatPart(part)).toBe('[Unknown part type]');
+    });
+  });
+
+  describe('getLanguageFromFilename', () => {
+    it('should return correct language for common extensions', () => {
+      expect(getLanguageFromFilename('file.js')).toBe('javascript');
+      expect(getLanguageFromFilename('file.ts')).toBe('typescript');
+      expect(getLanguageFromFilename('file.py')).toBe('python');
+      expect(getLanguageFromFilename('file.java')).toBe('java');
+      expect(getLanguageFromFilename('file.cs')).toBe('csharp');
+    });
+
+    it('should handle uppercase extensions', () => {
+      expect(getLanguageFromFilename('FILE.JS')).toBe('javascript');
+      expect(getLanguageFromFilename('Script.PY')).toBe('python');
+    });
+
+    it('should return empty string for unknown extensions', () => {
+      expect(getLanguageFromFilename('file.xyz')).toBe('');
+      expect(getLanguageFromFilename('file')).toBe('');
+    });
+
+    it('should handle files with multiple dots', () => {
+      expect(getLanguageFromFilename('my.component.test.ts')).toBe('typescript');
+      expect(getLanguageFromFilename('config.prod.json')).toBe('json');
+    });
+  });
+
+  describe('formatCodeContent', () => {
+    it('should format code content with language tag', () => {
+      const content = 'console.log("Hello");';
+      const result = formatCodeContent(content, 'script.js');
+      
+      expect(result).toBe('```javascript\nconsole.log("Hello");\n```');
+    });
+
+    it('should return content as-is for unknown file types', () => {
+      const content = 'Some text content';
+      const result = formatCodeContent(content, 'file.unknown');
+      
+      expect(result).toBe(content);
+    });
+  });
+
+  describe('createArtifactMessage', () => {
+    it('should create artifact message with code formatting', () => {
+      const content = 'public class Main {}';
+      const message = createArtifactMessage('Main.java', content);
+
+      expect(message.content).toContain('**Main.java**');
+      expect(message.content).toContain('```java');
+      expect(message.content).toContain(content);
+      expect(message.metadata).toEqual({
+        isArtifact: true,
+        artifactName: 'Main.java'
+      });
+    });
+
+    it('should create artifact message without code formatting for non-code files', () => {
+      const content = 'This is a text file';
+      const message = createArtifactMessage('readme.txt', content);
+
+      expect(message.content).toBe('**readme.txt**\n\nThis is a text file');
+      expect(message.metadata).toEqual({
+        isArtifact: true,
+        artifactName: 'readme.txt'
+      });
+    });
+
+    it('should have correct message properties', () => {
+      const message = createArtifactMessage('test.py', 'print("test")');
+
+      expect(message.sender).toBe('assistant');
+      expect(message.status).toBe('sent');
+      expect(message.id).toBeTruthy();
+      expect(message.timestamp).toBeInstanceOf(Date);
+    });
+  });
+});
