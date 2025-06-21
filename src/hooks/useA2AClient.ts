@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { A2AClient, type A2AStreamEventData } from '../a2aclient/A2AClient';
 import type { Message as A2AMessage, Part } from '../a2aclient/types';
 import type { Message } from '../types';
-import { createMessage, formatPart, createArtifactMessage } from '../utils/messageUtils';
+import { createMessage, formatPart, createArtifactMessage, createGroupedArtifactMessage, type ArtifactData } from '../utils/messageUtils';
 
 interface UseA2AClientProps {
   agentUrl?: string;
   onConnectionChange?: (connected: boolean) => void;
   onMessage?: (message: Message) => void;
   onTypingChange?: (isTyping: boolean) => void;
+  onUpdateMessage?: (id: string, updates: Partial<Message>) => void;
 }
 
 interface A2AClientState {
@@ -23,14 +24,15 @@ export function useA2AClient({
   agentUrl,
   onConnectionChange,
   onMessage,
-  onTypingChange
+  onTypingChange,
+  onUpdateMessage
 }: UseA2AClientProps) {
   const clientRef = useRef<A2AClient | null>(null);
   const streamActiveRef = useRef<boolean>(false);
   const [state, setState] = useState<A2AClientState>({
     isConnected: false,
     supportsSSE: false,
-    agentName: 'Agent'
+    agentName: 'Agent',
   });
 
   useEffect(() => {
@@ -70,18 +72,17 @@ export function useA2AClient({
 
   const handleStreamEvent = useCallback((
     event: A2AStreamEventData,
-    artifactMessages: Message[]
+    collectedArtifacts: ArtifactData[]
   ): void => {
     if (event.kind === 'status-update') {
       const update = event;
+      const content = update.status?.message ? 
+        update.status.message.parts.map(formatPart).join('\n') : '';
 
-      if (update.status?.message) {
-        const content = update.status.message.parts.map(formatPart).join('\n');
-
-        if (content.trim() || update.final) {
-          const assistantMessage = createMessage(content, 'assistant');
-          onMessage?.(assistantMessage);
-        }
+      if (content.trim()) {
+        // Create regular message for status updates
+        const message = createMessage(content, 'assistant');
+        onMessage?.(message);
       }
 
       // Update task and context IDs
@@ -92,9 +93,12 @@ export function useA2AClient({
         setState(prev => ({ ...prev, currentContextId: update.contextId }));
       }
 
-      // Clear task ID if final and not input-required
-      if (update.final && update.status?.state !== 'input-required') {
-        setState(prev => ({ ...prev, currentTaskId: undefined }));
+      // Handle final status
+      if (update.final) {
+        setState(prev => ({ 
+          ...prev, 
+          currentTaskId: update.status?.state === 'input-required' ? prev.currentTaskId : undefined
+        }));
         streamActiveRef.current = false;
         onTypingChange?.(false);
       }
@@ -105,7 +109,10 @@ export function useA2AClient({
         const content = update.artifact.parts.map(formatPart).join('\n');
 
         if (content.trim()) {
-          artifactMessages.push(createArtifactMessage(artifactName, content));
+          collectedArtifacts.push({
+            name: artifactName,
+            content: content
+          });
         }
       }
     } else if (event.kind === 'message' && event.role === 'agent') {
@@ -131,7 +138,7 @@ export function useA2AClient({
         setState(prev => ({ ...prev, currentContextId: task.contextId }));
       }
     }
-  }, [onMessage, onTypingChange]);
+  }, [onMessage, onTypingChange, onUpdateMessage]);
 
   const sendMessage = useCallback(async (
     content: string,
@@ -165,18 +172,25 @@ export function useA2AClient({
         }
       });
 
-      const artifactMessages: Message[] = [];
+      const collectedArtifacts: ArtifactData[] = [];
       streamActiveRef.current = true;
       onTypingChange?.(true);
 
       try {
         for await (const event of stream) {
-          handleStreamEvent(event, artifactMessages);
+          handleStreamEvent(event, collectedArtifacts);
         }
 
-        // Add any artifact messages that were collected
-        for (const artifactMsg of artifactMessages) {
-          onMessage?.(artifactMsg);
+        // Add grouped artifact message if we collected any
+        if (collectedArtifacts.length > 0) {
+          if (collectedArtifacts.length === 1) {
+            // Single artifact - use regular artifact message
+            const artifact = collectedArtifacts[0];
+            onMessage?.(createArtifactMessage(artifact.name, artifact.content));
+          } else {
+            // Multiple artifacts - use grouped message
+            onMessage?.(createGroupedArtifactMessage(collectedArtifacts));
+          }
         }
       } catch (error) {
         console.error('Error in stream processing:', error);

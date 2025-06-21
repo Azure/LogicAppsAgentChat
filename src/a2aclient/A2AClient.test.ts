@@ -367,6 +367,113 @@ describe('A2AClient', () => {
         }
       }).rejects.toThrow('HTTP error establishing stream');
     });
+
+    it('should handle HTTP error with RPC error response', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+
+      // Mock agent card fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      // Mock SSE error response with RPC error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        text: async () => JSON.stringify({
+          jsonrpc: '2.0',
+          error: {
+            code: -32602,
+            message: 'Invalid params'
+          },
+          id: 1
+        })
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      await expect(async () => {
+        for await (const _event of stream) {
+          // Should not reach here
+        }
+      }).rejects.toThrow('HTTP error establishing stream: 400. RPC Error: Invalid params');
+    });
+
+    it('should handle invalid Content-Type in SSE response', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+
+      // Mock agent card fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      // Mock response with wrong content type
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'application/json' })
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      await expect(async () => {
+        for await (const _event of stream) {
+          // Should not reach here
+        }
+      }).rejects.toThrow('Invalid response Content-Type for SSE stream');
+    });
+
+    it('should handle HTTP error with empty response body', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+
+      // Mock agent card fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      // Mock SSE error response with empty body
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        text: async () => ''
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      await expect(async () => {
+        for await (const _event of stream) {
+          // Should not reach here
+        }
+      }).rejects.toThrow('HTTP error establishing stream: 500. Response: (empty)');
+    });
   });
 
   describe('task operations', () => {
@@ -560,6 +667,239 @@ describe('A2AClient', () => {
           url: 'https://webhook.example.com'
         }
       })).rejects.toThrow('Agent does not support push notifications');
+    });
+
+    it('should get push notification config', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      mockFetch.mockClear();
+      
+      // Mock agent card
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      await client.getAgentCard();
+
+      const mockResponse = {
+        jsonrpc: '2.0',
+        id: 2,
+        result: {
+          taskId: 'task-123',
+          pushNotificationConfig: {
+            url: 'https://webhook.example.com',
+            headers: { 'X-Custom': 'header' }
+          }
+        }
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      } as Response);
+
+      const result = await client.getTaskPushNotificationConfig({ id: 'task-123' });
+
+      expect(result).toEqual(mockResponse);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2); // Agent card + API call
+      expect(mockFetch).toHaveBeenNthCalledWith(2,
+        expect.stringContaining('/rpc'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'tasks/pushNotificationConfig/get',
+            params: { id: 'task-123' },
+            id: 1
+          })
+        })
+      );
+    });
+  });
+
+  describe('SSE stream parsing', () => {
+    it('should handle SSE event parsing errors', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      
+      // Mock agent card
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      await client.getAgentCard();
+
+      // Create a mock SSE stream with invalid JSON
+      const mockStream = new ReadableStream({
+        start(controller) {
+          // Valid event
+          controller.enqueue(new TextEncoder().encode('data: {"jsonrpc":"2.0","id":1,"result":{"kind":"status-update","status":{"state":"working"}}}\n\n'));
+          // Invalid JSON event
+          controller.enqueue(new TextEncoder().encode('data: {invalid json}\n\n'));
+          controller.close();
+        }
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'text/event-stream' }),
+        body: mockStream
+      } as Response);
+
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      const events = [];
+      try {
+        for await (const event of stream) {
+          events.push(event);
+        }
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toContain('Failed to parse SSE event data');
+      }
+
+      expect(events).toHaveLength(1);
+    });
+
+    it('should handle SSE events with missing result field', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      
+      // Mock agent card
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      await client.getAgentCard();
+
+      // Create a mock SSE stream with missing result
+      const mockStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"jsonrpc":"2.0","id":1}\n\n'));
+          controller.close();
+        }
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'text/event-stream' }),
+        body: mockStream
+      } as Response);
+
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      await expect(async () => {
+        for await (const _event of stream) {
+          // Should throw before yielding any events
+        }
+      }).rejects.toThrow("SSE event JSON-RPC response is missing 'result' field");
+    });
+
+    it('should warn on response ID mismatch', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      // Mock agent card
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      await client.getAgentCard();
+
+      // Create a mock SSE stream with mismatched ID
+      const mockStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"jsonrpc":"2.0","id":999,"result":{"kind":"status-update","status":{"state":"working"}}}\n\n'));
+          controller.close();
+        }
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'text/event-stream' }),
+        body: mockStream
+      } as Response);
+
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      const events = [];
+      for await (const event of stream) {
+        events.push(event);
+      }
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('SSE Event\'s JSON-RPC response ID mismatch'));
+      expect(events).toHaveLength(1);
+      
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle SSE error responses', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      
+      // Mock agent card
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(mockAgentUrl);
+      await client.getAgentCard();
+
+      // Create a mock SSE stream with error response
+      const mockStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid params"}}\n\n'));
+          controller.close();
+        }
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'text/event-stream' }),
+        body: mockStream
+      } as Response);
+
+      const stream = client.sendMessageStream({
+        message: {
+          kind: 'message',
+          messageId: 'msg-123',
+          role: 'user',
+          parts: [{ kind: 'text', text: 'Hello' }]
+        }
+      });
+
+      await expect(async () => {
+        for await (const _event of stream) {
+          // Should throw before yielding any events
+        }
+      }).rejects.toThrow('SSE event contained an error: Invalid params (Code: -32602)');
     });
   });
 
