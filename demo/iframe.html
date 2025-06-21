@@ -502,8 +502,8 @@
           <span class="header-subtitle">iframe Integration</span>
         </div>
         <nav class="nav-tabs">
-          <a href="/demo/index.html" class="nav-tab">Chat Demo</a>
-          <a href="/demo/iframe.html" class="nav-tab active">iframe Integration</a>
+          <a href="/index.html" class="nav-tab">Chat Demo</a>
+          <a href="/iframe.html" class="nav-tab active">iframe Integration</a>
         </nav>
       </div>
       <a href="https://github.com/microsoft/a2achat" class="github-link" target="_blank">
@@ -735,7 +735,7 @@
 
       // Use the main demo page as the iframe source
       const currentUrl = new URL(window.location.href);
-      const iframeUrl = new URL('/demo/', currentUrl.origin);
+      const iframeUrl = new URL('/', currentUrl.origin);
       iframeUrl.search = params.toString() + '&embedded=true';
       iframe.src = iframeUrl.toString();
       iframe.style.display = 'block';

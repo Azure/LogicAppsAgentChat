@@ -91,7 +91,6 @@ export default defineConfig(({ mode }) => {
 
     return {
       plugins: [react(), flattenOutputPlugin()],
-      base: '/demo/',
       build: {
         rollupOptions: {
           input: {
