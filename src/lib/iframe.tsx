@@ -96,7 +96,7 @@ function init() {
       ">
         <div>
           <h3 style="color: #333; margin-bottom: 10px;">Failed to load chat widget</h3>
-          <p style="margin: 0;">${typeof error === 'object' && error && 'message' in error ? (error as any).message : String(error)}</p>
+          <p style="margin: 0;">${typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string' ? (error as { message: string }).message : String(error)}</p>
         </div>
       </div>
     `;

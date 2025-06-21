@@ -23,7 +23,7 @@ import {
 } from './types';
 
 // Helper type for the data yielded by streaming methods
-type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
+export type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
 
 // Configuration options for the client
 export interface A2AClientConfig {

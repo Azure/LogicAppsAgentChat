@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { A2AClient } from '../a2aclient/A2AClient';
-import type { Message as A2AMessage, Part, SendMessageStreamEvent } from '../a2aclient/types';
+import { A2AClient, type A2AStreamEventData } from '../a2aclient/A2AClient';
+import type { Message as A2AMessage, Part } from '../a2aclient/types';
 import type { Message } from '../types';
 import { createMessage, formatPart, createArtifactMessage } from '../utils/messageUtils';
 
@@ -69,7 +69,7 @@ export function useA2AClient({
   }, [agentUrl, onConnectionChange]);
 
   const handleStreamEvent = useCallback((
-    event: SendMessageStreamEvent,
+    event: A2AStreamEventData,
     artifactMessages: Message[]
   ): void => {
     if (event.kind === 'status-update') {

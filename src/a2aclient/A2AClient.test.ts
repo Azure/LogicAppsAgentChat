@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { A2AClient } from './A2AClient';
 import type {
   AgentCard,
@@ -203,8 +204,9 @@ describe('A2AClient', () => {
       });
 
       expect('error' in response).toBe(true);
-      expect((response as any).error.message).toBe('Invalid params');
-      expect((response as any).error.code).toBe(-32602);
+      const errorResponse = response as { error: { code: number; message: string } };
+      expect(errorResponse.error.message).toBe('Invalid params');
+      expect(errorResponse.error.code).toBe(-32602);
     });
 
     it('should work with both SSE and non-SSE agents', async () => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChatWindow } from '.';
@@ -126,7 +127,7 @@ describe('ChatWindow', () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
     useChatConnection.mockReturnValue({
       isConnected: false,
-      agentName: undefined,
+      agentName: '',
       sendMessage: mockSendMessage
     });
 
@@ -152,7 +153,7 @@ describe('ChatWindow', () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
     useChatConnection.mockReturnValue({
       isConnected: true,
-      agentName: undefined,
+      agentName: '',
       sendMessage: mockSendMessage
     });
 

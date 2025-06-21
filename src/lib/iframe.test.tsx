@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ChatWidgetProps } from '../types';
 
 // Mock dependencies
 vi.mock('react-dom/client');
 vi.mock('../components/ChatWindow', () => ({
-  ChatWindow: vi.fn((props: ChatWidgetProps) => null),
+  ChatWindow: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));
 
@@ -14,7 +12,6 @@ vi.mock('../styles/base.css', () => ({}));
 describe('iframe', () => {
   let mockCreateRoot: ReturnType<typeof vi.fn>;
   let mockRoot: { render: ReturnType<typeof vi.fn> };
-  let originalDocumentElement: HTMLElement;
   let originalLocation: Location;
   let originalReadyState: string;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -29,7 +26,6 @@ describe('iframe', () => {
     vi.mocked(createRoot).mockImplementation(mockCreateRoot);
     
     // Save original values
-    originalDocumentElement = document.documentElement;
     originalLocation = window.location;
     originalReadyState = document.readyState;
     
@@ -260,7 +256,7 @@ describe('iframe', () => {
     expect(mockCreateRoot).not.toHaveBeenCalled();
     
     // Simulate DOMContentLoaded
-    const handler = addEventListenerSpy.mock.calls[0][1] as Function;
+    const handler = addEventListenerSpy.mock.calls[0][1] as () => void;
     handler();
     
     expect(mockCreateRoot).toHaveBeenCalled();

@@ -37,7 +37,7 @@ describe('chatStore', () => {
       
       const message: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Hello',
         timestamp: new Date(),
       };
@@ -55,14 +55,14 @@ describe('chatStore', () => {
       
       const message1: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Hello',
         timestamp: new Date(),
       };
       
       const message2: Message = {
         id: '2',
-        role: 'assistant',
+        sender: 'assistant',
         content: 'Hi there!',
         timestamp: new Date(),
       };
@@ -82,7 +82,7 @@ describe('chatStore', () => {
       
       const message: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Hello',
         timestamp: new Date(),
       };
@@ -97,7 +97,7 @@ describe('chatStore', () => {
       
       expect(result.current.messages[0].content).toBe('Hello, updated!');
       expect(result.current.messages[0].id).toBe('1');
-      expect(result.current.messages[0].role).toBe('user');
+      expect(result.current.messages[0].sender).toBe('user');
     });
 
     it('does not update non-existent message', () => {
@@ -105,7 +105,7 @@ describe('chatStore', () => {
       
       const message: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Hello',
         timestamp: new Date(),
       };
@@ -127,14 +127,14 @@ describe('chatStore', () => {
       
       const message1: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Hello',
         timestamp: new Date(),
       };
       
       const message2: Message = {
         id: '2',
-        role: 'assistant',
+        sender: 'assistant',
         content: 'Hi there!',
         timestamp: new Date(),
       };
@@ -168,13 +168,13 @@ describe('chatStore', () => {
       const messages: Message[] = [
         {
           id: '1',
-          role: 'user',
+          sender: 'user',
           content: 'Hello',
           timestamp: new Date(),
         },
         {
           id: '2',
-          role: 'assistant',
+          sender: 'assistant',
           content: 'Hi there!',
           timestamp: new Date(),
         },
@@ -193,13 +193,13 @@ describe('chatStore', () => {
       const messages: Message[] = [
         {
           id: '1',
-          role: 'user',
+          sender: 'user',
           content: 'Hello',
           timestamp: new Date(),
         },
         {
           id: '2',
-          role: 'assistant',
+          sender: 'assistant',
           content: 'Hi there!',
           timestamp: new Date(),
         },
@@ -281,10 +281,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -300,18 +301,20 @@ describe('chatStore', () => {
       
       const attachment1: Attachment = {
         id: 'upload1',
-        filename: 'test1.pdf',
-        mimeType: 'application/pdf',
+        name: 'test1.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test1',
+        status: 'uploading',
       };
       
       const attachment2: Attachment = {
         id: 'upload2',
-        filename: 'test2.jpg',
-        mimeType: 'image/jpeg',
+        name: 'test2.jpg',
+        type: 'image/jpeg',
         size: 2048,
         url: 'blob:test2',
+        status: 'uploading',
       };
       
       act(() => {
@@ -329,10 +332,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -341,7 +345,6 @@ describe('chatStore', () => {
       
       act(() => {
         result.current.updatePendingUpload('upload1', {
-          uploadProgress: 50,
           url: 'https://uploaded.url',
         });
       });
@@ -349,7 +352,6 @@ describe('chatStore', () => {
       const updated = result.current.pendingUploads.get('upload1');
       expect(updated).toEqual({
         ...attachment,
-        uploadProgress: 50,
         url: 'https://uploaded.url',
       });
     });
@@ -359,10 +361,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -371,8 +374,7 @@ describe('chatStore', () => {
       
       act(() => {
         result.current.updatePendingUpload('upload2', {
-          uploadProgress: 50,
-        });
+          });
       });
       
       expect(result.current.pendingUploads.size).toBe(1);
@@ -385,18 +387,20 @@ describe('chatStore', () => {
       
       const attachment1: Attachment = {
         id: 'upload1',
-        filename: 'test1.pdf',
-        mimeType: 'application/pdf',
+        name: 'test1.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test1',
+        status: 'uploading',
       };
       
       const attachment2: Attachment = {
         id: 'upload2',
-        filename: 'test2.jpg',
-        mimeType: 'image/jpeg',
+        name: 'test2.jpg',
+        type: 'image/jpeg',
         size: 2048,
         url: 'blob:test2',
+        status: 'uploading',
       };
       
       act(() => {
@@ -432,10 +436,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -450,10 +455,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -463,7 +469,7 @@ describe('chatStore', () => {
       const mapAfterAdd = result.current.pendingUploads;
       
       act(() => {
-        result.current.updatePendingUpload('upload1', { uploadProgress: 50 });
+        result.current.updatePendingUpload('upload1', { status: 'uploading' });
       });
       
       expect(result.current.pendingUploads).not.toBe(mapAfterAdd);
@@ -474,10 +480,11 @@ describe('chatStore', () => {
       
       const attachment: Attachment = {
         id: 'upload1',
-        filename: 'test.pdf',
-        mimeType: 'application/pdf',
+        name: 'test.pdf',
+        type: 'application/pdf',
         size: 1024,
         url: 'blob:test',
+        status: 'uploading',
       };
       
       act(() => {
@@ -501,23 +508,25 @@ describe('chatStore', () => {
       const attachments: Attachment[] = [
         {
           id: 'file1',
-          filename: 'document.pdf',
-          mimeType: 'application/pdf',
+          name: 'document.pdf',
+          type: 'application/pdf',
           size: 1024,
           url: 'https://example.com/file1',
+          status: 'uploaded',
         },
         {
           id: 'file2',
-          filename: 'image.jpg',
-          mimeType: 'image/jpeg',
+          name: 'image.jpg',
+          type: 'image/jpeg',
           size: 2048,
           url: 'https://example.com/file2',
+          status: 'uploaded',
         },
       ];
       
       const message: Message = {
         id: '1',
-        role: 'user',
+        sender: 'user',
         content: 'Here are my files',
         timestamp: new Date(),
         attachments,
@@ -538,16 +547,17 @@ describe('chatStore', () => {
         result.current.setTyping(true);
         result.current.addMessage({
           id: '1',
-          role: 'user',
+          sender: 'user',
           content: 'Hello',
           timestamp: new Date(),
         });
         result.current.addPendingUpload({
           id: 'upload1',
-          filename: 'test.pdf',
-          mimeType: 'application/pdf',
+          name: 'test.pdf',
+          type: 'application/pdf',
           size: 1024,
           url: 'blob:test',
+          status: 'uploading',
         });
       });
       
@@ -561,9 +571,9 @@ describe('chatStore', () => {
       const { result } = renderHook(() => useChatStore());
       
       const messages: Message[] = [
-        { id: '1', role: 'user', content: 'First', timestamp: new Date() },
-        { id: '2', role: 'assistant', content: 'Second', timestamp: new Date() },
-        { id: '3', role: 'user', content: 'Third', timestamp: new Date() },
+        { id: '1', sender: 'user', content: 'First', timestamp: new Date() },
+        { id: '2', sender: 'assistant', content: 'Second', timestamp: new Date() },
+        { id: '3', sender: 'user', content: 'Third', timestamp: new Date() },
       ];
       
       act(() => {
@@ -584,7 +594,7 @@ describe('chatStore', () => {
       
       const message: Message = {
         id: '1',
-        role: 'assistant',
+        sender: 'assistant',
         content: 'Original content',
         timestamp: new Date(),
         metadata: { key: 'value' },
@@ -604,7 +614,7 @@ describe('chatStore', () => {
       const updated = result.current.messages[0];
       expect(updated.content).toBe('Updated content');
       expect(updated.metadata).toEqual({ key: 'new value', extra: 'data' });
-      expect(updated.role).toBe('assistant'); // Unchanged
+      expect(updated.sender).toBe('assistant'); // Unchanged
       expect(updated.timestamp).toEqual(message.timestamp); // Unchanged
     });
   });
@@ -617,7 +627,7 @@ describe('chatStore', () => {
       act(() => {
         result1.current.addMessage({
           id: '1',
-          role: 'user',
+          sender: 'user',
           content: 'Hello from hook 1',
           timestamp: new Date(),
         });

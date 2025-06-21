@@ -57,7 +57,7 @@ describe('messageUtils', () => {
 
     it('should include attachments when provided', () => {
       const attachments = [
-        { id: '1', name: 'file.txt', type: 'text/plain', size: 100 }
+        { id: '1', name: 'file.txt', type: 'text/plain', size: 100, status: 'uploaded' as const }
       ];
       const message = createMessage('Message with attachment', 'user', attachments);
 
@@ -74,7 +74,7 @@ describe('messageUtils', () => {
     it('should format file parts correctly', () => {
       const part: Part = {
         kind: 'file',
-        file: { name: 'document.pdf', mimeType: 'application/pdf' }
+        file: { name: 'document.pdf', mimeType: 'application/pdf', uri: 'file://document.pdf' }
       };
       expect(formatPart(part)).toBe('[File: document.pdf]');
     });
@@ -82,7 +82,7 @@ describe('messageUtils', () => {
     it('should handle unnamed files', () => {
       const part: Part = {
         kind: 'file',
-        file: { mimeType: 'application/pdf' }
+        file: { mimeType: 'application/pdf', uri: 'file://unnamed.pdf' }
       };
       expect(formatPart(part)).toBe('[File: Unnamed]');
     });
@@ -96,6 +96,7 @@ describe('messageUtils', () => {
     });
 
     it('should handle unknown part types', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const part = { kind: 'unknown' } as any;
       expect(formatPart(part)).toBe('[Unknown part type]');
     });
