@@ -30,6 +30,23 @@ vi.mock('../utils/messageUtils', () => ({
   })),
 }));
 
+// Helper to create valid mock agent cards
+const createMockAgentCard = (overrides?: Partial<AgentCard>): AgentCard => {
+  return {
+    name: 'Test Agent',
+    description: 'A test agent',
+    url: 'http://test.agent',
+    version: '1.0.0',
+    defaultInputModes: ['text'],
+    defaultOutputModes: ['text'],
+    skills: [],
+    capabilities: {
+      streaming: false
+    },
+    ...overrides
+  };
+};
+
 describe('useA2AClient', () => {
   const mockA2AClient = vi.mocked(A2AClient);
   let mockClientInstance: any;
@@ -51,7 +68,7 @@ describe('useA2AClient', () => {
     vi.restoreAllMocks();
   });
 
-  it('initializes with disconnected state when no agentUrl provided', () => {
+  it('initializes with disconnected state when no agentCard provided', () => {
     const { result } = renderHook(() => useA2AClient({}));
     
     expect(result.current.isConnected).toBe(false);
@@ -62,7 +79,7 @@ describe('useA2AClient', () => {
     expect(result.current.isStreamActive).toBe(false);
   });
 
-  it('connects to agent when agentUrl is provided', async () => {
+  it('connects to agent when agentCard is provided', async () => {
     const mockAgentCard: AgentCard = {
       name: 'Test Agent',
       description: 'A test agent',
@@ -82,7 +99,7 @@ describe('useA2AClient', () => {
     const onConnectionChange = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onConnectionChange,
     }));
     
@@ -93,7 +110,7 @@ describe('useA2AClient', () => {
     expect(result.current.supportsSSE).toBe(true);
     expect(result.current.agentName).toBe('Test Agent');
     expect(onConnectionChange).toHaveBeenCalledWith(true);
-    expect(mockA2AClient).toHaveBeenCalledWith('http://test.agent', { debug: true });
+    expect(mockA2AClient).toHaveBeenCalledWith('http://test.agent/agent.json', { debug: true });
   });
 
   it('handles connection failure', async () => {
@@ -103,7 +120,7 @@ describe('useA2AClient', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onConnectionChange,
     }));
     
@@ -117,18 +134,14 @@ describe('useA2AClient', () => {
     consoleError.mockRestore();
   });
 
-  it('disconnects when agentUrl is removed', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+  it('disconnects when agentCard is removed', async () => {
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(false);
     
     const { result, rerender } = renderHook(
-      ({ agentUrl }) => useA2AClient({ agentUrl }),
+      ({ agentCard }) => useA2AClient({ agentCard }),
       {
-        initialProps: { agentUrl: 'http://test.agent' },
+        initialProps: { agentCard: 'http://test.agent/agent.json' },
       }
     );
     
@@ -136,24 +149,20 @@ describe('useA2AClient', () => {
       expect(result.current.isConnected).toBe(true);
     });
     
-    rerender({ agentUrl: '' });
+    rerender({ agentCard: '' });
     
     expect(result.current.isConnected).toBe(false);
   });
 
   it('sends message using streaming when SSE is supported', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onMessage = vi.fn();
     const onTypingChange = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onMessage,
       onTypingChange,
     }));
@@ -222,17 +231,13 @@ describe('useA2AClient', () => {
   });
 
   it('sends message using regular request when SSE is not supported', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(false);
     
     const onMessage = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onMessage,
     }));
     
@@ -274,15 +279,11 @@ describe('useA2AClient', () => {
   });
 
   it('includes existing task and context IDs in messages', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(false);
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
     }));
     
     await waitFor(() => {
@@ -339,17 +340,13 @@ describe('useA2AClient', () => {
   });
 
   it('handles artifact updates in stream', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onMessage = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onMessage,
     }));
     
@@ -400,17 +397,13 @@ describe('useA2AClient', () => {
   });
 
   it('handles direct message events in stream', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onMessage = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onMessage,
     }));
     
@@ -451,15 +444,11 @@ describe('useA2AClient', () => {
   });
 
   it('handles task events in stream', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
     }));
     
     await waitFor(() => {
@@ -506,18 +495,14 @@ describe('useA2AClient', () => {
   });
 
   it('handles stream processing errors', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onTypingChange = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onTypingChange,
     }));
     
@@ -543,18 +528,14 @@ describe('useA2AClient', () => {
   });
 
   it('handles empty content in status updates', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const onMessage = vi.fn();
     const onUpdateMessage = vi.fn();
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
       onMessage,
       onUpdateMessage,
     }));
@@ -610,15 +591,11 @@ describe('useA2AClient', () => {
   });
 
   it('handles input-required state without clearing task ID', async () => {
-    mockClientInstance.getAgentCard.mockResolvedValue({
-      name: 'Test Agent',
-      description: 'A test agent',
-      agent_uri: 'http://test.agent',
-    });
+    mockClientInstance.getAgentCard.mockResolvedValue(createMockAgentCard());
     mockClientInstance.supportsStreaming.mockResolvedValue(true);
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
     }));
     
     await waitFor(() => {
@@ -659,13 +636,13 @@ describe('useA2AClient', () => {
   it('uses default agent name when not provided in card', async () => {
     mockClientInstance.getAgentCard.mockResolvedValue({
       description: 'A test agent',
-      agent_uri: 'http://test.agent',
+      url: 'http://test.agent',
       // name is undefined
     });
     mockClientInstance.supportsStreaming.mockResolvedValue(false);
     
     const { result } = renderHook(() => useA2AClient({
-      agentUrl: 'http://test.agent',
+      agentCard: 'http://test.agent/agent.json',
     }));
     
     await waitFor(() => {

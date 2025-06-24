@@ -6,13 +6,13 @@ import { useChatConnection } from '../../hooks/useChatConnection';
 import styles from './ChatWindow.module.css';
 import type { ChatWidgetProps } from '../../types';
 
-export interface ChatWindowProps extends Omit<ChatWidgetProps, 'agentUrl'> {
-  agentUrl: string; // Required A2A agent URL
+export interface ChatWindowProps extends ChatWidgetProps {
+  // All props come from ChatWidgetProps, which now uses agentCard
 }
 
 export function ChatWindow(props: ChatWindowProps) {
   const {
-    agentUrl,
+    agentCard,
     theme,
     placeholder,
     welcomeMessage,
@@ -25,7 +25,7 @@ export function ChatWindow(props: ChatWindowProps) {
 
   const chatTheme = useTheme(theme);
   const { isConnected, agentName, sendMessage } = useChatConnection({
-    agentUrl,
+    agentCard,
     onMessage,
     onConnectionChange
   });

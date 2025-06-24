@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { A2AClient, type A2AStreamEventData } from '../a2aclient/A2AClient';
-import type { Message as A2AMessage, Part } from '../a2aclient/types';
+import type { Message as A2AMessage, Part, AgentCard } from '../a2aclient/types';
 import type { Message } from '../types';
 import { createMessage, formatPart, createArtifactMessage, createGroupedArtifactMessage, type ArtifactData } from '../utils/messageUtils';
 
 interface UseA2AClientProps {
-  agentUrl?: string;
+  agentCard?: string | AgentCard;
   onConnectionChange?: (connected: boolean) => void;
   onMessage?: (message: Message) => void;
   onTypingChange?: (isTyping: boolean) => void;
@@ -21,7 +21,7 @@ interface A2AClientState {
 }
 
 export function useA2AClient({
-  agentUrl,
+  agentCard,
   onConnectionChange,
   onMessage,
   onTypingChange,
@@ -36,13 +36,15 @@ export function useA2AClient({
   });
 
   useEffect(() => {
-    if (!agentUrl) {
+    if (!agentCard) {
       clientRef.current = null;
       setState(prev => ({ ...prev, isConnected: false }));
       return;
     }
 
-    const client = new A2AClient(agentUrl, { debug: true });
+    const client = new A2AClient(agentCard, { 
+      debug: true
+    });
     clientRef.current = client;
 
     // Initialize connection
@@ -68,7 +70,7 @@ export function useA2AClient({
     return () => {
       clientRef.current = null;
     };
-  }, [agentUrl, onConnectionChange]);
+  }, [agentCard, onConnectionChange]);
 
   const handleStreamEvent = useCallback((
     event: A2AStreamEventData,

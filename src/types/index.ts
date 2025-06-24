@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AgentCard } from '../a2aclient/types';
+
 export interface Message {
   id: string;
   content: string;
@@ -54,7 +56,7 @@ export interface ChatTheme {
 }
 
 export interface ChatWidgetProps {
-  agentUrl: string;
+  agentCard: string | AgentCard;
   theme?: Partial<ChatTheme>;
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;

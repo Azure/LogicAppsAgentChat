@@ -479,8 +479,8 @@
           <span class="header-subtitle">Interactive Demo</span>
         </div>
         <nav class="nav-tabs">
-          <a href="/index.html" class="nav-tab active">Chat Demo</a>
-          <a href="/iframe.html" class="nav-tab">iframe Integration</a>
+          <a href="./index.html" class="nav-tab active">Chat Demo</a>
+          <a href="./iframe.html" class="nav-tab">iframe Integration</a>
         </nav>
       </div>
       <a href="https://github.com/microsoft/a2achat" class="github-link" target="_blank">
@@ -501,17 +501,54 @@
         
         <form>
           <div class="form-group">
-            <label class="form-label" for="agent-url">A2A Agent URL</label>
-            <input 
-              type="url" 
-              id="agent-url" 
-              class="input" 
-              placeholder="https://your-a2a-agent.azurewebsites.net"
-              value=""
-            />
-            <p class="form-help">Enter the URL of your A2A-compliant agent endpoint</p>
+            <label class="form-label">Agent Card Configuration</label>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                <input type="radio" name="agent-card-mode" value="custom-url" checked />
+                <span>Provide custom URL</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                <input type="radio" name="agent-card-mode" value="hardcoded" />
+                <span>Hardcode JSON (no fetch)</span>
+              </label>
+            </div>
+            
+            <div id="agent-card-url-group" style="margin-top: 12px;">
+              <input 
+                type="url" 
+                id="agent-card-url" 
+                class="input" 
+                placeholder="https://your-server.com/agent.json"
+                value=""
+                style="margin-top: 8px;"
+              />
+              <p class="form-help">Enter the custom agent card URL</p>
+            </div>
+            
+            <div id="agent-card-json-group" style="margin-top: 12px; display: none;">
+              <textarea 
+                id="agent-card-json" 
+                class="input" 
+                placeholder='{"name": "My Agent", "url": "https://agent.example.com/rpc", ...}'
+                rows="8"
+                style="margin-top: 8px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px;"
+              >{
+  "name": "Test Agent",
+  "version": "1.0.0",
+  "description": "A test agent with hardcoded configuration",
+  "url": "https://agent.example.com/rpc",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "stateTransitionHistory": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": []
+}</textarea>
+              <p class="form-help">Enter the complete agent card JSON</p>
+            </div>
           </div>
-
 
           <div class="form-group">
             <label class="form-label">Theme</label>

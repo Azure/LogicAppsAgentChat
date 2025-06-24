@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ChatWindow } from '../src/components/ChatWindow';
 import { useChatStore } from '../src/store/chatStore';
 import type { ChatTheme } from '../src/types';
+import type { AgentCard } from '../src/a2aclient/types';
 import '../src/styles/base.css';
 
 // Theme presets
@@ -115,13 +116,13 @@ const themes: Record<string, Partial<ChatTheme>> = {
 
 let currentRoot: ReturnType<typeof createRoot> | null = null;
 let currentTheme = 'default';
-let currentAgentUrl = '';
+let currentAgentCard: string | AgentCard | null = null;
 
 interface DemoAppProps {
-  agentUrl: string;
+  agentCard: string | AgentCard;
 }
 
-function DemoApp({ agentUrl }: DemoAppProps) {
+function DemoApp({ agentCard }: DemoAppProps) {
   const [, setConnectionStatus] = React.useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
 
   const handleConnectionChange = (connected: boolean) => {
@@ -136,7 +137,7 @@ function DemoApp({ agentUrl }: DemoAppProps) {
 
   return (
     <ChatWindow
-      agentUrl={agentUrl}
+      agentCard={agentCard}
       theme={themes[currentTheme]}
       onConnectionChange={handleConnectionChange}
       welcomeMessage="Hello! I'm ready to assist you. How can I help today?"
@@ -148,15 +149,15 @@ function DemoApp({ agentUrl }: DemoAppProps) {
   );
 }
 
-function mountChat(agentUrl: string) {
+function mountChat(agentCard: string | AgentCard) {
   const container = document.getElementById('chat-mount');
   if (!container) {
     console.error('Chat mount container not found');
     return;
   }
 
-  // Store current agent URL
-  currentAgentUrl = agentUrl;
+  // Store current agent card
+  currentAgentCard = agentCard;
 
   // Clear chat store
   useChatStore.getState().clearMessages();
@@ -169,7 +170,7 @@ function mountChat(agentUrl: string) {
 
   // Create new root and render
   currentRoot = createRoot(container);
-  currentRoot.render(<DemoApp agentUrl={agentUrl} />);
+  currentRoot.render(<DemoApp agentCard={agentCard} />);
 }
 
 function updateStatus(status: 'connected' | 'disconnected' | 'connecting') {
@@ -196,21 +197,73 @@ function updateStatus(status: 'connected' | 'disconnected' | 'connecting') {
 // Initialize demo
 document.addEventListener('DOMContentLoaded', () => {
   const connectBtn = document.getElementById('connect-btn');
-  const agentUrlInput = document.getElementById('agent-url') as HTMLInputElement;
+  const agentCardUrlInput = document.getElementById('agent-card-url') as HTMLInputElement;
+  const agentCardJsonInput = document.getElementById('agent-card-json') as HTMLTextAreaElement;
   const themeButtons = document.querySelectorAll('.theme-option');
+  const agentCardModeRadios = document.getElementsByName('agent-card-mode') as NodeListOf<HTMLInputElement>;
+  const agentCardUrlGroup = document.getElementById('agent-card-url-group');
+  const agentCardJsonGroup = document.getElementById('agent-card-json-group');
+
+  // Handle agent card mode radio changes
+  agentCardModeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (agentCardUrlGroup && agentCardJsonGroup) {
+        agentCardUrlGroup.style.display = 'none';
+        agentCardJsonGroup.style.display = 'none';
+        
+        if (radio.value === 'custom-url') {
+          agentCardUrlGroup.style.display = 'block';
+        } else if (radio.value === 'hardcoded') {
+          agentCardJsonGroup.style.display = 'block';
+        }
+      }
+    });
+  });
+  
+  // Initialize the view with custom-url mode selected by default
+  if (agentCardUrlGroup) {
+    agentCardUrlGroup.style.display = 'block';
+  }
+  if (agentCardJsonGroup) {
+    agentCardJsonGroup.style.display = 'none';
+  }
 
   // Connect button handler
-  connectBtn?.addEventListener('click', () => {
-    const url = agentUrlInput?.value.trim();
-    if (url) {
-      mountChat(url);
-    } else {
-      alert('Please enter an A2A Agent URL');
+  connectBtn?.addEventListener('click', async () => {
+    const selectedMode = Array.from(agentCardModeRadios).find(r => r.checked)?.value;
+    
+    if (selectedMode === 'hardcoded') {
+      // For hardcoded JSON, use the agent card object directly
+      const jsonStr = agentCardJsonInput?.value.trim();
+      if (!jsonStr) {
+        alert('Please enter agent card JSON');
+        return;
+      }
+      
+      try {
+        const agentCard = JSON.parse(jsonStr) as AgentCard;
+        if (!agentCard.url) {
+          alert('Agent card JSON must contain a "url" field');
+          return;
+        }
+        mountChat(agentCard);
+      } catch (error) {
+        alert('Invalid JSON format: ' + error.message);
+      }
+    } else if (selectedMode === 'custom-url') {
+      // For custom URL mode, pass the URL and let A2AClient fetch it
+      const cardUrl = agentCardUrlInput?.value.trim();
+      if (!cardUrl) {
+        alert('Please enter the custom agent card URL');
+        return;
+      }
+      
+      mountChat(cardUrl);
     }
   });
 
-  // Enter key handler for URL input
-  agentUrlInput?.addEventListener('keypress', (e) => {
+  // Enter key handler for agent card URL input
+  agentCardUrlInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       connectBtn?.click();
     }
@@ -229,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTheme = theme;
 
         // Remount chat with new theme if connected
-        if (currentAgentUrl && currentRoot) {
-          mountChat(currentAgentUrl);
+        if (currentAgentCard && currentRoot) {
+          mountChat(currentAgentCard);
         }
       }
     });
@@ -239,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check for URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const agentParam = urlParams.get('agent');
+  const agentCardParam = urlParams.get('agentCard');
   const themeParam = urlParams.get('theme');
   const embeddedParam = urlParams.get('embedded');
 
@@ -259,9 +313,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Auto-connect if agent URL is provided
-  if (agentParam && agentUrlInput) {
-    agentUrlInput.value = agentParam;
-    connectBtn?.click();
+  // Set agent card URL if provided and auto-connect
+  if (agentCardParam && agentCardUrlInput) {
+    agentCardUrlInput.value = agentCardParam;
+    
+    // Select the custom-url radio button
+    const customUrlRadio = Array.from(agentCardModeRadios).find(r => r.value === 'custom-url');
+    if (customUrlRadio) {
+      customUrlRadio.checked = true;
+      // Trigger change event to show the custom URL input
+      customUrlRadio.dispatchEvent(new Event('change'));
+    }
+    
+    // Auto-connect in embedded mode
+    if (embeddedParam === 'true') {
+      // Pass the agent card URL and let A2AClient fetch it
+      mountChat(agentCardParam);
+    }
+  }
+
+  // Handle postMessage for embedded iframe mode
+  if (embeddedParam === 'true' && urlParams.get('expectPostMessage') === 'true') {
+    // Send ready signal to parent
+    window.parent.postMessage({ type: 'IFRAME_READY' }, '*');
+
+    // Listen for agent card data
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SET_AGENT_CARD' && event.data.agentCard) {
+        const agentCard = event.data.agentCard as AgentCard;
+        if (agentCard.url) {
+          try {
+            mountChat(agentCard);
+          } catch (error) {
+            console.error('Failed to process agent card:', error);
+          }
+        }
+      }
+    });
   }
 });
