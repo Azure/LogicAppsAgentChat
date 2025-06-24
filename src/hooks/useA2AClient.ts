@@ -1,8 +1,19 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { A2AClient, type A2AStreamEventData } from '../a2aclient/A2AClient';
-import type { Message as A2AMessage, Part, AgentCard } from '../a2aclient/types';
-import type { Message } from '../types';
-import { createMessage, formatPart, createArtifactMessage, createGroupedArtifactMessage, type ArtifactData } from '../utils/messageUtils';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useRef, useState, useCallback } from "react";
+import { A2AClient, type A2AStreamEventData } from "../a2aclient/A2AClient";
+import type {
+  Message as A2AMessage,
+  Part,
+  AgentCard,
+} from "../a2aclient/types";
+import type { Message } from "../types";
+import {
+  createMessage,
+  formatPart,
+  createArtifactMessage,
+  createGroupedArtifactMessage,
+  type ArtifactData,
+} from "../utils/messageUtils";
 
 interface UseA2AClientProps {
   agentCard?: string | AgentCard;
@@ -25,45 +36,46 @@ export function useA2AClient({
   onConnectionChange,
   onMessage,
   onTypingChange,
-  onUpdateMessage
+  onUpdateMessage,
 }: UseA2AClientProps) {
   const clientRef = useRef<A2AClient | null>(null);
   const streamActiveRef = useRef<boolean>(false);
   const [state, setState] = useState<A2AClientState>({
     isConnected: false,
     supportsSSE: false,
-    agentName: 'Agent',
+    agentName: "Agent",
   });
 
   useEffect(() => {
     if (!agentCard) {
       clientRef.current = null;
-      setState(prev => ({ ...prev, isConnected: false }));
+      setState((prev) => ({ ...prev, isConnected: false }));
       return;
     }
 
-    const client = new A2AClient(agentCard, { 
-      debug: true
+    const client = new A2AClient(agentCard, {
+      debug: true,
     });
     clientRef.current = client;
 
     // Initialize connection
-    client.getAgentCard()
+    client
+      .getAgentCard()
       .then(async (card) => {
         const supportsStreaming = await client.supportsStreaming();
-        
-        setState(prev => ({
+
+        setState((prev) => ({
           ...prev,
           isConnected: true,
           supportsSSE: supportsStreaming,
-          agentName: card.name || 'Agent'
+          agentName: card.name || "Agent",
         }));
-        
+
         onConnectionChange?.(true);
       })
       .catch((error) => {
-        console.error('Failed to connect to A2A agent:', error);
-        setState(prev => ({ ...prev, isConnected: false }));
+        console.error("Failed to connect to A2A agent:", error);
+        setState((prev) => ({ ...prev, isConnected: false }));
         onConnectionChange?.(false);
       });
 
@@ -72,171 +84,293 @@ export function useA2AClient({
     };
   }, [agentCard, onConnectionChange]);
 
-  const handleStreamEvent = useCallback((
-    event: A2AStreamEventData,
-    collectedArtifacts: ArtifactData[]
-  ): void => {
-    if (event.kind === 'status-update') {
-      const update = event;
-      const content = update.status?.message ? 
-        update.status.message.parts.map(formatPart).join('\n') : '';
-
-      if (content.trim()) {
-        // Create regular message for status updates
-        const message = createMessage(content, 'assistant');
-        onMessage?.(message);
-      }
-
-      // Update task and context IDs
-      if (update.taskId) {
-        setState(prev => ({ ...prev, currentTaskId: update.taskId }));
-      }
-      if (update.contextId) {
-        setState(prev => ({ ...prev, currentContextId: update.contextId }));
-      }
-
-      // Handle final status
-      if (update.final) {
-        setState(prev => ({ 
-          ...prev, 
-          currentTaskId: update.status?.state === 'input-required' ? prev.currentTaskId : undefined
-        }));
-        streamActiveRef.current = false;
-        onTypingChange?.(false);
-      }
-    } else if (event.kind === 'artifact-update') {
-      const update = event;
-      if (update.artifact && update.artifact.parts) {
-        const artifactName = update.artifact.name || 'Artifact';
-        const content = update.artifact.parts.map(formatPart).join('\n');
+  const handleStreamEvent = useCallback(
+    (event: A2AStreamEventData, collectedArtifacts: ArtifactData[]): void => {
+      if (event.kind === "status-update") {
+        const update = event;
+        const content = update.status?.message
+          ? update.status.message.parts.map(formatPart).join("\n")
+          : "";
 
         if (content.trim()) {
-          collectedArtifacts.push({
-            name: artifactName,
-            content: content
+          // Create regular message for status updates
+          const message = createMessage(content, "assistant");
+          onMessage?.(message);
+        }
+
+        // Update task and context IDs
+        if (update.taskId) {
+          setState((prev) => ({ ...prev, currentTaskId: update.taskId }));
+        }
+        if (update.contextId) {
+          setState((prev) => ({ ...prev, currentContextId: update.contextId }));
+        }
+
+        // Handle final status
+        if (update.final) {
+          setState((prev) => ({
+            ...prev,
+            currentTaskId:
+              update.status?.state === "input-required"
+                ? prev.currentTaskId
+                : undefined,
+          }));
+          streamActiveRef.current = false;
+          onTypingChange?.(false);
+        }
+      } else if (event.kind === "artifact-update") {
+        const update = event;
+        if (update.artifact && update.artifact.parts) {
+          const artifactName = update.artifact.name || "Artifact";
+          const content = update.artifact.parts.map(formatPart).join("\n");
+
+          if (content.trim()) {
+            collectedArtifacts.push({
+              name: artifactName,
+              content: content,
+            });
+          }
+        }
+      } else if (event.kind === "message" && event.role === "agent") {
+        const msg = event as A2AMessage;
+        const content = msg.parts.map(formatPart).join("\n");
+
+        const assistantMessage = createMessage(content, "assistant");
+        onMessage?.(assistantMessage);
+
+        // Update IDs
+        if (msg.taskId) {
+          setState((prev) => ({ ...prev, currentTaskId: msg.taskId }));
+        }
+        if (msg.contextId) {
+          setState((prev) => ({ ...prev, currentContextId: msg.contextId }));
+        }
+      } else if (event.kind === "task") {
+        const task = event;
+        if (task.id) {
+          setState((prev) => ({ ...prev, currentTaskId: task.id }));
+        }
+        if (task.contextId) {
+          setState((prev) => ({ ...prev, currentContextId: task.contextId }));
+        }
+      }
+    },
+    [onMessage, onTypingChange, onUpdateMessage],
+  );
+
+  const sendMessage = useCallback(
+    async (content: string, messageId: string): Promise<void> => {
+      if (!clientRef.current || !state.isConnected) {
+        throw new Error("A2A client not connected");
+      }
+
+      const a2aMessage: A2AMessage = {
+        kind: "message",
+        messageId,
+        role: "user",
+        parts: [{ kind: "text", text: content }] as Part[],
+      };
+
+      // Only add context ID for non-streaming mode
+      // For non-streaming, we should NOT include task ID to avoid the "terminal state" error
+      if (!state.supportsSSE) {
+        // Only include context ID, never task ID for non-streaming
+        if (state.currentContextId) {
+          a2aMessage.contextId = state.currentContextId;
+        }
+      } else {
+        // For streaming mode, include both if available
+        if (state.currentTaskId) {
+          a2aMessage.taskId = state.currentTaskId;
+        }
+        if (state.currentContextId) {
+          a2aMessage.contextId = state.currentContextId;
+        }
+      }
+
+      if (state.supportsSSE) {
+        // Use streaming for real-time responses
+        const stream = clientRef.current.sendMessageStream({
+          message: a2aMessage,
+          configuration: {
+            acceptedOutputModes: ["text"],
+          },
+        });
+
+        const collectedArtifacts: ArtifactData[] = [];
+        streamActiveRef.current = true;
+        onTypingChange?.(true);
+
+        try {
+          for await (const event of stream) {
+            handleStreamEvent(event, collectedArtifacts);
+          }
+
+          // Add grouped artifact message if we collected any
+          if (collectedArtifacts.length > 0) {
+            if (collectedArtifacts.length === 1) {
+              // Single artifact - use regular artifact message
+              const artifact = collectedArtifacts[0];
+              onMessage?.(
+                createArtifactMessage(artifact.name, artifact.content),
+              );
+            } else {
+              // Multiple artifacts - use grouped message
+              onMessage?.(createGroupedArtifactMessage(collectedArtifacts));
+            }
+          }
+        } catch (error) {
+          console.error("Error in stream processing:", error);
+          throw error;
+        } finally {
+          streamActiveRef.current = false;
+          onTypingChange?.(false);
+        }
+      } else {
+        // Use simple request/response
+        onTypingChange?.(true); // Show typing indicator for non-streaming requests
+
+        try {
+          const response = await clientRef.current.sendMessage({
+            message: a2aMessage,
+            configuration: {
+              acceptedOutputModes: ["text"],
+            },
           });
-        }
-      }
-    } else if (event.kind === 'message' && event.role === 'agent') {
-      const msg = event as A2AMessage;
-      const content = msg.parts.map(formatPart).join('\n');
 
-      const assistantMessage = createMessage(content, 'assistant');
-      onMessage?.(assistantMessage);
+          if ("result" in response && response.result) {
+            let agentMessage: A2AMessage | undefined;
 
-      // Update IDs
-      if (msg.taskId) {
-        setState(prev => ({ ...prev, currentTaskId: msg.taskId }));
-      }
-      if (msg.contextId) {
-        setState(prev => ({ ...prev, currentContextId: msg.contextId }));
-      }
-    } else if (event.kind === 'task') {
-      const task = event;
-      if (task.id) {
-        setState(prev => ({ ...prev, currentTaskId: task.id }));
-      }
-      if (task.contextId) {
-        setState(prev => ({ ...prev, currentContextId: task.contextId }));
-      }
-    }
-  }, [onMessage, onTypingChange, onUpdateMessage]);
+            // Handle different response types
+            if (response.result.kind === "message") {
+              agentMessage = response.result;
+            } else if (response.result.kind === "task") {
+              const taskResult = response.result as any; // Type assertion needed due to union type
 
-  const sendMessage = useCallback(async (
-    content: string,
-    messageId: string
-  ): Promise<void> => {
-    if (!clientRef.current || !state.isConnected) {
-      throw new Error('A2A client not connected');
-    }
+              // Process all messages from history (except the user's message)
+              const processedMessageIds = new Set<string>();
 
-    const a2aMessage: A2AMessage = {
-      kind: 'message',
-      messageId,
-      role: 'user',
-      parts: [{ kind: 'text', text: content }] as Part[]
-    };
+              if (taskResult.history && Array.isArray(taskResult.history)) {
+                // Skip the first message (user's message) and process all agent messages
+                for (let i = 1; i < taskResult.history.length; i++) {
+                  const historyMsg = taskResult.history[i];
+                  if (
+                    historyMsg.role === "agent" &&
+                    historyMsg.parts &&
+                    historyMsg.messageId
+                  ) {
+                    processedMessageIds.add(historyMsg.messageId);
+                    const content = historyMsg.parts.map(formatPart).join("\n");
+                    if (content.trim()) {
+                      const assistantMessage = createMessage(
+                        content,
+                        "assistant",
+                      );
+                      onMessage?.(assistantMessage);
+                    }
+                  }
+                }
+              }
 
-    // Add task and context IDs if available
-    if (state.currentTaskId) {
-      a2aMessage.taskId = state.currentTaskId;
-    }
-    if (state.currentContextId) {
-      a2aMessage.contextId = state.currentContextId;
-    }
+              // Process the status message only if it wasn't already in history
+              if (
+                taskResult.status?.message &&
+                taskResult.status.message.messageId &&
+                !processedMessageIds.has(taskResult.status.message.messageId)
+              ) {
+                agentMessage = taskResult.status.message;
+              }
 
-    if (state.supportsSSE) {
-      // Use streaming for real-time responses
-      const stream = clientRef.current.sendMessageStream({
-        message: a2aMessage,
-        configuration: {
-          acceptedOutputModes: ['text']
-        }
-      });
+              // If task is completed, clear the task ID to avoid reusing it
+              if (taskResult.status?.state === "completed") {
+                setState((prev) => ({
+                  ...prev,
+                  currentTaskId: undefined,
+                  currentContextId: taskResult.contextId,
+                }));
+              } else {
+                if (taskResult.id) {
+                  setState((prev) => ({
+                    ...prev,
+                    currentTaskId: taskResult.id,
+                  }));
+                }
+                if (taskResult.contextId) {
+                  setState((prev) => ({
+                    ...prev,
+                    currentContextId: taskResult.contextId,
+                  }));
+                }
+              }
+            }
 
-      const collectedArtifacts: ArtifactData[] = [];
-      streamActiveRef.current = true;
-      onTypingChange?.(true);
+            // Process the agent message
+            if (agentMessage && agentMessage.role === "agent") {
+              const content = agentMessage.parts.map(formatPart).join("\n");
+              const assistantMessage = createMessage(content, "assistant");
+              onMessage?.(assistantMessage);
 
-      try {
-        for await (const event of stream) {
-          handleStreamEvent(event, collectedArtifacts);
-        }
+              // Update IDs from the message as well
+              if (agentMessage.taskId) {
+                setState((prev) => ({
+                  ...prev,
+                  currentTaskId: agentMessage.taskId,
+                }));
+              }
+              if (agentMessage.contextId) {
+                setState((prev) => ({
+                  ...prev,
+                  currentContextId: agentMessage.contextId,
+                }));
+              }
+            }
 
-        // Add grouped artifact message if we collected any
-        if (collectedArtifacts.length > 0) {
-          if (collectedArtifacts.length === 1) {
-            // Single artifact - use regular artifact message
-            const artifact = collectedArtifacts[0];
-            onMessage?.(createArtifactMessage(artifact.name, artifact.content));
-          } else {
-            // Multiple artifacts - use grouped message
-            onMessage?.(createGroupedArtifactMessage(collectedArtifacts));
+            // Process artifacts if present in task response
+            if (
+              response.result.kind === "task" &&
+              response.result.artifacts &&
+              response.result.artifacts.length > 0
+            ) {
+              const artifacts = response.result.artifacts;
+              const collectedArtifacts: ArtifactData[] = artifacts.map(
+                (artifact: any) => ({
+                  name: artifact.name || artifact.artifactId || "Artifact",
+                  content: artifact.parts
+                    ? artifact.parts
+                        .map((part: any) =>
+                          part.kind === "text" ? part.text : "",
+                        )
+                        .join("\n")
+                    : "",
+                }),
+              );
+
+              if (collectedArtifacts.length === 1) {
+                // Single artifact - use regular artifact message
+                const artifact = collectedArtifacts[0];
+                onMessage?.(
+                  createArtifactMessage(artifact.name, artifact.content),
+                );
+              } else if (collectedArtifacts.length > 1) {
+                // Multiple artifacts - use grouped message
+                onMessage?.(createGroupedArtifactMessage(collectedArtifacts));
+              }
+            }
           }
-        }
-      } catch (error) {
-        console.error('Error in stream processing:', error);
-        throw error;
-      } finally {
-        streamActiveRef.current = false;
-        onTypingChange?.(false);
-      }
-    } else {
-      // Use simple request/response
-      const response = await clientRef.current.sendMessage({
-        message: a2aMessage,
-        configuration: {
-          acceptedOutputModes: ['text']
-        }
-      });
-
-      if ('result' in response && response.result) {
-        let agentMessage: A2AMessage | undefined;
-
-        if (response.result.kind === 'message') {
-          agentMessage = response.result;
-        }
-
-        if (agentMessage && agentMessage.role === 'agent') {
-          const content = agentMessage.parts.map(formatPart).join('\n');
-          const assistantMessage = createMessage(content, 'assistant');
-          onMessage?.(assistantMessage);
-
-          // Update IDs
-          if (agentMessage.taskId) {
-            setState(prev => ({ ...prev, currentTaskId: agentMessage.taskId }));
-          }
-          if (agentMessage.contextId) {
-            setState(prev => ({ ...prev, currentContextId: agentMessage.contextId }));
-          }
+        } catch (error) {
+          console.error("Error in non-streaming message processing:", error);
+          throw error;
+        } finally {
+          onTypingChange?.(false); // Hide typing indicator after processing response
         }
       }
-    }
-  }, [state, handleStreamEvent, onMessage, onTypingChange]);
+    },
+    [state, handleStreamEvent, onMessage, onTypingChange],
+  );
 
   return {
     ...state,
     sendMessage,
-    isStreamActive: streamActiveRef.current
+    isStreamActive: streamActiveRef.current,
   };
 }
