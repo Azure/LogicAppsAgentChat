@@ -347,6 +347,80 @@
     .theme-option.selected::after {
       opacity: 1;
     }
+    
+    /* JSON Syntax Highlighting */
+    .json-editor-wrapper {
+      position: relative;
+      margin-top: 8px;
+    }
+    
+    .json-editor {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      background: #ffffff;
+      color: #323130;
+      border: 1px solid #605e5c;
+      padding: 12px;
+      min-height: 200px;
+      overflow: auto;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    
+    .json-editor:hover {
+      border-color: #323130;
+    }
+    
+    .json-editor:focus {
+      outline: none;
+      border-color: #0078d4;
+      border-width: 2px;
+      padding: 11px;
+    }
+    
+    /* JSON Syntax Colors - Light Theme */
+    .json-key { color: #0451a5; }
+    .json-string { color: #a31515; }
+    .json-number { color: #098658; }
+    .json-boolean { color: #0000ff; }
+    .json-null { color: #0000ff; }
+    .json-punctuation { color: #323130; }
+    
+    .json-prettify-btn {
+      margin-top: 8px;
+      padding: 5px 12px;
+      min-height: 32px;
+      background: #ffffff;
+      color: #323130;
+      border: 1px solid #d1d1d1;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.1s;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      outline: none;
+    }
+    
+    .json-prettify-btn:hover {
+      background: #f3f2f1;
+      border-color: #c7c7c7;
+    }
+    
+    .json-prettify-btn:active {
+      background: #e1e1e1;
+      transform: scale(0.98);
+    }
+    
+    .json-prettify-btn:focus {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 2px rgba(0,120,212,0.1);
+    }
 
     /* Preview section */
     .preview-card {
@@ -526,13 +600,19 @@
             </div>
             
             <div id="agent-card-json-group" style="margin-top: 12px; display: none;">
-              <textarea 
-                id="agent-card-json" 
-                class="input" 
-                placeholder='{"name": "My Agent", "url": "https://agent.example.com/rpc", ...}'
-                rows="8"
-                style="margin-top: 8px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px;"
-              >{
+              <div class="json-editor-wrapper">
+                <div 
+                  id="agent-card-json-display" 
+                  class="json-editor"
+                  style="display: block; white-space: pre;"
+                ></div>
+                <textarea 
+                  id="agent-card-json" 
+                  class="input" 
+                  placeholder='{"name": "My Agent", "url": "https://agent.example.com/rpc", ...}'
+                  rows="8"
+                  style="position: absolute; left: -9999px; top: -9999px;"
+                >{
   "name": "Test Agent",
   "version": "1.0.0",
   "description": "A test agent with hardcoded configuration",
@@ -546,6 +626,8 @@
   "defaultOutputModes": ["text"],
   "skills": []
 }</textarea>
+              </div>
+              <button type="button" class="json-prettify-btn" id="json-prettify-btn">Prettify JSON</button>
               <p class="form-help">Enter the complete agent card JSON</p>
             </div>
           </div>
@@ -596,6 +678,102 @@
     </div>
   </div>
 
+  <script>
+    // JSON Syntax Highlighting
+    function highlightJSON(json) {
+      if (!json) return '';
+      
+      // Escape HTML
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      
+      // Add syntax highlighting
+      return json
+        // Strings
+        .replace(/"(\\.|[^"\\])*"/g, '<span class="json-string">$&</span>')
+        // Keys (strings followed by colon)
+        .replace(/(<span class="json-string">"[^"]*"<\/span>)(\s*:)/g, '<span class="json-key">$1</span>$2')
+        // Numbers
+        .replace(/\b(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>')
+        // Booleans
+        .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+        // Null
+        .replace(/\b(null)\b/g, '<span class="json-null">$1</span>')
+        // Punctuation
+        .replace(/([{}\[\],:])/g, '<span class="json-punctuation">$1</span>');
+    }
+    
+    // Prettify JSON
+    function prettifyJSON() {
+      const jsonTextarea = document.getElementById('agent-card-json');
+      const jsonDisplay = document.getElementById('agent-card-json-display');
+      
+      if (jsonTextarea && jsonDisplay) {
+        try {
+          // Parse and prettify the JSON
+          const jsonObj = JSON.parse(jsonTextarea.value);
+          const prettified = JSON.stringify(jsonObj, null, 2);
+          
+          // Update both textarea and display with proper line breaks
+          jsonTextarea.value = prettified;
+          // For display, we need to convert line breaks to <br> after highlighting
+          const highlighted = highlightJSON(prettified);
+          jsonDisplay.innerHTML = highlighted;
+        } catch (e) {
+          // If JSON is invalid, show an alert
+          alert('Invalid JSON: ' + e.message);
+        }
+      }
+    }
+    
+    // Initialize JSON editor
+    document.addEventListener('DOMContentLoaded', function() {
+      const jsonTextarea = document.getElementById('agent-card-json');
+      const jsonDisplay = document.getElementById('agent-card-json-display');
+      const prettifyBtn = document.getElementById('json-prettify-btn');
+      
+      if (jsonTextarea && jsonDisplay) {
+        // Set initial content
+        jsonDisplay.innerHTML = highlightJSON(jsonTextarea.value);
+        
+        // Make it editable
+        jsonDisplay.contentEditable = true;
+        jsonDisplay.spellcheck = false;
+        
+        // Handle input
+        jsonDisplay.addEventListener('input', function() {
+          const text = this.innerText || this.textContent || '';
+          jsonTextarea.value = text;
+        });
+        
+        // Handle paste - strip formatting
+        jsonDisplay.addEventListener('paste', function(e) {
+          e.preventDefault();
+          const text = (e.clipboardData || window.clipboardData).getData('text');
+          
+          // Update the textarea
+          jsonTextarea.value = text;
+          
+          // Update display with highlighted content
+          this.innerHTML = highlightJSON(text);
+          
+          // Move cursor to end
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(this);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        });
+      }
+      
+      // Add prettify button handler
+      if (prettifyBtn) {
+        prettifyBtn.addEventListener('click', function() {
+          prettifyJSON();
+        });
+      }
+    });
+  </script>
   <script type="module" src="./app.tsx"></script>
 </body>
 </html>
