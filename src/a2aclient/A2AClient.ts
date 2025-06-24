@@ -36,24 +36,28 @@ export interface A2AClientConfig {
  * When SSE is not supported, methods like sendMessageStream will throw an error
  */
 export class A2AClient {
-  private agentBaseUrl: string;
   private agentCardPromise: Promise<AgentCard>;
   private requestIdCounter: number = 1;
   private serviceEndpointUrl?: string;
   private supportsSSE: boolean = false;
-  private config: Required<A2AClientConfig>;
+  private config: A2AClientConfig & { debug: boolean };
 
   /**
    * Constructs an A2AClient instance.
-   * @param agentBaseUrl The base URL of the A2A agent
+   * @param agentCard The agent card URL or AgentCard object
    * @param config Optional configuration
    */
-  constructor(agentBaseUrl: string, config: A2AClientConfig = {}) {
-    this.agentBaseUrl = agentBaseUrl.replace(/\/$/, "");
+  constructor(agentCard: string | AgentCard, config: A2AClientConfig = {}) {
     this.config = {
       debug: config.debug || false
     };
-    this.agentCardPromise = this._fetchAndCacheAgentCard();
+    
+    // If agent card is an object, use it directly; if it's a string, fetch it
+    if (typeof agentCard === 'object') {
+      this.agentCardPromise = this._initializeWithAgentCard(agentCard);
+    } else {
+      this.agentCardPromise = this._fetchAgentCard(agentCard);
+    }
   }
 
   private log(...args: unknown[]) {
@@ -64,10 +68,27 @@ export class A2AClient {
   }
 
   /**
-   * Fetches the Agent Card and determines capabilities
+   * Initializes the client with an agent card object
    */
-  private async _fetchAndCacheAgentCard(): Promise<AgentCard> {
-    const agentCardUrl = `${this.agentBaseUrl}/.well-known/agent.json`;
+  private async _initializeWithAgentCard(agentCard: AgentCard): Promise<AgentCard> {
+    this.log('Using provided agent card object');
+    
+    if (!agentCard.url) {
+      throw new Error("Agent Card does not contain a valid 'url' for the service endpoint.");
+    }
+    
+    this.serviceEndpointUrl = agentCard.url;
+    this.supportsSSE = agentCard.capabilities?.streaming || false;
+    this.log(`Agent capabilities: SSE=${this.supportsSSE}`);
+    
+    return agentCard;
+  }
+
+  /**
+   * Fetches the Agent Card from a URL
+   */
+  private async _fetchAgentCard(agentCardUrl: string): Promise<AgentCard> {
+    this.log(`Fetching agent card from: ${agentCardUrl}`);
     try {
       const response = await fetch(agentCardUrl, {
         headers: { 'Accept': 'application/json' },
@@ -92,18 +113,7 @@ export class A2AClient {
   /**
    * Retrieves the Agent Card
    */
-  public async getAgentCard(agentBaseUrl?: string): Promise<AgentCard> {
-    if (agentBaseUrl) {
-      const specificAgentBaseUrl = agentBaseUrl.replace(/\/$/, "");
-      const agentCardUrl = `${specificAgentBaseUrl}/.well-known/agent.json`;
-      const response = await fetch(agentCardUrl, {
-        headers: { 'Accept': 'application/json' },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch Agent Card from ${agentCardUrl}: ${response.status} ${response.statusText}`);
-      }
-      return await response.json() as AgentCard;
-    }
+  public async getAgentCard(): Promise<AgentCard> {
     return this.agentCardPromise;
   }
 

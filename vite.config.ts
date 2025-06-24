@@ -52,11 +52,11 @@ export default defineConfig(({ mode }) => {
           }
         },
         outDir: 'dist/iframe',
-        sourcemap: false,
+        sourcemap: true,
         minify: 'terser',
         terserOptions: {
           compress: {
-            drop_console: true,
+            drop_console: false, // Keep console logs for debugging
             drop_debugger: true
           }
         }
@@ -99,11 +99,11 @@ export default defineConfig(({ mode }) => {
           }
         },
         outDir: 'dist/demo',
-        sourcemap: false,
+        sourcemap: true,
         minify: 'terser',
         terserOptions: {
           compress: {
-            drop_console: true,
+            drop_console: false, // Keep console logs for debugging
             drop_debugger: true
           }
         }

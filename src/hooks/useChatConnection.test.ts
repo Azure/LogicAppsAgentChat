@@ -66,16 +66,16 @@ describe('useChatConnection', () => {
   });
 
   it('initializes with A2A client connection', () => {
-    const agentUrl = 'http://test.agent';
+    const agentCard = 'http://test.agent/agent.json';
     const onMessage = vi.fn();
     const onConnectionChange = vi.fn();
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl, onMessage, onConnectionChange })
+      useChatConnection({ agentCard, onMessage, onConnectionChange })
     );
     
     expect(mockUseA2AClient).toHaveBeenCalledWith({
-      agentUrl,
+      agentCard,
       onConnectionChange: expect.any(Function),
       onMessage: expect.any(Function),
       onTypingChange: expect.any(Function),
@@ -90,7 +90,7 @@ describe('useChatConnection', () => {
     const onMessage = vi.fn();
     
     renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent', onMessage })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json', onMessage })
     );
     
     // Get the message handler passed to useA2AClient
@@ -117,7 +117,7 @@ describe('useChatConnection', () => {
     const onConnectionChange = vi.fn();
     
     renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent', onConnectionChange })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json', onConnectionChange })
     );
     
     // Get the connection handler passed to useA2AClient
@@ -141,7 +141,7 @@ describe('useChatConnection', () => {
 
   it('handles typing changes', () => {
     renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     // Get the typing handler passed to useA2AClient
@@ -174,7 +174,7 @@ describe('useChatConnection', () => {
     mockA2AClient.sendMessage.mockResolvedValue(undefined);
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     await act(async () => {
@@ -211,7 +211,7 @@ describe('useChatConnection', () => {
     mockA2AClient.sendMessage.mockResolvedValue(undefined);
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     await act(async () => {
@@ -240,7 +240,7 @@ describe('useChatConnection', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     await act(async () => {
@@ -272,7 +272,7 @@ describe('useChatConnection', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     await act(async () => {
@@ -291,7 +291,7 @@ describe('useChatConnection', () => {
     mockA2AClient.sendMessage.mockResolvedValue(undefined);
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     // Send first message
@@ -329,7 +329,7 @@ describe('useChatConnection', () => {
 
   it('maintains stable callback references', () => {
     const { result, rerender } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     const firstSendMessage = result.current.sendMessage;
@@ -343,7 +343,7 @@ describe('useChatConnection', () => {
 
   it('updates when A2A client state changes', () => {
     const { result, rerender } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     expect(result.current.isConnected).toBe(true);
@@ -387,7 +387,7 @@ describe('useChatConnection', () => {
     mockA2AClient.sendMessage.mockResolvedValue(undefined);
     
     const { result } = renderHook(() => 
-      useChatConnection({ agentUrl: 'http://test.agent' })
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
     await act(async () => {

@@ -86,7 +86,7 @@ describe('iframe', () => {
   });
 
   it('initializes with agent URL from data attribute', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     
@@ -94,27 +94,27 @@ describe('iframe', () => {
     expect(mockRoot.render).toHaveBeenCalled();
     
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentUrl).toBe('http://test.agent');
+    expect(renderCall.props.agentCard).toBe('http://test.agent/agent.json');
     expect(renderCall.props.allowFileUpload).toBe(true);
   });
 
   it('initializes with agent URL from URL parameter', async () => {
-    window.location.search = '?agentUrl=http://url.agent';
+    window.location.search = '?agentCard=http://url.agent/agent.json';
     
     await import('./iframe');
     
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentUrl).toBe('http://url.agent');
+    expect(renderCall.props.agentCard).toBe('http://url.agent/agent.json');
   });
 
   it('prefers data attribute over URL parameter for agent URL', async () => {
-    document.documentElement.dataset.agentUrl = 'http://data.agent';
-    window.location.search = '?agentUrl=http://url.agent';
+    document.documentElement.dataset.agentCard = 'http://data.agent/agent.json';
+    window.location.search = '?agentCard=http://url.agent/agent.json';
     
     await import('./iframe');
     
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentUrl).toBe('http://data.agent');
+    expect(renderCall.props.agentCard).toBe('http://data.agent/agent.json');
   });
 
   it('throws error when agent URL is missing', async () => {
@@ -125,11 +125,11 @@ describe('iframe', () => {
       expect.any(Error)
     );
     expect(document.body.innerHTML).toContain('Failed to load chat widget');
-    expect(document.body.innerHTML).toContain('data-agent-url is required');
+    expect(document.body.innerHTML).toContain('data-agent-card is required');
   });
 
   it('parses theme from data attributes', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.themePrimary = '#ff0000';
     document.documentElement.dataset.themeBackground = '#000000';
     
@@ -152,7 +152,7 @@ describe('iframe', () => {
   });
 
   it('parses branding from data attributes', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.logoUrl = 'http://logo.png';
     document.documentElement.dataset.logoSize = 'large';
     document.documentElement.dataset.logoPosition = 'footer';
@@ -170,7 +170,7 @@ describe('iframe', () => {
   });
 
   it('parses other configuration from data attributes', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.userId = 'user123';
     document.documentElement.dataset.placeholder = 'Type here...';
     document.documentElement.dataset.welcomeMessage = 'Welcome!';
@@ -190,18 +190,18 @@ describe('iframe', () => {
   });
 
   it('parses configuration from URL parameters', async () => {
-    window.location.search = '?agentUrl=http://test.agent&userId=user456&placeholder=Ask me';
+    window.location.search = '?agentCard=http://test.agent/agent.json&userId=user456&placeholder=Ask me';
     
     await import('./iframe');
     
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentUrl).toBe('http://test.agent');
+    expect(renderCall.props.agentCard).toBe('http://test.agent/agent.json');
     expect(renderCall.props.userId).toBe('user456');
     expect(renderCall.props.placeholder).toBe('Ask me');
   });
 
   it('parses valid metadata JSON', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.metadata = '{"key": "value", "num": 123}';
     
     await import('./iframe');
@@ -211,7 +211,7 @@ describe('iframe', () => {
   });
 
   it('handles invalid metadata JSON gracefully', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.metadata = 'invalid json';
     
     await import('./iframe');
@@ -226,7 +226,7 @@ describe('iframe', () => {
   });
 
   it('handles missing chat-root element', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.body.innerHTML = ''; // Remove chat-root
     
     await import('./iframe');
@@ -246,7 +246,7 @@ describe('iframe', () => {
       configurable: true,
     });
     
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
     
@@ -270,7 +270,7 @@ describe('iframe', () => {
       configurable: true,
     });
     
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     
@@ -279,7 +279,7 @@ describe('iframe', () => {
   });
 
   it('does not include theme when no theme attributes are set', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     
@@ -288,7 +288,7 @@ describe('iframe', () => {
   });
 
   it('uses default branding values when not specified', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.logoUrl = 'http://logo.png';
     // logoSize and logoPosition not specified
     
@@ -305,7 +305,7 @@ describe('iframe', () => {
   });
 
   it('handles allowFileUpload as true by default', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     
@@ -314,7 +314,7 @@ describe('iframe', () => {
   });
 
   it('handles empty allowedFileTypes string', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.allowedFileTypes = '';
     
     await import('./iframe');
@@ -324,7 +324,7 @@ describe('iframe', () => {
   });
 
   it('trims whitespace from allowed file types', async () => {
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.allowedFileTypes = ' .pdf , .doc , .txt ';
     
     await import('./iframe');
@@ -339,7 +339,7 @@ describe('iframe', () => {
       throw errorObject;
     });
     
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     
@@ -351,7 +351,7 @@ describe('iframe', () => {
       throw 'String error';
     });
     
-    document.documentElement.dataset.agentUrl = 'http://test.agent';
+    document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     
     await import('./iframe');
     

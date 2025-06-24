@@ -43,7 +43,7 @@ vi.mock('../../hooks/useChatConnection', () => ({
 describe('ChatWindow', () => {
   const mockSendMessage = vi.fn();
   const defaultProps = {
-    agentUrl: 'https://agent.example.com',
+    agentCard: 'https://agent.example.com/agent.json',
     theme: {},
     placeholder: 'Type here...',
     welcomeMessage: 'Welcome!'
@@ -137,13 +137,13 @@ describe('ChatWindow', () => {
     expect(input).toBeDisabled();
   });
 
-  it('should use A2A connection with provided agentUrl', async () => {
+  it('should use A2A connection with provided agentCard', async () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
     
     render(<ChatWindow {...defaultProps} />);
     
     expect(useChatConnection).toHaveBeenCalledWith({
-      agentUrl: 'https://agent.example.com',
+      agentCard: 'https://agent.example.com/agent.json',
       onMessage: undefined,
       onConnectionChange: undefined
     });
@@ -164,7 +164,7 @@ describe('ChatWindow', () => {
 
   it('should handle all props correctly', () => {
     const props = {
-      agentUrl: 'https://agent.example.com',
+      agentCard: 'https://agent.example.com/agent.json',
       theme: {
         branding: {
           logoPosition: 'header' as const
@@ -202,7 +202,7 @@ describe('ChatWindow', () => {
     render(<ChatWindow {...props} />);
     
     expect(useChatConnection).toHaveBeenCalledWith({
-      agentUrl: 'https://agent.example.com',
+      agentCard: 'https://agent.example.com/agent.json',
       onMessage,
       onConnectionChange
     });

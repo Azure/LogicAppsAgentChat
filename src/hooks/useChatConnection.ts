@@ -2,16 +2,17 @@ import { useCallback } from 'react';
 import { useA2AClient } from './useA2AClient';
 import { useChatStore } from '../store/chatStore';
 import type { Message, Attachment } from '../types';
+import type { AgentCard } from '../a2aclient/types';
 import { createMessage } from '../utils/messageUtils';
 
 interface UseChatConnectionProps {
-  agentUrl: string;
+  agentCard: string | AgentCard;
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;
 }
 
 export function useChatConnection({
-  agentUrl,
+  agentCard,
   onMessage,
   onConnectionChange
 }: UseChatConnectionProps) {
@@ -36,7 +37,7 @@ export function useChatConnection({
 
   // Initialize A2A connection
   const a2aClient = useA2AClient({
-    agentUrl,
+    agentCard,
     onConnectionChange: handleConnectionChange,
     onMessage: handleMessage,
     onTypingChange: handleTypingChange,

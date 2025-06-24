@@ -12,7 +12,7 @@ import type {
 } from './types';
 
 // Mock data
-const mockAgentUrl = 'https://agent.example.com';
+const mockAgentCardUrl = 'https://agent.example.com/.well-known/agent.json';
 const mockAgentCardSSE: AgentCard = {
   name: 'Test Agent',
   version: '1.0.0',
@@ -68,14 +68,62 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const agentCard = await client.getAgentCard();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${mockAgentUrl}/.well-known/agent.json`,
+        mockAgentCardUrl,
         { headers: { 'Accept': 'application/json' } }
       );
       expect(agentCard).toEqual(mockAgentCardSSE);
+    });
+
+    it('should fetch agent card from different URLs', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      const customAgentCardUrl = 'https://custom.example.com/agent-card.json';
+      
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCardSSE
+      } as Response);
+
+      const client = new A2AClient(customAgentCardUrl);
+      const agentCard = await client.getAgentCard();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        customAgentCardUrl,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      expect(agentCard).toEqual(mockAgentCardSSE);
+    });
+
+    it('should use hardcoded agent card when provided', async () => {
+      const mockFetch = vi.mocked(global.fetch);
+      const hardcodedCard: AgentCard = {
+        name: 'Hardcoded Agent',
+        version: '2.0.0',
+        description: 'Agent with hardcoded card',
+        url: 'https://hardcoded.example.com/rpc',
+        capabilities: {
+          streaming: false,
+          pushNotifications: true,
+          stateTransitionHistory: false
+        },
+        defaultInputModes: ['text'],
+        defaultOutputModes: ['text'],
+        skills: []
+      };
+      
+      const client = new A2AClient(hardcodedCard);
+      const agentCard = await client.getAgentCard();
+
+      // Should not fetch anything when hardcoded card is provided
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(agentCard).toEqual(hardcodedCard);
+      
+      // Should detect capabilities from hardcoded card
+      const supportsSSE = await client.supportsStreaming();
+      expect(supportsSSE).toBe(false);
     });
 
     it('should handle agent card fetch failure', async () => {
@@ -86,7 +134,7 @@ describe('A2AClient', () => {
         statusText: 'Not Found'
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       await expect(client.getAgentCard()).rejects.toThrow(
         'Failed to fetch Agent Card'
@@ -100,7 +148,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const supportsSSE = await client.supportsStreaming();
 
       expect(supportsSSE).toBe(true);
@@ -113,7 +161,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardNoSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const supportsSSE = await client.supportsStreaming();
 
       expect(supportsSSE).toBe(false);
@@ -142,7 +190,7 @@ describe('A2AClient', () => {
         json: async () => mockResponse
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const response = await client.sendMessage({
         message: {
           kind: 'message',
@@ -189,7 +237,7 @@ describe('A2AClient', () => {
         })
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       const response = await client.sendMessage({
         message: {
@@ -230,7 +278,7 @@ describe('A2AClient', () => {
         json: async () => mockResponse
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const response = await client.sendMessage({
         message: {
           kind: 'message',
@@ -281,7 +329,7 @@ describe('A2AClient', () => {
         body: stream
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const results: any[] = [];
 
       for await (const event of client.sendMessageStream({
@@ -312,7 +360,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardNoSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       await expect(async () => {
         for await (const _event of client.sendMessageStream({
@@ -348,7 +396,7 @@ describe('A2AClient', () => {
         text: async () => 'Server error'
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const stream = client.sendMessageStream({
         message: {
           kind: 'message',
@@ -392,7 +440,7 @@ describe('A2AClient', () => {
         })
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const stream = client.sendMessageStream({
         message: {
           kind: 'message',
@@ -424,7 +472,7 @@ describe('A2AClient', () => {
         headers: new Headers({ 'Content-Type': 'application/json' })
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const stream = client.sendMessageStream({
         message: {
           kind: 'message',
@@ -458,7 +506,7 @@ describe('A2AClient', () => {
         text: async () => ''
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const stream = client.sendMessageStream({
         message: {
           kind: 'message',
@@ -498,7 +546,7 @@ describe('A2AClient', () => {
         json: async () => taskResponse
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const response = await client.getTask({ id: 'task-123' });
 
       expect(response).toEqual(taskResponse);
@@ -527,7 +575,7 @@ describe('A2AClient', () => {
         })
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const response = await client.cancelTask({ id: 'task-123' });
 
       if ('result' in response) {
@@ -547,7 +595,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardNoSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       // Wait for agent card to be fetched
       await client.getAgentCard();
 
@@ -592,7 +640,7 @@ describe('A2AClient', () => {
         body: stream
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const results: any[] = [];
 
       for await (const event of client.resubscribeTask({ id: 'task-123' })) {
@@ -632,7 +680,7 @@ describe('A2AClient', () => {
         })
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       const response = await client.setTaskPushNotificationConfig(pushConfig);
 
       if ('result' in response) {
@@ -659,7 +707,7 @@ describe('A2AClient', () => {
         json: async () => noPushCard
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       await expect(client.setTaskPushNotificationConfig({
         taskId: 'task-123',
@@ -679,7 +727,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       await client.getAgentCard();
 
       const mockResponse = {
@@ -729,7 +777,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       await client.getAgentCard();
 
       // Create a mock SSE stream with invalid JSON
@@ -780,7 +828,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       await client.getAgentCard();
 
       // Create a mock SSE stream with missing result
@@ -823,7 +871,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       await client.getAgentCard();
 
       // Create a mock SSE stream with mismatched ID
@@ -869,7 +917,7 @@ describe('A2AClient', () => {
         json: async () => mockAgentCardSSE
       } as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
       await client.getAgentCard();
 
       // Create a mock SSE stream with error response
@@ -908,7 +956,7 @@ describe('A2AClient', () => {
       const mockFetch = vi.mocked(global.fetch);
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       await expect(client.getAgentCard()).rejects.toThrow('Network error');
     });
@@ -928,7 +976,7 @@ describe('A2AClient', () => {
         json: async () => { throw new Error('Invalid JSON'); }
       } as unknown as Response);
 
-      const client = new A2AClient(mockAgentUrl);
+      const client = new A2AClient(mockAgentCardUrl);
 
       await expect(client.sendMessage({
         message: {

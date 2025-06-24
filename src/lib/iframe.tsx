@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { useState, useEffect } from 'react';
 import { ChatWindow } from '../components/ChatWindow';
 import type { ChatWidgetProps, ChatTheme } from '../types';
 import '../styles/base.css';
@@ -7,15 +8,115 @@ import '../styles/base.css';
 function parseConfig(): ChatWidgetProps {
   const params = new URLSearchParams(window.location.search);
   const dataset = document.documentElement.dataset;
-
-  // Get agent URL (required)
-  const agentUrl = dataset.agentUrl || params.get('agentUrl');
-  if (!agentUrl) {
-    throw new Error('data-agent-url is required');
+  // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
+  const agentCard = dataset.agentCard || params.get('agentCard') || params.get('agent');
+  
+  if (!agentCard) {
+    throw new Error('data-agent-card is required');
   }
 
-  // Parse theme from data attributes
+  // Parse theme from data attributes or URL parameter
   const theme: Partial<ChatTheme> = {};
+  
+  // Check if theme is provided as URL parameter (for demo)
+  const themeParam = params.get('theme');
+  if (themeParam) {
+    // Handle predefined theme names from demo
+    const themeColors: Record<string, Partial<ChatTheme['colors']>> = {
+      default: {
+        primary: '#667eea',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f8fafc',
+        text: '#1e293b',
+        textSecondary: '#64748b',
+        border: '#e2e8f0',
+        error: '#ef4444',
+        success: '#10b981'
+      },
+      blue: {
+        primary: '#2563eb',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f0f9ff',
+        text: '#0c4a6e',
+        textSecondary: '#0369a1',
+        border: '#bfdbfe',
+        error: '#dc2626',
+        success: '#059669'
+      },
+      green: {
+        primary: '#10b981',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f0fdf4',
+        text: '#14532d',
+        textSecondary: '#166534',
+        border: '#bbf7d0',
+        error: '#dc2626',
+        success: '#059669'
+      },
+      red: {
+        primary: '#ef4444',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#fef2f2',
+        text: '#450a0a',
+        textSecondary: '#991b1b',
+        border: '#fecaca',
+        error: '#b91c1c',
+        success: '#16a34a'
+      },
+      purple: {
+        primary: '#8b5cf6',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#faf5ff',
+        text: '#3b0764',
+        textSecondary: '#6b21a8',
+        border: '#e9d5ff',
+        error: '#dc2626',
+        success: '#16a34a'
+      },
+      teal: {
+        primary: '#14b8a6',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#f0fdfa',
+        text: '#134e4a',
+        textSecondary: '#0f766e',
+        border: '#99f6e4',
+        error: '#dc2626',
+        success: '#059669'
+      },
+      orange: {
+        primary: '#f97316',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#fff7ed',
+        text: '#431407',
+        textSecondary: '#c2410c',
+        border: '#fed7aa',
+        error: '#dc2626',
+        success: '#16a34a'
+      },
+      pink: {
+        primary: '#ec4899',
+        primaryText: '#ffffff',
+        background: '#ffffff',
+        surface: '#fdf2f8',
+        text: '#500724',
+        textSecondary: '#9f1239',
+        border: '#fbcfe8',
+        error: '#be123c',
+        success: '#16a34a'
+      }
+    };
+    
+    if (themeColors[themeParam]) {
+      theme.colors = themeColors[themeParam] as ChatTheme['colors'];
+    }
+  }
 
   // Colors
   if (dataset.themePrimary || dataset.themeBackground) {
@@ -44,9 +145,10 @@ function parseConfig(): ChatWidgetProps {
     };
   }
 
+
   // Other props
   const props: ChatWidgetProps = {
-    agentUrl,
+    agentCard,
     theme: Object.keys(theme).length > 0 ? theme : undefined,
     userId: dataset.userId || params.get('userId') || undefined,
     placeholder: dataset.placeholder || params.get('placeholder') || undefined,
@@ -69,10 +171,81 @@ function parseConfig(): ChatWidgetProps {
   return props;
 }
 
+// Wrapper component that can receive agent card via postMessage
+function IframeWrapper(props: ChatWidgetProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [agentCard, setAgentCard] = useState<any>(null);
+  const [isWaitingForAgentCard, setIsWaitingForAgentCard] = useState(false);
+  
+  // Check if we should wait for postMessage
+  const params = new URLSearchParams(window.location.search);
+  const expectPostMessage = params.get('expectPostMessage') === 'true';
+  
+  useEffect(() => {
+    if (expectPostMessage) {
+      setIsWaitingForAgentCard(true);
+      
+      // Listen for postMessage
+      const handleMessage = (event: MessageEvent) => {
+        
+        // Validate message
+        if (event.data && event.data.type === 'SET_AGENT_CARD') {
+          setAgentCard(event.data.agentCard);
+          setIsWaitingForAgentCard(false);
+          
+          // Send acknowledgment
+          if (event.source && typeof event.source.postMessage === 'function') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            event.source.postMessage({ type: 'AGENT_CARD_RECEIVED' }, event.origin as any);
+          }
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      // Send ready signal to parent
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'IFRAME_READY' }, '*');
+      }
+      
+      return () => {
+        window.removeEventListener('message', handleMessage);
+      };
+    }
+  }, [expectPostMessage]);
+  
+  // Show loading state while waiting for agent card
+  if (expectPostMessage && isWaitingForAgentCard) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        color: '#666',
+        textAlign: 'center',
+        padding: '20px'
+      }}>
+        <div>
+          <h3 style={{ color: '#333', marginBottom: '10px' }}>Waiting for Configuration</h3>
+          <p style={{ margin: 0 }}>Waiting for agent card data via postMessage...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If we received an agent card via postMessage, use that instead
+  const finalProps = agentCard ? { ...props, agentCard } : props;
+  return <ChatWindow {...finalProps} />;
+}
+
 // Initialize the widget
 function init() {
+  
   try {
     const config = parseConfig();
+    
     const container = document.getElementById('chat-root');
 
     if (!container) {
@@ -80,9 +253,17 @@ function init() {
     }
 
     const root = createRoot(container);
-    root.render(<ChatWindow {...config} />);
+    
+    root.render(<IframeWrapper {...config} />);
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      location: window.location.href,
+      search: window.location.search
+    });
+    
     document.body.innerHTML = `
       <div style="
         display: flex;
@@ -97,6 +278,8 @@ function init() {
         <div>
           <h3 style="color: #333; margin-bottom: 10px;">Failed to load chat widget</h3>
           <p style="margin: 0;">${typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string' ? (error as { message: string }).message : String(error)}</p>
+          <p style="margin-top: 10px; font-size: 12px; color: #999;">URL: ${window.location.href}</p>
+          <p style="margin-top: 5px; font-size: 12px; color: #999;">Parameters: ${window.location.search || 'none'}</p>
         </div>
       </div>
     `;
