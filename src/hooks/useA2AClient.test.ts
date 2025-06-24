@@ -330,7 +330,6 @@ describe('useA2AClient', () => {
         messageId: 'msg2',
         role: 'user',
         parts: [{ kind: 'text', text: 'Second message' }],
-        taskId: 'existing-task',
         contextId: 'existing-context',
       },
       configuration: {
