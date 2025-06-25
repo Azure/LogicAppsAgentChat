@@ -31,7 +31,7 @@ function App() {
   return (
     <div className="app">
       <ChatWindow
-        serverUrl="wss://your-chat-server.com"
+        agentCard="https://my-a2a-agent.example.com/agent.json"
         theme={{
           colors: {
             primary: '#0066cc'
@@ -70,7 +70,7 @@ function ChatApp() {
     <div>
       <div>Status: {isConnected ? 'Connected' : 'Disconnected'}</div>
       <ChatWindow
-        serverUrl="wss://your-chat-server.com"
+        agentCard="https://my-a2a-agent.example.com/agent.json"
         onMessage={handleMessage}
         onConnectionChange={handleConnectionChange}
         userId="user-123"
@@ -123,7 +123,7 @@ const customTheme: Partial<ChatTheme> = {
 function ThemedChat() {
   return (
     <ChatWindow
-      serverUrl="wss://your-chat-server.com"
+      agentCard="https://my-a2a-agent.example.com/agent.json"
       theme={customTheme}
       welcomeMessage="Welcome! How can I assist you today?"
     />
@@ -140,7 +140,7 @@ import { ChatWindow } from '@microsoft/a2achat';
 function ChatWithFileUpload() {
   return (
     <ChatWindow
-      serverUrl="wss://your-chat-server.com"
+      agentCard="https://my-a2a-agent.example.com/agent.json"
       allowFileUpload={true}
       maxFileSize={5 * 1024 * 1024} // 5MB
       allowedFileTypes={['.pdf', '.jpg', '.png', '.doc', '.docx']}
@@ -168,7 +168,7 @@ function DynamicChat() {
   useEffect(() => {
     if (containerRef.current) {
       unmountRef.current = mountChatWidget(containerRef.current, {
-        serverUrl: 'wss://your-chat-server.com',
+        agentCard: 'https://my-a2a-agent.example.com/agent.json',
         theme: {
           colors: {
             primary: '#0066cc'
@@ -188,7 +188,7 @@ function DynamicChat() {
 
 ## Integration with A2A Agents
 
-The chat widget has built-in support for A2A-compliant agents. Simply provide an `agentUrl` prop:
+The chat widget has built-in support for A2A-compliant agents. Provide an `agentCard` prop with either a URL to the agent card or the agent card object itself:
 
 ### Basic A2A Integration
 
@@ -199,8 +199,42 @@ import { ChatWindow } from '@microsoft/a2achat';
 function A2AChat() {
   return (
     <ChatWindow
-      agentUrl="https://my-a2a-agent.example.com"  // A2A agent URL
-      serverUrl="wss://fallback-server.com"         // Fallback WebSocket URL
+      agentCard="https://my-a2a-agent.example.com/agent.json"  // Agent card URL
+      theme={{
+        colors: {
+          primary: '#0066cc'
+        }
+      }}
+    />
+  );
+}
+```
+
+### Hardcoded Agent Card
+
+```tsx
+import React from 'react';
+import { ChatWindow } from '@microsoft/a2achat';
+import type { AgentCard } from '@microsoft/a2achat';
+
+const agentCard: AgentCard = {
+  name: "My Assistant",
+  version: "1.0.0",
+  description: "A helpful AI assistant",
+  url: "https://agent.example.com/rpc",  // RPC endpoint from agent card
+  capabilities: {
+    streaming: true,
+    pushNotifications: false,
+    stateTransitionHistory: true
+  },
+  defaultInputModes: ["text"],
+  defaultOutputModes: ["text"]
+};
+
+function A2AChat() {
+  return (
+    <ChatWindow
+      agentCard={agentCard}  // Pass agent card object directly
       theme={{
         colors: {
           primary: '#0066cc'
@@ -216,6 +250,7 @@ function A2AChat() {
 ```tsx
 import React from 'react';
 import { ChatWindow } from '@microsoft/a2achat';
+import type { Message } from '@microsoft/a2achat';
 
 function A2AChatWithEvents() {
   const handleMessage = (message: Message) => {
@@ -232,8 +267,7 @@ function A2AChatWithEvents() {
 
   return (
     <ChatWindow
-      agentUrl="https://my-a2a-agent.example.com"
-      serverUrl="wss://fallback-server.com"
+      agentCard="https://my-a2a-agent.example.com/agent.json"
       onMessage={handleMessage}
       onConnectionChange={handleConnectionChange}
       welcomeMessage="Hello! I'm your A2A-powered assistant."
@@ -244,13 +278,15 @@ function A2AChatWithEvents() {
 
 ### How A2A Integration Works
 
-When you provide an `agentUrl`:
+When you provide an `agentCard`:
 
-1. The chat widget initializes an A2A client internally
-2. It checks the agent's capabilities (SSE support, etc.)
-3. Messages are sent using the A2A protocol
-4. If SSE is supported, responses stream in real-time
-5. If not, it falls back to simple request/response
+1. If it's a URL, the chat widget fetches the agent card JSON
+2. If it's an object, it uses it directly
+3. It initializes an A2A client with the agent's RPC endpoint from the card
+4. It checks the agent's capabilities (SSE support, etc.)
+5. Messages are sent using the A2A protocol
+6. If SSE is supported, responses stream in real-time
+7. If not, it falls back to simple request/response
 
 ### Direct A2A Client Usage
 
@@ -260,9 +296,19 @@ You can also use the A2A client directly:
 import React, { useState } from 'react';
 import { ChatWindow } from '@microsoft/a2achat';
 import { A2AClient } from '@microsoft/a2achat';
+import type { AgentCard } from '@microsoft/a2achat';
 
 function CustomA2AChat() {
-  const [client] = useState(() => new A2AClient('https://agent.example.com'));
+  // Using agent card URL
+  const [client] = useState(() => new A2AClient('https://agent.example.com/agent.json'));
+
+  // Or using hardcoded agent card
+  const agentCard: AgentCard = {
+    name: "My Agent",
+    url: "https://agent.example.com/rpc",
+    capabilities: { streaming: true }
+  };
+  const [clientWithCard] = useState(() => new A2AClient(agentCard));
 
   // Custom logic with direct client access
   const checkAgentStatus = async () => {
@@ -278,8 +324,7 @@ function CustomA2AChat() {
     <div>
       <button onClick={checkAgentStatus}>Check Agent Status</button>
       <ChatWindow
-        agentUrl="https://agent.example.com"
-        serverUrl="wss://fallback-server.com"
+        agentCard="https://agent.example.com/agent.json"
       />
     </div>
   );
@@ -292,17 +337,32 @@ The library is written in TypeScript and provides full type definitions:
 
 ```tsx
 import type { 
-  ChatWidgetProps, 
-  ChatWidgetPropsWithA2A,
+  ChatWidgetProps,
   ChatTheme, 
   Message, 
-  Attachment 
+  Attachment,
+  AgentCard 
 } from '@microsoft/a2achat';
 
 // All types are available for your use
-const config: ChatWidgetPropsWithA2A = {
-  agentUrl: 'https://my-a2a-agent.example.com', // Optional A2A agent
-  serverUrl: 'wss://your-chat-server.com',
+const config: ChatWidgetProps = {
+  agentCard: 'https://my-a2a-agent.example.com/agent.json', // Agent card URL
+  theme: {
+    colors: {
+      primary: '#0066cc'
+    }
+  }
+};
+
+// Or with hardcoded agent card
+const agentCard: AgentCard = {
+  name: "My Agent",
+  url: "https://agent.example.com/rpc",
+  capabilities: { streaming: true }
+};
+
+const configWithCard: ChatWidgetProps = {
+  agentCard: agentCard,  // Pass object directly
   theme: {
     colors: {
       primary: '#0066cc'

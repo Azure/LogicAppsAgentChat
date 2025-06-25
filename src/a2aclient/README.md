@@ -23,8 +23,17 @@ npm install @microsoft/a2achat
 ```typescript
 import { A2AClient } from '@microsoft/a2achat';
 
-// Create client - works with both SSE and non-SSE agents
-const client = new A2AClient('https://agent.example.com');
+// Create client with agent card URL
+const client = new A2AClient('https://agent.example.com/agent.json');
+
+// Or create client with hardcoded agent card
+const agentCard = {
+  name: "My Agent",
+  version: "1.0.0",
+  url: "https://agent.example.com/rpc",
+  capabilities: { streaming: true }
+};
+const clientWithCard = new A2AClient(agentCard);
 
 // Send a simple message
 const response = await client.sendMessage({
@@ -44,11 +53,22 @@ console.log('Response:', response);
 
 ## Configuration
 
-The client accepts an optional configuration object:
+The client accepts an agent card (URL or object) and optional configuration:
 
 ```typescript
-const client = new A2AClient('https://agent.example.com', {
+// With agent card URL
+const client = new A2AClient('https://agent.example.com/agent.json', {
   debug: true  // Enable debug logging (default: false)
+});
+
+// With agent card object
+const agentCard = {
+  name: "My Agent",
+  url: "https://agent.example.com/rpc",
+  capabilities: { streaming: true }
+};
+const client = new A2AClient(agentCard, {
+  debug: true
 });
 ```
 
@@ -260,9 +280,18 @@ console.log('This agent supports SSE:', supportsSSE);
 
 ## How It Works
 
+### Agent Card Resolution
+
+When the client is initialized:
+
+1. **If given a URL**: The client fetches the agent card JSON from that URL
+2. **If given an object**: The client uses the agent card directly
+3. The agent's RPC endpoint is extracted from the `url` field in the agent card
+4. Capabilities are checked from the `capabilities` field
+
 ### SSE Support Detection
 
-When the client is initialized, it fetches the agent's card from `/.well-known/agent.json` and checks the `capabilities.streaming` field:
+The client checks the `capabilities.streaming` field in the agent card:
 
 - **If SSE is supported**: Streaming methods (`sendMessageStream`, `resubscribeTask`) are available
 - **If SSE is not supported**: Streaming methods will throw an error. Use `sendMessage()` for simple request/response
@@ -295,12 +324,16 @@ For agents with SSE support only:
 ### Constructor
 
 ```typescript
-new A2AClient(agentBaseUrl: string, config?: A2AClientConfig)
+new A2AClient(agentCard: string | AgentCard, config?: A2AClientConfig)
 ```
+
+Parameters:
+- `agentCard`: Either a URL to the agent card JSON or an AgentCard object
+- `config`: Optional configuration object with debug settings
 
 ### Methods
 
-- `getAgentCard(agentBaseUrl?: string): Promise<AgentCard>`
+- `getAgentCard(): Promise<AgentCard>` - Get the agent card (fetched or provided)
 - `sendMessage(params: MessageSendParams): Promise<SendMessageResponse>`
 - `sendMessageStream(params: MessageSendParams): AsyncGenerator<A2AStreamEventData>`
 - `getTask(params: TaskQueryParams): Promise<GetTaskResponse>`

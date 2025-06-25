@@ -34,7 +34,7 @@ import '@microsoft/a2achat/styles.css';
 function App() {
   return (
     <ChatWindow
-      agentUrl="https://my-a2a-agent.example.com"
+      agentCard="https://my-a2a-agent.example.com/agent.json"  // URL to agent card
       theme={{
         colors: {
           primary: '#0066cc',
@@ -58,12 +58,47 @@ function App() {
 }
 ```
 
+#### Using Hardcoded Agent Card
+
+```tsx
+import React from 'react';
+import { ChatWindow } from '@microsoft/a2achat';
+import type { AgentCard } from '@microsoft/a2achat';
+
+const agentCard: AgentCard = {
+  name: "My Assistant",
+  version: "1.0.0",
+  description: "A helpful AI assistant",
+  url: "https://agent.example.com/rpc",
+  capabilities: {
+    streaming: true,
+    pushNotifications: false,
+    stateTransitionHistory: true
+  },
+  defaultInputModes: ["text"],
+  defaultOutputModes: ["text"]
+};
+
+function App() {
+  return (
+    <ChatWindow
+      agentCard={agentCard}  // Pass agent card object directly
+      theme={{
+        colors: {
+          primary: '#0066cc'
+        }
+      }}
+    />
+  );
+}
+```
+
 ### As iFrame
 
 ```html
 <iframe 
   src="https://cdn.example.com/chat-widget/index.html"
-  data-agent-url="https://my-a2a-agent.example.com"
+  data-agent-card="https://my-a2a-agent.example.com/agent.json"
   data-theme-primary="#0066cc"
   data-theme-background="#f5f5f5"
   data-logo-url="https://example.com/logo.png"
@@ -76,11 +111,42 @@ function App() {
 />
 ```
 
+#### iFrame with Hardcoded Agent Card
+
+For hardcoded agent card configurations, use postMessage:
+
+```html
+<iframe 
+  id="chat-iframe"
+  src="https://cdn.example.com/chat-widget/index.html?expectPostMessage=true"
+  style="width: 400px; height: 600px; border: none;"
+/>
+
+<script>
+const agentCard = {
+  name: "My Assistant",
+  version: "1.0.0",
+  url: "https://agent.example.com/rpc",
+  capabilities: { streaming: true }
+};
+
+// Wait for iframe to be ready
+window.addEventListener('message', function(event) {
+  if (event.data?.type === 'IFRAME_READY') {
+    document.getElementById('chat-iframe').contentWindow.postMessage({
+      type: 'SET_AGENT_CARD',
+      agentCard: agentCard
+    }, '*');
+  }
+});
+</script>
+```
+
 #### iFrame Data Attributes
 
 All configuration options can be passed via `data-*` attributes:
 
-- `data-agent-url`: A2A agent URL (required)
+- `data-agent-card`: Agent card URL (required unless using postMessage)
 - `data-theme-*`: Theme customization (e.g., `data-theme-primary`, `data-theme-background`)
 - `data-logo-url`: Company logo URL
 - `data-logo-size`: Logo size (small, medium, large)
@@ -191,7 +257,7 @@ interface ChatTheme {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `agentUrl` | `string` | A2A agent URL (required) |
+| `agentCard` | `string \| AgentCard` | Agent card URL or object (required) |
 | `theme` | `Partial<ChatTheme>` | Custom theme configuration |
 | `userId` | `string` | User identifier |
 | `metadata` | `Record<string, any>` | Additional metadata |
@@ -215,10 +281,20 @@ This library includes built-in support for the A2A (Agent-to-Agent) protocol, en
 ### Using with A2A Agents
 
 ```tsx
+// Using agent card URL
 <ChatWindow
-  agentUrl="https://my-a2a-agent.example.com"
-  // The library automatically detects agent capabilities
-  // and enables streaming if supported
+  agentCard="https://my-a2a-agent.example.com/agent.json"
+  // The library automatically fetches the agent card,
+  // detects capabilities, and enables streaming if supported
+/>
+
+// Using hardcoded agent card
+<ChatWindow
+  agentCard={{
+    name: "My Agent",
+    url: "https://agent.example.com/rpc",
+    capabilities: { streaming: true }
+  }}
 />
 ```
 
