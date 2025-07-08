@@ -14,6 +14,7 @@ import {
   createGroupedArtifactMessage,
   type ArtifactData,
 } from "../utils/messageUtils";
+import { useChatStore } from "../store/chatStore";
 
 interface UseA2AClientProps {
   agentCard?: string | AgentCard;
@@ -40,6 +41,7 @@ export function useA2AClient({
 }: UseA2AClientProps) {
   const clientRef = useRef<A2AClient | null>(null);
   const streamActiveRef = useRef<boolean>(false);
+  const artifactMessageIds = useRef<Map<string, string>>(new Map());
   const [state, setState] = useState<A2AClientState>({
     isConnected: false,
     supportsSSE: false,
@@ -86,7 +88,19 @@ export function useA2AClient({
 
   const handleStreamEvent = useCallback(
     (event: A2AStreamEventData, collectedArtifacts: ArtifactData[]): void => {
-      if (event.kind === "status-update") {
+      console.log("handleStreamEvent called with event kind:", event?.kind);
+      console.log("Full event:", JSON.stringify(event));
+      
+      // Check if event has the correct structure
+      if (!event || typeof event !== 'object') {
+        console.error("Invalid event structure:", event);
+        return;
+      }
+      
+      // Handle both kebab-case and underscore naming conventions
+      const eventKind = event.kind?.replace(/_/g, '-');
+      
+      if (eventKind === "status-update" || event.kind === "status_update") {
         const update = event;
         const content = update.status?.message
           ? update.status.message.parts.map(formatPart).join("\n")
@@ -118,20 +132,48 @@ export function useA2AClient({
           streamActiveRef.current = false;
           onTypingChange?.(false);
         }
-      } else if (event.kind === "artifact-update") {
+      } else if (eventKind === "artifact-update" || event.kind === "artifact_update") {
         const update = event;
+        console.log("Artifact update event:", update);
+        
         if (update.artifact && update.artifact.parts) {
-          const artifactName = update.artifact.name || "Artifact";
-          const content = update.artifact.parts.map(formatPart).join("\n");
+          const artifactId = update.artifact.artifactId || "default";
+          const artifactName = update.artifact.name || "Assistant";
+          // Artifact parts have different structure - they directly contain {text: string, kind: string}
+          const content = update.artifact.parts.map((part: any) => part.text || '').join("");
 
-          if (content.trim()) {
-            collectedArtifacts.push({
-              name: artifactName,
-              content: content,
-            });
+          console.log("Processing artifact:", { artifactId, content, append: update.append });
+
+          const existingMessageId = artifactMessageIds.current.get(artifactId);
+          
+          if (existingMessageId) {
+            // Update existing message
+            if (update.append && content) {
+              // Append content to existing message
+              const currentMessages = useChatStore.getState().messages;
+              const currentMessage = currentMessages.find(msg => msg.id === existingMessageId);
+              if (currentMessage) {
+                console.log("Appending to message:", existingMessageId, "content:", content);
+                onUpdateMessage?.(existingMessageId, {
+                  content: currentMessage.content + content
+                });
+              }
+            } else if (!update.append) {
+              // Replace content (new artifact or reset)
+              console.log("Replacing message content:", existingMessageId, "content:", content);
+              onUpdateMessage?.(existingMessageId, {
+                content: content
+              });
+            }
+          } else {
+            // Create new artifact message for first chunk
+            console.log("Creating new message for artifact:", artifactId, "content:", content);
+            const message = createMessage(content, "assistant");
+            artifactMessageIds.current.set(artifactId, message.id);
+            onMessage?.(message);
           }
         }
-      } else if (event.kind === "message" && event.role === "agent") {
+      } else if ((eventKind === "message" || event.kind === "message") && event.role === "agent") {
         const msg = event as A2AMessage;
         const content = msg.parts.map(formatPart).join("\n");
 
@@ -145,7 +187,7 @@ export function useA2AClient({
         if (msg.contextId) {
           setState((prev) => ({ ...prev, currentContextId: msg.contextId }));
         }
-      } else if (event.kind === "task") {
+      } else if (eventKind === "task" || event.kind === "task") {
         const task = event;
         if (task.id) {
           setState((prev) => ({ ...prev, currentTaskId: task.id }));
@@ -200,25 +242,17 @@ export function useA2AClient({
         const collectedArtifacts: ArtifactData[] = [];
         streamActiveRef.current = true;
         onTypingChange?.(true);
+        
+        // Clear artifact message tracking for new stream
+        artifactMessageIds.current.clear();
 
         try {
+          console.log("Starting to process stream...");
           for await (const event of stream) {
+            console.log("Received stream event:", event);
             handleStreamEvent(event, collectedArtifacts);
           }
-
-          // Add grouped artifact message if we collected any
-          if (collectedArtifacts.length > 0) {
-            if (collectedArtifacts.length === 1) {
-              // Single artifact - use regular artifact message
-              const artifact = collectedArtifacts[0];
-              onMessage?.(
-                createArtifactMessage(artifact.name, artifact.content),
-              );
-            } else {
-              // Multiple artifacts - use grouped message
-              onMessage?.(createGroupedArtifactMessage(collectedArtifacts));
-            }
-          }
+          console.log("Stream processing completed");
         } catch (error) {
           console.error("Error in stream processing:", error);
           throw error;

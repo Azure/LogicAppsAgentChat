@@ -59,7 +59,7 @@ interface MessageProps {
 
 export function Message({ message, agentName = 'Agent' }: MessageProps) {
   const isUser = message.sender === 'user';
-  const senderName = isUser ? 'You' : agentName;
+  const senderName = isUser ? (window.LOGGED_IN_USER_NAME ?? 'You') : agentName;
   const isArtifact = message.metadata?.isArtifact;
   const isGroupedArtifact = message.metadata?.isGroupedArtifact;
   const artifactName = message.metadata?.artifactName;

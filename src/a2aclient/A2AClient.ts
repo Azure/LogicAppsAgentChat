@@ -427,7 +427,9 @@ export class A2AClient {
       const sseJsonRpcResponse = JSON.parse(jsonData.replace(/\n$/, ''));
       const a2aStreamResponse: SendStreamingMessageResponse = sseJsonRpcResponse as SendStreamingMessageResponse;
 
-      if (a2aStreamResponse.id !== originalRequestId) {
+      // Convert both IDs to strings for comparison to handle server responses 
+      // that may serialize numeric IDs as strings
+      if (String(a2aStreamResponse.id) !== String(originalRequestId)) {
         console.warn(`SSE Event's JSON-RPC response ID mismatch. Client request ID: ${originalRequestId}, event response ID: ${a2aStreamResponse.id}.`);
       }
 

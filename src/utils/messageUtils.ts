@@ -44,11 +44,14 @@ export function createMessage(
 }
 
 export function formatPart(part: Part): string {
-  switch (part.kind) {
+  // Handle both lowercase and uppercase kind values
+  const kind = part.kind.toLowerCase();
+  
+  switch (kind) {
     case 'text':
-      return part.text;
+      return part.text || (part as any).Text || '';
     case 'file':
-      return `[File: ${part.file.name || 'Unnamed'}]`;
+      return `[File: ${part.file?.name || 'Unnamed'}]`;
     case 'data':
       return `[Data: ${JSON.stringify(part.data)}]`;
     default:
