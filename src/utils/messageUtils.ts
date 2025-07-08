@@ -2,7 +2,30 @@ import type { Message, Attachment } from '../types';
 import type { Part } from '../a2aclient/types';
 
 export function generateMessageId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Generate a UUID v4 format GUID similar to C# Guid.NewGuid()
+  // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where x is any hexadecimal digit and y is one of 8, 9, a, or b
+  
+  const hex = '0123456789abcdef';
+  let guid = '';
+  
+  // Generate random bytes
+  const randomBytes = new Uint8Array(16);
+  crypto.getRandomValues(randomBytes);
+  
+  // Set version (4) and variant bits
+  randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; // Version 4
+  randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80; // Variant 10
+  
+  // Convert to hex string with proper formatting
+  for (let i = 0; i < 16; i++) {
+    if (i === 4 || i === 6 || i === 8 || i === 10) {
+      guid += '-';
+    }
+    guid += hex[randomBytes[i] >> 4] + hex[randomBytes[i] & 0x0f];
+  }
+  
+  return guid;
 }
 
 export function createMessage(

@@ -359,7 +359,8 @@ describe('MessageInput', () => {
     await userEvent.keyboard('{Enter}');
     
     const attachment = mockOnSendMessage.mock.calls[0][1][0];
-    expect(attachment.id).toMatch(/^\d+-[a-z0-9]+$/);
+    // Expect GUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+    expect(attachment.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('applies correct CSS classes', () => {

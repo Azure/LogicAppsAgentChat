@@ -25,9 +25,11 @@ describe('messageUtils', () => {
       expect(id1).not.toBe(id2);
     });
 
-    it('should generate IDs with expected format', () => {
+    it('should generate IDs with expected GUID format', () => {
       const id = generateMessageId();
-      expect(id).toMatch(/^\d+-[a-z0-9]+$/);
+      // Expect format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+      // where x is any hex digit and y is 8, 9, a, or b
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     });
   });
 
