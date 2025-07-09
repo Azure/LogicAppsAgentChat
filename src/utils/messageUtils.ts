@@ -48,12 +48,24 @@ export function formatPart(part: Part): string {
   const kind = part.kind.toLowerCase();
   
   switch (kind) {
-    case 'text':
-      return part.text || (part as any).Text || '';
+    case 'text': {
+      if ('text' in part) {
+        return part.text || '';
+      }
+      // Handle potential uppercase 'Text' property
+      const partWithUppercaseText = part as Part & { Text?: string };
+      return partWithUppercaseText.Text || '';
+    }
     case 'file':
-      return `[File: ${part.file?.name || 'Unnamed'}]`;
+      if ('file' in part) {
+        return `[File: ${part.file?.name || 'Unnamed'}]`;
+      }
+      return '[File: Unnamed]';
     case 'data':
-      return `[Data: ${JSON.stringify(part.data)}]`;
+      if ('data' in part) {
+        return `[Data: ${JSON.stringify(part.data)}]`;
+      }
+      return '[Data: unknown]';
     default:
       return '[Unknown part type]';
   }

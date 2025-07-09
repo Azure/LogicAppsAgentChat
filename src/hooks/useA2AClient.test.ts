@@ -650,4 +650,91 @@ describe('useA2AClient', () => {
     
     expect(result.current.agentName).toBe('Agent');
   });
+
+  it('handles artifact updates with uppercase Text kind', async () => {
+    const onMessage = vi.fn();
+    
+    mockClientInstance.getAgentCard.mockResolvedValue({
+      name: 'Test Agent',
+      description: 'A test agent',
+      url: 'http://test.agent',
+    });
+    mockClientInstance.supportsStreaming.mockResolvedValue(true);
+    
+    const { result } = renderHook(() => useA2AClient({
+      agentCard: 'http://test.agent/agent.json',
+      onMessage,
+    }));
+    
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+    
+    const mockStreamEvents = [
+      {
+        kind: 'artifact-update',
+        taskId: 'task123',
+        contextId: 'context123',
+        artifact: {
+          artifactId: 'artifact123',
+          parts: [
+            { text: 'The', kind: 'Text' },
+            { text: ' weather', kind: 'Text' }
+          ]
+        },
+        append: false,
+        lastChunk: false
+      } as TaskArtifactUpdateEvent,
+      {
+        kind: 'artifact-update',
+        taskId: 'task123',
+        contextId: 'context123',
+        artifact: {
+          artifactId: 'artifact123',
+          parts: [
+            { text: ' is', kind: 'Text' }
+          ]
+        },
+        append: true,
+        lastChunk: false
+      } as TaskArtifactUpdateEvent,
+      {
+        kind: 'artifact-update',
+        taskId: 'task123',
+        contextId: 'context123',
+        artifact: {
+          artifactId: 'artifact123',
+          parts: [
+            { text: ' sunny', kind: 'Text' }
+          ]
+        },
+        append: true,
+        lastChunk: true
+      } as TaskArtifactUpdateEvent
+    ];
+    
+    mockClientInstance.sendMessageStream.mockReturnValue({
+      [Symbol.asyncIterator]: async function* () {
+        for (const event of mockStreamEvents) {
+          yield event;
+        }
+      },
+    });
+    
+    await act(async () => {
+      await result.current.sendMessage('What is the weather?', 'msg123');
+    });
+    
+    // Should create initial message with first content
+    expect(onMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'The weather',
+        sender: 'assistant'
+      })
+    );
+    
+    // The content should be updated with appended text
+    // Note: In real usage, onUpdateMessage would be called, but we're testing onMessage here
+    // The test verifies that the uppercase 'Text' kind is properly handled
+  });
 });

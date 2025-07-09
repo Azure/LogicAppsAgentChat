@@ -39,7 +39,10 @@ describe('iframe', () => {
     
     // Mock window.location
     Object.defineProperty(window, 'location', {
-      value: { search: '' },
+      value: { 
+        href: 'http://localhost',
+        search: '' 
+      },
       writable: true,
       configurable: true,
     });
@@ -117,7 +120,7 @@ describe('iframe', () => {
     expect(renderCall.props.agentCard).toBe('http://data.agent/agent.json');
   });
 
-  it('throws error when agent URL is missing', async () => {
+  it('throws error when agent URL is missing and URL pattern does not match', async () => {
     await import('./iframe');
     
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -125,7 +128,55 @@ describe('iframe', () => {
       expect.any(Error)
     );
     expect(document.body.innerHTML).toContain('Failed to load chat widget');
-    expect(document.body.innerHTML).toContain('data-agent-card is required');
+    expect(document.body.innerHTML).toContain('data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern');
+  });
+
+  it('transforms URL to agent card when no agentCard parameter is provided', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { 
+        href: 'https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame',
+        search: '' 
+      },
+      writable: true,
+      configurable: true,
+    });
+    
+    await import('./iframe');
+    
+    const renderCall = mockRoot.render.mock.calls[0][0];
+    expect(renderCall.props.agentCard).toBe('https://rarayudu-test-agentauth.azurewebsites.net/api/agents/TestAgentKind/.well-known/agent.json');
+  });
+
+  it('handles case-insensitive URL pattern matching', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { 
+        href: 'https://example.com/api/agentsChat/MyAgent/iframe',
+        search: '' 
+      },
+      writable: true,
+      configurable: true,
+    });
+    
+    await import('./iframe');
+    
+    const renderCall = mockRoot.render.mock.calls[0][0];
+    expect(renderCall.props.agentCard).toBe('https://example.com/api/agents/MyAgent/.well-known/agent.json');
+  });
+
+  it('prefers explicit agentCard over URL transformation', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { 
+        href: 'https://example.com/api/agentsChat/MyAgent/IFrame',
+        search: '?agentCard=http://explicit.agent/agent.json' 
+      },
+      writable: true,
+      configurable: true,
+    });
+    
+    await import('./iframe');
+    
+    const renderCall = mockRoot.render.mock.calls[0][0];
+    expect(renderCall.props.agentCard).toBe('http://explicit.agent/agent.json');
   });
 
   it('parses theme from data attributes', async () => {

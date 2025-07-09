@@ -9,10 +9,22 @@ function parseConfig(): ChatWidgetProps {
   const params = new URLSearchParams(window.location.search);
   const dataset = document.documentElement.dataset;
   // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
-  const agentCard = dataset.agentCard || params.get('agentCard') || params.get('agent');
+  let agentCard = dataset.agentCard || params.get('agentCard') || params.get('agent');
   
   if (!agentCard) {
-    throw new Error('data-agent-card is required');
+    // Transform current URL to agent card URL if we're in an iframe context
+    const currentUrl = window.location.href;
+    const iframePattern = /\/api\/agentsChat\/([^/]+)\/IFrame/i;
+    const match = currentUrl.match(iframePattern);
+    
+    if (match && match[1]) {
+      // Extract the agent kind and construct the agent card URL
+      const agentKind = match[1];
+      const baseUrl = currentUrl.split('/api/agentsChat/')[0];
+      agentCard = `${baseUrl}/api/agents/${agentKind}/.well-known/agent.json`;
+    } else {
+      throw new Error('data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern');
+    }
   }
 
   // Parse theme from data attributes or URL parameter
