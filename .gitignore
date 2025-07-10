@@ -69,9 +69,6 @@ desktop.ini
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
 
 # TypeScript
 *.tsbuildinfo
