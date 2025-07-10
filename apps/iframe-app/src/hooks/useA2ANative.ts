@@ -55,7 +55,7 @@ export function useA2ANative({
     if (!isLoading && messageIdMap.current.size > 0) {
       // Small delay to ensure all final updates have been processed
       const timeoutId = setTimeout(() => {
-        messageIdMap.current.forEach((internalId, sdkId) => {
+        messageIdMap.current.forEach((internalId) => {
           // Update the message to ensure streaming is false
           onUpdateMessage?.(internalId, {
             metadata: {
