@@ -13,13 +13,13 @@ export class LoggerPlugin implements Plugin {
   name = 'logger';
   version = '1.0.0';
   description = 'Comprehensive logging for A2A SDK operations';
-  
+
   private config: Required<LoggerConfig>;
   private levelOrder: Record<LogLevel, number> = {
     debug: 0,
     info: 1,
     warn: 2,
-    error: 3
+    error: 3,
   };
 
   constructor(config: LoggerConfig = {}) {
@@ -27,7 +27,7 @@ export class LoggerPlugin implements Plugin {
       level: config.level || 'info',
       prefix: config.prefix || '[A2A]',
       timestamp: config.timestamp ?? true,
-      colors: config.colors ?? true
+      colors: config.colors ?? true,
     };
   }
 
@@ -41,15 +41,15 @@ export class LoggerPlugin implements Plugin {
 
   private formatMessage(level: LogLevel, message: string): string {
     const parts: string[] = [];
-    
+
     if (this.config.timestamp) {
       parts.push(new Date().toISOString());
     }
-    
+
     parts.push(this.config.prefix);
     parts.push(`[${level.toUpperCase()}]`);
     parts.push(message);
-    
+
     return parts.join(' ');
   }
 
@@ -57,9 +57,9 @@ export class LoggerPlugin implements Plugin {
     if (!this.shouldLog(level)) return;
 
     const formattedMessage = this.formatMessage(level, message);
-    
+
     const logData = data ? [formattedMessage, data] : [formattedMessage];
-    
+
     switch (level) {
       case 'debug':
         console.debug(...logData);
@@ -81,7 +81,7 @@ export class LoggerPlugin implements Plugin {
       this.log('debug', 'HTTP Request', {
         method: request.method,
         url: request.url,
-        headers: request.headers
+        headers: request.headers,
       });
       return request;
     },
@@ -90,7 +90,7 @@ export class LoggerPlugin implements Plugin {
       this.log('debug', 'HTTP Response', {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers
+        headers: response.headers,
       });
       return response;
     },
@@ -98,7 +98,7 @@ export class LoggerPlugin implements Plugin {
     beforeMessageSend: async (message: any) => {
       this.log('info', 'Sending message', {
         role: message.role,
-        contentLength: message.content.length
+        contentLength: message.content.length,
       });
       return message;
     },
@@ -106,7 +106,7 @@ export class LoggerPlugin implements Plugin {
     afterMessageReceive: async (message: any) => {
       this.log('info', 'Received message', {
         role: message.role,
-        contentLength: message.content.length
+        contentLength: message.content.length,
       });
       return message;
     },
@@ -114,28 +114,28 @@ export class LoggerPlugin implements Plugin {
     onTaskCreated: async (task: any) => {
       this.log('info', 'Task created', {
         id: task.id,
-        state: task.state
+        state: task.state,
       });
     },
 
     onTaskCompleted: async (task: any) => {
       this.log('info', 'Task completed', {
         id: task.id,
-        duration: `${task.updatedAt.getTime() - task.createdAt.getTime()}ms`
+        duration: `${task.updatedAt.getTime() - task.createdAt.getTime()}ms`,
       });
     },
 
     onTaskFailed: async (task: any) => {
       this.log('error', 'Task failed', {
         id: task.id,
-        error: task.error
+        error: task.error,
       });
     },
 
     onError: async (error: Error) => {
       this.log('error', 'Error occurred', {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
     },
 
@@ -145,6 +145,6 @@ export class LoggerPlugin implements Plugin {
 
     onStop: async () => {
       this.log('info', 'Logger plugin stopped');
-    }
+    },
   };
 }

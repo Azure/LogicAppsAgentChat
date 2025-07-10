@@ -1,10 +1,10 @@
 import pRetry from 'p-retry';
-import type { 
-  AuthConfig, 
-  RequestConfig, 
-  RequestInterceptor, 
+import type {
+  AuthConfig,
+  RequestConfig,
+  RequestInterceptor,
   ResponseInterceptor,
-  HttpClientOptions 
+  HttpClientOptions,
 } from './types';
 
 export class HttpClient {
@@ -14,18 +14,14 @@ export class HttpClient {
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
 
-  constructor(
-    baseUrl: string, 
-    auth?: AuthConfig,
-    options: HttpClientOptions = {}
-  ) {
+  constructor(baseUrl: string, auth?: AuthConfig, options: HttpClientOptions = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.auth = auth;
     this.options = {
       timeout: 30000,
       retries: 3,
       retryDelay: 1000,
-      ...options
+      ...options,
     };
   }
 
@@ -39,19 +35,19 @@ export class HttpClient {
 
   async request<T = unknown>(path: string, config: RequestConfig = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    
+
     // Default headers
     const headers = new Headers({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...config.headers
+      Accept: 'application/json',
+      ...config.headers,
     });
 
     // Create request config
     let requestConfig: RequestConfig & { url: string } = {
       ...config,
       url,
-      headers: Object.fromEntries(headers.entries())
+      headers: Object.fromEntries(headers.entries()),
     };
 
     // Apply request interceptors
@@ -62,9 +58,9 @@ export class HttpClient {
     // Create request options
     const requestOptions: RequestInit = {
       method: requestConfig.method || 'GET',
-      headers: new Headers(requestConfig.headers)
+      headers: new Headers(requestConfig.headers),
     };
-    
+
     // Only add optional properties if defined
     if (requestConfig.signal !== undefined) {
       requestOptions.signal = requestConfig.signal;
@@ -75,7 +71,7 @@ export class HttpClient {
     if (requestConfig.body) {
       requestOptions.body = JSON.stringify(requestConfig.body);
     }
-    
+
     // Create request with auth
     const request = new Request(requestConfig.url, requestOptions);
 
@@ -92,14 +88,14 @@ export class HttpClient {
           const options: RequestInit = {
             method: request.method,
             headers: request.headers,
-            signal: controller.signal
+            signal: controller.signal,
           };
-          
+
           // Add optional properties if defined
           if (request.credentials !== undefined) {
             options.credentials = request.credentials;
           }
-          
+
           // Add body and duplex option if needed
           if (request.body) {
             options.body = request.body;
@@ -128,7 +124,7 @@ export class HttpClient {
         minTimeout: this.options.retryDelay,
         onFailedAttempt: (error) => {
           console.warn(`Request failed, attempt ${error.attemptNumber}: ${error.message}`);
-        }
+        },
       }
     );
 
@@ -143,19 +139,33 @@ export class HttpClient {
     return data as T;
   }
 
-  async get<T = unknown>(path: string, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<T> {
+  async get<T = unknown>(
+    path: string,
+    config?: Omit<RequestConfig, 'method' | 'body'>
+  ): Promise<T> {
     return this.request<T>(path, { ...config, method: 'GET' });
   }
 
-  async post<T = unknown>(path: string, body?: unknown, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<T> {
+  async post<T = unknown>(
+    path: string,
+    body?: unknown,
+    config?: Omit<RequestConfig, 'method' | 'body'>
+  ): Promise<T> {
     return this.request<T>(path, { ...config, method: 'POST', body });
   }
 
-  async put<T = unknown>(path: string, body?: unknown, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<T> {
+  async put<T = unknown>(
+    path: string,
+    body?: unknown,
+    config?: Omit<RequestConfig, 'method' | 'body'>
+  ): Promise<T> {
     return this.request<T>(path, { ...config, method: 'PUT', body });
   }
 
-  async delete<T = unknown>(path: string, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<T> {
+  async delete<T = unknown>(
+    path: string,
+    config?: Omit<RequestConfig, 'method' | 'body'>
+  ): Promise<T> {
     return this.request<T>(path, { ...config, method: 'DELETE' });
   }
 
@@ -168,16 +178,16 @@ export class HttpClient {
       case 'bearer':
         request.headers.set('Authorization', `Bearer ${this.auth.token}`);
         break;
-      
+
       case 'oauth2':
         const tokenType = this.auth.tokenType || 'Bearer';
         request.headers.set('Authorization', `${tokenType} ${this.auth.accessToken}`);
         break;
-      
+
       case 'api-key':
         request.headers.set(this.auth.header, this.auth.key);
         break;
-      
+
       case 'custom':
         await this.auth.handler(request);
         break;
@@ -187,15 +197,15 @@ export class HttpClient {
   private async parseErrorResponse(response: Response): Promise<string | null> {
     try {
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType?.includes('application/json')) {
         const errorData = await response.json();
-        
+
         // Try common error message patterns
         if (errorData.error?.message) return errorData.error.message;
         if (errorData.message) return errorData.message;
         if (errorData.error) return errorData.error;
-        
+
         return JSON.stringify(errorData);
       } else {
         return await response.text();

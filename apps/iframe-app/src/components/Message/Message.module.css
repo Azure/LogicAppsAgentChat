@@ -401,9 +401,15 @@
   font-weight: 600;
 }
 
-.markdownContent h1 { font-size: 1.5em; }
-.markdownContent h2 { font-size: 1.3em; }
-.markdownContent h3 { font-size: 1.1em; }
+.markdownContent h1 {
+  font-size: 1.5em;
+}
+.markdownContent h2 {
+  font-size: 1.3em;
+}
+.markdownContent h3 {
+  font-size: 1.1em;
+}
 
 .markdownContent p {
   margin: calc(var(--chat-spacing-unit) * 1) 0;
@@ -579,7 +585,7 @@
 }
 
 /* Inline code blocks should not be affected by Prism */
-.markdownContent code:not([class*="language-"]) {
+.markdownContent code:not([class*='language-']) {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 2px 4px;
   border-radius: var(--chat-radius-small);
@@ -587,4 +593,3 @@
   font-size: 0.9em;
   color: inherit;
 }
-

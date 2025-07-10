@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { 
+import {
   MessageSendRequestSchema,
   MessageStreamRequestSchema,
   TaskGetRequestSchema,
   TaskCancelRequestSchema,
-  PushSubscribeRequestSchema
+  PushSubscribeRequestSchema,
 } from './schemas';
 
 describe('Request schemas', () => {
@@ -16,14 +16,14 @@ describe('Request schemas', () => {
           content: [
             {
               type: 'text',
-              content: 'Hello, agent!'
-            }
-          ]
-        }
+              content: 'Hello, agent!',
+            },
+          ],
+        },
       };
 
       const result = MessageSendRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.message.content[0]?.type).toBe('text');
@@ -37,22 +37,22 @@ describe('Request schemas', () => {
           content: [
             {
               type: 'text',
-              content: 'Continue our discussion'
-            }
-          ]
+              content: 'Continue our discussion',
+            },
+          ],
         },
         context: {
           conversationId: 'conv-123',
-          previousTaskId: 'task-456'
+          previousTaskId: 'task-456',
         },
         metadata: {
           clientVersion: '1.0.0',
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       const result = MessageSendRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.context?.conversationId).toBe('conv-123');
@@ -69,18 +69,18 @@ describe('Request schemas', () => {
           content: [
             {
               type: 'text',
-              content: 'Tell me a long story'
-            }
-          ]
+              content: 'Tell me a long story',
+            },
+          ],
         },
         streamOptions: {
           includeUsage: true,
-          includePartialArtifacts: true
-        }
+          includePartialArtifacts: true,
+        },
       };
 
       const result = MessageStreamRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.streamOptions?.includeUsage).toBe(true);
@@ -91,11 +91,11 @@ describe('Request schemas', () => {
   describe('TaskGetRequest', () => {
     it('should validate task get request', () => {
       const request = {
-        taskId: 'task-789'
+        taskId: 'task-789',
       };
 
       const result = TaskGetRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.taskId).toBe('task-789');
@@ -107,11 +107,11 @@ describe('Request schemas', () => {
     it('should validate task cancel request', () => {
       const request = {
         taskId: 'task-999',
-        reason: 'User requested cancellation'
+        reason: 'User requested cancellation',
       };
 
       const result = TaskCancelRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.taskId).toBe('task-999');
@@ -126,12 +126,12 @@ describe('Request schemas', () => {
         endpoint: 'https://client.example.com/webhook',
         events: ['task.completed', 'task.failed'],
         metadata: {
-          clientId: 'client-123'
-        }
+          clientId: 'client-123',
+        },
       };
 
       const result = PushSubscribeRequestSchema.safeParse(request);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.endpoint).toBe('https://client.example.com/webhook');

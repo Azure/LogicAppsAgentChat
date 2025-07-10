@@ -36,12 +36,14 @@ The CI workflows will automatically handle missing lockfiles during the transiti
 ## Migration Status
 
 ✅ **Completed:**
+
 - Monorepo structure with TurboRepo and PNPM workspaces
 - Migrated existing iframe functionality to `apps/iframe-app`
 - Created interactive demo at `apps/demo-app`
 - Skeleton packages for framework-agnostic core and wrappers
 
 🚧 **In Progress:**
+
 - All existing React components, hooks, and utilities are now in `apps/iframe-app/src`
 - Complete A2A SDK integration preserved
 - All original functionality maintained
@@ -51,8 +53,9 @@ The CI workflows will automatically handle missing lockfiles during the transiti
 ### Demo App (`apps/demo-app`)
 
 Interactive demo showcasing the iframe integration:
+
 - **URL**: http://localhost:3000
-- **Features**: 
+- **Features**:
   - Live iframe preview (embeds iframe app from :3001)
   - Theme customization
   - Embed code generation
@@ -61,6 +64,7 @@ Interactive demo showcasing the iframe integration:
 ### Iframe App (`apps/iframe-app`)
 
 The actual chat widget for iframe embedding:
+
 - **URL**: http://localhost:3001
 - **Features**:
   - All original chat functionality
@@ -91,12 +95,11 @@ The actual chat widget for iframe embedding:
 ### Basic Iframe
 
 ```html
-<iframe 
+<iframe
   src="http://localhost:3001/?agentCard=https://example.com/agent&theme=blue"
   style="width: 400px; height: 600px; border: none;"
 ></iframe>
 ```
-
 
 ### Available URL Parameters
 

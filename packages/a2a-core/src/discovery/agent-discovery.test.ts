@@ -8,7 +8,7 @@ global.fetch = vi.fn();
 
 describe('AgentDiscovery', () => {
   let discovery: AgentDiscovery;
-  
+
   beforeEach(() => {
     discovery = new AgentDiscovery();
     vi.clearAllMocks();
@@ -20,13 +20,13 @@ describe('AgentDiscovery', () => {
         name: 'Test Agent',
         description: 'A test agent',
         version: '1.0.0',
-        url: 'https://api.agent.example.com'
+        url: 'https://api.agent.example.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       const result = await discovery.fromWellKnownUri('agent.example.com');
@@ -40,13 +40,13 @@ describe('AgentDiscovery', () => {
         name: 'Test Agent',
         description: 'A test agent',
         version: '1.0.0',
-        url: 'https://api.agent.example.com'
+        url: 'https://api.agent.example.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       await discovery.fromWellKnownUri('https://agent.example.com');
@@ -59,11 +59,12 @@ describe('AgentDiscovery', () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       } as Response);
 
-      await expect(discovery.fromWellKnownUri('agent.example.com'))
-        .rejects.toThrow('Failed to fetch agent card');
+      await expect(discovery.fromWellKnownUri('agent.example.com')).rejects.toThrow(
+        'Failed to fetch agent card'
+      );
     });
 
     it('should validate agent card schema', async () => {
@@ -75,11 +76,12 @@ describe('AgentDiscovery', () => {
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => invalidAgentCard
+        json: async () => invalidAgentCard,
       } as Response);
 
-      await expect(discovery.fromWellKnownUri('agent.example.com'))
-        .rejects.toThrow('Invalid agent card');
+      await expect(discovery.fromWellKnownUri('agent.example.com')).rejects.toThrow(
+        'Invalid agent card'
+      );
     });
   });
 
@@ -89,13 +91,13 @@ describe('AgentDiscovery', () => {
         name: 'Registry Agent',
         description: 'An agent from registry',
         version: '2.0.0',
-        url: 'https://api.registry-agent.com'
+        url: 'https://api.registry-agent.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       const result = await discovery.fromRegistry('https://registry.example.com', 'agent-123');
@@ -109,13 +111,13 @@ describe('AgentDiscovery', () => {
         name: 'Registry Agent',
         description: 'An agent from registry',
         version: '2.0.0',
-        url: 'https://api.registry-agent.com'
+        url: 'https://api.registry-agent.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       await discovery.fromRegistry('https://registry.example.com/', 'agent-123');
@@ -130,7 +132,7 @@ describe('AgentDiscovery', () => {
         name: 'Direct Agent',
         description: 'A directly provided agent',
         version: '1.0.0',
-        url: 'https://api.direct-agent.com'
+        url: 'https://api.direct-agent.com',
       });
 
       const result = await discovery.fromDirect(agentCard);
@@ -144,13 +146,13 @@ describe('AgentDiscovery', () => {
         name: 'URL Agent',
         description: 'An agent from URL',
         version: '1.0.0',
-        url: 'https://api.url-agent.com'
+        url: 'https://api.url-agent.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       const result = await discovery.fromDirect('https://example.com/agent-card.json');
@@ -165,8 +167,9 @@ describe('AgentDiscovery', () => {
         // Missing required fields
       };
 
-      await expect(discovery.fromDirect(invalidCard as AgentCard))
-        .rejects.toThrow('Invalid agent card');
+      await expect(discovery.fromDirect(invalidCard as AgentCard)).rejects.toThrow(
+        'Invalid agent card'
+      );
     });
   });
 
@@ -178,18 +181,18 @@ describe('AgentDiscovery', () => {
         name: 'Cached Agent',
         description: 'Test caching',
         version: '1.0.0',
-        url: 'https://api.cached.com'
+        url: 'https://api.cached.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       // First call
       await discovery.fromWellKnownUri('cached.example.com');
-      
+
       // Check cache
       const cached = discovery.getCached('https://cached.example.com/.well-known/agent.json');
       expect(cached).toEqual(mockAgentCard);
@@ -204,13 +207,13 @@ describe('AgentDiscovery', () => {
         name: 'Test',
         description: 'Test',
         version: '1.0.0',
-        url: 'https://api.test.com'
+        url: 'https://api.test.com',
       });
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => mockAgentCard
+        json: async () => mockAgentCard,
       } as Response);
 
       await discovery.fromWellKnownUri('test.com');

@@ -21,7 +21,7 @@ export function ChatWindow(props: ChatWindowProps) {
     maxFileSize,
     allowedFileTypes,
     onMessage,
-    onConnectionChange
+    onConnectionChange,
   } = props;
 
   const chatTheme = useTheme(theme);
@@ -29,7 +29,7 @@ export function ChatWindow(props: ChatWindowProps) {
     agentCard,
     auth,
     onMessage,
-    onConnectionChange
+    onConnectionChange,
   });
 
   const showHeaderLogo = chatTheme.branding?.logoPosition === 'header';
@@ -48,7 +48,7 @@ export function ChatWindow(props: ChatWindowProps) {
           {showHeaderLogo && <CompanyLogo />}
           {isConnected && (
             <div className={styles.headerActions}>
-              <button 
+              <button
                 className={styles.clearButton}
                 onClick={handleClearSession}
                 disabled={!isConnected}
@@ -61,10 +61,7 @@ export function ChatWindow(props: ChatWindowProps) {
         </div>
       )}
 
-      <MessageList 
-        welcomeMessage={welcomeMessage} 
-        agentName={agentName || 'Assistant'} 
-      />
+      <MessageList welcomeMessage={welcomeMessage} agentName={agentName || 'Assistant'} />
 
       {showFooterLogo && (
         <div className={styles.footer}>

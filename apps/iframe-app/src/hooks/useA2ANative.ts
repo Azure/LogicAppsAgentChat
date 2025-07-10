@@ -26,7 +26,7 @@ export function useA2ANative({
   const processedMessageIds = useRef<Set<string>>(new Set());
   const isRehydrating = useRef<boolean>(true);
   const messageIdMap = useRef<Map<string, string>>(new Map()); // Map SDK message IDs to internal message IDs
-  
+
   const {
     isConnected,
     isLoading,
@@ -36,11 +36,11 @@ export function useA2ANative({
     connect,
     disconnect,
     sendMessage: sdkSendMessage,
-    clearMessages
+    clearMessages,
   } = useA2A({
     auth,
     persistSession: true,
-    sessionKey: 'a2a-chat-session'
+    sessionKey: 'a2a-chat-session',
   });
 
   // Handle connection state changes
@@ -58,22 +58,22 @@ export function useA2ANative({
     if (messages.length === 0) return;
 
     // Process all messages that haven't been processed yet
-    messages.forEach(sdkMessage => {
+    messages.forEach((sdkMessage) => {
       // Check if this is a streaming update for an existing message
       const existingInternalId = messageIdMap.current.get(sdkMessage.id);
-      
+
       if (existingInternalId && sdkMessage.isStreaming) {
         // This is a streaming update - update the existing message
         onUpdateMessage?.(existingInternalId, {
           content: sdkMessage.content,
           metadata: {
             ...sdkMessage.metadata,
-            isStreaming: sdkMessage.isStreaming
-          }
+            isStreaming: sdkMessage.isStreaming,
+          },
         });
         return;
       }
-      
+
       // Skip if we've already processed this message as a new message
       if (processedMessageIds.current.has(sdkMessage.id)) {
         // Check if content has changed (for final update)
@@ -82,39 +82,39 @@ export function useA2ANative({
             content: sdkMessage.content,
             metadata: {
               ...sdkMessage.metadata,
-              isStreaming: false
-            }
+              isStreaming: false,
+            },
           });
         }
         return;
       }
-      
+
       // Mark as processed
       processedMessageIds.current.add(sdkMessage.id);
-      
+
       // During rehydration, process all messages (user + assistant)
       // During normal operation, only process assistant messages (user messages handled by UI)
       const shouldProcessMessage = sdkMessage.role === 'assistant' || isRehydrating.current;
-      
+
       if (shouldProcessMessage) {
         const internalMessage = createMessage(
-          sdkMessage.content, 
+          sdkMessage.content,
           sdkMessage.role === 'user' ? 'user' : 'assistant'
         );
         internalMessage.metadata = {
           ...internalMessage.metadata,
           sdkMessageId: sdkMessage.id,
           timestamp: sdkMessage.timestamp,
-          isStreaming: sdkMessage.isStreaming
+          isStreaming: sdkMessage.isStreaming,
         };
-        
+
         // Map SDK message ID to internal message ID
         messageIdMap.current.set(sdkMessage.id, internalMessage.id);
-        
+
         onMessage?.(internalMessage);
       }
     });
-    
+
     // After processing initial messages, mark rehydration as complete
     if (isRehydrating.current && messages.length > 0) {
       isRehydrating.current = false;
@@ -139,7 +139,7 @@ export function useA2ANative({
         if (typeof agentCard === 'string') {
           const discovery = new AgentDiscovery();
           let resolvedAgentCard: AgentCard;
-          
+
           if (agentCard.includes('/.well-known/agent.json') || agentCard.endsWith('.json')) {
             // This is a direct URL to an agent card file
             try {
@@ -148,10 +148,10 @@ export function useA2ANative({
               // Fallback: fetch manually and add missing required fields
               const response = await fetch(agentCard);
               const rawData = await response.json();
-              
+
               // Add missing required fields with sensible defaults
               const enhancedAgentCard = {
-                protocolVersion: "0.2.9", // Add missing protocol version
+                protocolVersion: '0.2.9', // Add missing protocol version
                 ...rawData,
                 // Ensure capabilities object has all required fields
                 capabilities: {
@@ -159,17 +159,17 @@ export function useA2ANative({
                   pushNotifications: false,
                   stateTransitionHistory: false,
                   extensions: [],
-                  ...rawData.capabilities
-                }
+                  ...rawData.capabilities,
+                },
               } as AgentCard;
-              
+
               resolvedAgentCard = enhancedAgentCard;
             }
           } else {
             // This is a domain, use well-known URI discovery
             resolvedAgentCard = await discovery.fromWellKnownUri(agentCard);
           }
-          
+
           await connect(resolvedAgentCard);
         } else {
           // Use provided AgentCard directly

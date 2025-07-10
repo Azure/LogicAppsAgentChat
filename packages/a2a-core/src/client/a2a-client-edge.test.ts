@@ -14,10 +14,10 @@ vi.mock('./http-client', () => {
         messages: [],
         error: {
           code: 'TASK_FAILED',
-          message: 'Task execution failed'
-        }
-      })
-    }))
+          message: 'Task execution failed',
+        },
+      }),
+    })),
   };
 });
 
@@ -28,15 +28,15 @@ describe('A2AClient edge cases', () => {
       description: 'Test',
       version: '1.0.0',
       serviceEndpoint: 'https://api.test.com',
-      capabilities: []
+      capabilities: [],
     };
 
     const client = new A2AClient({ agentCard: mockAgentCard });
-    
+
     // Wait for failed task
     const result = await client.task.waitForCompletion('task-123', {
       pollingInterval: 10,
-      timeout: 100
+      timeout: 100,
     });
 
     expect(result.state).toBe('failed');
@@ -49,7 +49,7 @@ describe('A2AClient edge cases', () => {
       description: 'Test',
       version: '1.0.0',
       serviceEndpoint: 'https://api.test.com',
-      capabilities: []
+      capabilities: [],
     };
 
     // Create new mock for this specific test
@@ -58,15 +58,15 @@ describe('A2AClient edge cases', () => {
         id: 'task-456',
         state: 'cancelled',
         createdAt: new Date().toISOString(),
-        messages: []
-      })
+        messages: [],
+      }),
     };
 
     const client = new A2AClient({ agentCard: mockAgentCard });
     (client as any).httpClient = mockHttpClient;
-    
+
     const result = await client.task.waitForCompletion('task-456', {
-      pollingInterval: 10
+      pollingInterval: 10,
     });
 
     expect(result.state).toBe('cancelled');

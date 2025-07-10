@@ -1,9 +1,9 @@
-import type { 
-  Plugin, 
-  PluginContext, 
-  PluginHooks, 
+import type {
+  Plugin,
+  PluginContext,
+  PluginHooks,
   PluginInfo,
-  PluginRegistrationOptions 
+  PluginRegistrationOptions,
 } from './types';
 
 export class PluginManager {
@@ -36,7 +36,9 @@ export class PluginManager {
       this.plugins.set(plugin.name, plugin);
       this.enabledPlugins.add(plugin.name); // Enabled by default
     } catch (error) {
-      throw new Error(`Failed to install plugin ${plugin.name}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to install plugin ${plugin.name}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -63,7 +65,7 @@ export class PluginManager {
     return Array.from(this.plugins.entries()).map(([name, plugin]) => ({
       name,
       version: plugin.version,
-      enabled: this.enabledPlugins.has(name)
+      enabled: this.enabledPlugins.has(name),
     }));
   }
 
@@ -74,7 +76,7 @@ export class PluginManager {
     }
 
     this.enabledPlugins.add(pluginName);
-    
+
     // Call onStart hook if available
     if (plugin.hooks?.onStart) {
       await plugin.hooks.onStart();
@@ -99,10 +101,7 @@ export class PluginManager {
     return this.enabledPlugins.has(pluginName);
   }
 
-  async executeHook<K extends keyof PluginHooks>(
-    hookName: K,
-    data: any
-  ): Promise<any> {
+  async executeHook<K extends keyof PluginHooks>(hookName: K, data: any): Promise<any> {
     let result = data;
 
     // Execute hooks from all enabled plugins

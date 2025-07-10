@@ -10,26 +10,28 @@ function parseConfig(): ChatWidgetProps {
   const dataset = document.documentElement.dataset;
   // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
   let agentCard = dataset.agentCard || params.get('agentCard') || params.get('agent');
-  
+
   if (!agentCard) {
     // Transform current URL to agent card URL if we're in an iframe context
     const currentUrl = window.location.href;
     const iframePattern = /\/api\/agentsChat\/([^/]+)\/IFrame/i;
     const match = currentUrl.match(iframePattern);
-    
+
     if (match && match[1]) {
       // Extract the agent kind and construct the agent card URL
       const agentKind = match[1];
       const baseUrl = currentUrl.split('/api/agentsChat/')[0];
       agentCard = `${baseUrl}/api/agents/${agentKind}/.well-known/agent.json`;
     } else {
-      throw new Error('data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern');
+      throw new Error(
+        'data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern'
+      );
     }
   }
 
   // Parse theme from data attributes or URL parameter
   const theme: Partial<ChatTheme> = {};
-  
+
   // Check if theme is provided as URL parameter (for demo)
   const themeParam = params.get('theme');
   if (themeParam) {
@@ -44,7 +46,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#64748b',
         border: '#e2e8f0',
         error: '#ef4444',
-        success: '#10b981'
+        success: '#10b981',
       },
       blue: {
         primary: '#2563eb',
@@ -55,7 +57,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#0369a1',
         border: '#bfdbfe',
         error: '#dc2626',
-        success: '#059669'
+        success: '#059669',
       },
       green: {
         primary: '#10b981',
@@ -66,7 +68,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#166534',
         border: '#bbf7d0',
         error: '#dc2626',
-        success: '#059669'
+        success: '#059669',
       },
       red: {
         primary: '#ef4444',
@@ -77,7 +79,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#991b1b',
         border: '#fecaca',
         error: '#b91c1c',
-        success: '#16a34a'
+        success: '#16a34a',
       },
       purple: {
         primary: '#8b5cf6',
@@ -88,7 +90,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#6b21a8',
         border: '#e9d5ff',
         error: '#dc2626',
-        success: '#16a34a'
+        success: '#16a34a',
       },
       teal: {
         primary: '#14b8a6',
@@ -99,7 +101,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#0f766e',
         border: '#99f6e4',
         error: '#dc2626',
-        success: '#059669'
+        success: '#059669',
       },
       orange: {
         primary: '#f97316',
@@ -110,7 +112,7 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#c2410c',
         border: '#fed7aa',
         error: '#dc2626',
-        success: '#16a34a'
+        success: '#16a34a',
       },
       pink: {
         primary: '#ec4899',
@@ -121,10 +123,10 @@ function parseConfig(): ChatWidgetProps {
         textSecondary: '#9f1239',
         border: '#fbcfe8',
         error: '#be123c',
-        success: '#16a34a'
-      }
+        success: '#16a34a',
+      },
     };
-    
+
     if (themeColors[themeParam]) {
       theme.colors = themeColors[themeParam] as ChatTheme['colors'];
     }
@@ -150,13 +152,15 @@ function parseConfig(): ChatWidgetProps {
   if (dataset.logoUrl) {
     theme.branding = {
       logoUrl: dataset.logoUrl,
-      logoSize: (['small', 'medium', 'large'].includes(dataset.logoSize as string) ? dataset.logoSize : 'medium') as 'small' | 'medium' | 'large',
-      logoPosition: (dataset.logoPosition === 'header' || dataset.logoPosition === 'footer')
-        ? dataset.logoPosition as 'header' | 'footer'
-        : 'header',
+      logoSize: (['small', 'medium', 'large'].includes(dataset.logoSize as string)
+        ? dataset.logoSize
+        : 'medium') as 'small' | 'medium' | 'large',
+      logoPosition:
+        dataset.logoPosition === 'header' || dataset.logoPosition === 'footer'
+          ? (dataset.logoPosition as 'header' | 'footer')
+          : 'header',
     };
   }
-
 
   // Other props
   const props: ChatWidgetProps = {
@@ -167,7 +171,7 @@ function parseConfig(): ChatWidgetProps {
     welcomeMessage: dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
     allowFileUpload: dataset.allowFileUpload !== 'false',
     maxFileSize: dataset.maxFileSize ? parseInt(dataset.maxFileSize) : undefined,
-    allowedFileTypes: dataset.allowedFileTypes?.split(',').map(t => t.trim()),
+    allowedFileTypes: dataset.allowedFileTypes?.split(',').map((t) => t.trim()),
   };
 
   // Parse metadata if provided
@@ -188,23 +192,22 @@ function IframeWrapper(props: ChatWidgetProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentCard, setAgentCard] = useState<any>(null);
   const [isWaitingForAgentCard, setIsWaitingForAgentCard] = useState(false);
-  
+
   // Check if we should wait for postMessage
   const params = new URLSearchParams(window.location.search);
   const expectPostMessage = params.get('expectPostMessage') === 'true';
-  
+
   useEffect(() => {
     if (expectPostMessage) {
       setIsWaitingForAgentCard(true);
-      
+
       // Listen for postMessage
       const handleMessage = (event: MessageEvent) => {
-        
         // Validate message
         if (event.data && event.data.type === 'SET_AGENT_CARD') {
           setAgentCard(event.data.agentCard);
           setIsWaitingForAgentCard(false);
-          
+
           // Send acknowledgment
           if (event.source && typeof event.source.postMessage === 'function') {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,33 +215,35 @@ function IframeWrapper(props: ChatWidgetProps) {
           }
         }
       };
-      
+
       window.addEventListener('message', handleMessage);
-      
+
       // Send ready signal to parent
       if (window.parent !== window) {
         window.parent.postMessage({ type: 'IFRAME_READY' }, '*');
       }
-      
+
       return () => {
         window.removeEventListener('message', handleMessage);
       };
     }
   }, [expectPostMessage]);
-  
+
   // Show loading state while waiting for agent card
   if (expectPostMessage && isWaitingForAgentCard) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'sans-serif',
-        color: '#666',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontFamily: 'sans-serif',
+          color: '#666',
+          textAlign: 'center',
+          padding: '20px',
+        }}
+      >
         <div>
           <h3 style={{ color: '#333', marginBottom: '10px' }}>Waiting for Configuration</h3>
           <p style={{ margin: 0 }}>Waiting for agent card data via postMessage...</p>
@@ -246,7 +251,7 @@ function IframeWrapper(props: ChatWidgetProps) {
       </div>
     );
   }
-  
+
   // If we received an agent card via postMessage, use that instead
   const finalProps = agentCard ? { ...props, agentCard } : props;
   return <ChatWindow {...finalProps} />;
@@ -254,10 +259,9 @@ function IframeWrapper(props: ChatWidgetProps) {
 
 // Initialize the widget
 function init() {
-  
   try {
     const config = parseConfig();
-    
+
     const container = document.getElementById('chat-root');
 
     if (!container) {
@@ -265,7 +269,7 @@ function init() {
     }
 
     const root = createRoot(container);
-    
+
     root.render(<IframeWrapper {...config} />);
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
@@ -273,9 +277,9 @@ function init() {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       location: window.location.href,
-      search: window.location.search
+      search: window.location.search,
     });
-    
+
     document.body.innerHTML = `
       <div style="
         display: flex;

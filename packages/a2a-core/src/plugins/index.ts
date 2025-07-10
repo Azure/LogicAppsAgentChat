@@ -1,10 +1,10 @@
 export { PluginManager } from './plugin-manager';
-export type { 
-  Plugin, 
-  PluginContext, 
-  PluginHooks, 
+export type {
+  Plugin,
+  PluginContext,
+  PluginHooks,
   PluginInfo,
-  PluginRegistrationOptions
+  PluginRegistrationOptions,
 } from './types';
 
 // Export built-in plugins

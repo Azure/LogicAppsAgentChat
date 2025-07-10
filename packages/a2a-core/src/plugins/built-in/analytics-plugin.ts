@@ -16,7 +16,7 @@ export class AnalyticsPlugin implements Plugin {
   name = 'analytics';
   version = '1.0.0';
   description = 'Track A2A SDK usage and events';
-  
+
   private config: AnalyticsConfig;
   private events: AnalyticsEvent[] = [];
   private flushTimer?: NodeJS.Timeout;
@@ -46,7 +46,7 @@ export class AnalyticsPlugin implements Plugin {
     const analyticsEvent: AnalyticsEvent = {
       event,
       properties: properties || {},
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.events.push(analyticsEvent);
@@ -73,10 +73,10 @@ export class AnalyticsPlugin implements Plugin {
         headers: {
           'Content-Type': 'application/json',
           ...(this.config.trackingId && {
-            'X-Tracking-ID': this.config.trackingId
-          })
+            'X-Tracking-ID': this.config.trackingId,
+          }),
         },
-        body: JSON.stringify({ events: eventsToSend })
+        body: JSON.stringify({ events: eventsToSend }),
       });
     } catch (error) {
       if (this.config.debug) {
@@ -97,7 +97,7 @@ export class AnalyticsPlugin implements Plugin {
     beforeMessageSend: async (message: any) => {
       this.track('message.send', {
         role: message.role,
-        contentTypes: message.content.map((c: any) => c.type)
+        contentTypes: message.content.map((c: any) => c.type),
       });
       return message;
     },
@@ -105,7 +105,7 @@ export class AnalyticsPlugin implements Plugin {
     afterMessageReceive: async (message: any) => {
       this.track('message.receive', {
         role: message.role,
-        contentTypes: message.content.map((c: any) => c.type)
+        contentTypes: message.content.map((c: any) => c.type),
       });
       return message;
     },
@@ -113,33 +113,33 @@ export class AnalyticsPlugin implements Plugin {
     onTaskCreated: async (task: any) => {
       this.track('task.created', {
         taskId: task.id,
-        state: task.state
+        state: task.state,
       });
     },
 
     onTaskCompleted: async (task: any) => {
       this.track('task.completed', {
         taskId: task.id,
-        duration: task.updatedAt.getTime() - task.createdAt.getTime()
+        duration: task.updatedAt.getTime() - task.createdAt.getTime(),
       });
     },
 
     onTaskFailed: async (task: any) => {
       this.track('task.failed', {
         taskId: task.id,
-        error: task.error?.message
+        error: task.error?.message,
       });
     },
 
     onError: async (error: Error) => {
       this.track('error', {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
     },
 
     onStop: async () => {
       await this.flush();
-    }
+    },
   };
 }

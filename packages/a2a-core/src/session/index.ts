@@ -1,8 +1,8 @@
 export { SessionManager } from './session-manager';
-export type { 
-  SessionData, 
-  SessionOptions, 
+export type {
+  SessionData,
+  SessionOptions,
   StorageType,
   SessionChangeEvent,
-  SessionEventMap
+  SessionEventMap,
 } from './types';

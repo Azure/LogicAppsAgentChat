@@ -9,20 +9,24 @@ This is @microsoft/a2achat - a lightweight, customizable chat interface library 
 ## Essential Commands
 
 ### Development
+
 - `npm run dev` - Start development server with hot reloading (port 3000)
 - `npm run demo` - Start demo server with host access
 
 ### Building
+
 - `npm run build` - Build all targets (lib, iframe, demo)
 - `npm run build:lib` - Build the NPM library package only
 - `npm run build:iframe` - Build the iframe embed version only
 
 ### Testing
+
 - `npm run test` - Run unit tests
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run test:ui` - Run tests with UI interface
 
 ### Code Quality
+
 - `npm run type-check` - Run TypeScript type checking
 - `npm run lint` - Run ESLint code linting
 - `npm run size` - Check bundle size (must be under 45KB)
@@ -38,6 +42,7 @@ The codebase follows a component-based React architecture with:
 - **Distribution**: Dual build targets - NPM package (`src/lib/index.tsx`) and iframe embed (`src/lib/iframe.tsx`)
 
 Key architectural decisions:
+
 - React and React-DOM are peer dependencies (not bundled)
 - TypeScript strict mode is enabled
 - Components are fully typed with comprehensive interfaces
@@ -55,6 +60,7 @@ Key architectural decisions:
 ## Testing Approach
 
 Tests use Vitest with React Testing Library. Test files are co-located with components (e.g., `ChatWindow.test.tsx`). When writing tests:
+
 - Use `@testing-library/react` utilities
 - Mock the Zustand store when needed
 - Test files should have `.test.ts` or `.test.tsx` extension

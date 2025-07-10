@@ -10,34 +10,30 @@ vi.mock('../MessageList', () => ({
       {welcomeMessage && <div>{welcomeMessage}</div>}
       <div>Agent: {agentName}</div>
     </div>
-  )
+  ),
 }));
 
 vi.mock('../MessageInput', () => ({
   MessageInput: ({ placeholder, disabled, onSendMessage }: any) => (
     <div data-testid="message-input">
-      <input 
-        placeholder={placeholder} 
-        disabled={disabled}
-        data-testid="input-field"
-      />
+      <input placeholder={placeholder} disabled={disabled} data-testid="input-field" />
       <button onClick={() => onSendMessage('test message')}>Send</button>
     </div>
-  )
+  ),
 }));
 
 vi.mock('../CompanyLogo', () => ({
-  CompanyLogo: () => <div data-testid="company-logo">Logo</div>
+  CompanyLogo: () => <div data-testid="company-logo">Logo</div>,
 }));
 
 vi.mock('../../hooks/useTheme', () => ({
   useTheme: (theme: any) => ({
-    branding: theme?.branding || {}
-  })
+    branding: theme?.branding || {},
+  }),
 }));
 
 vi.mock('../../hooks/useChatConnection', () => ({
-  useChatConnection: vi.fn()
+  useChatConnection: vi.fn(),
 }));
 
 describe('ChatWindow', () => {
@@ -46,7 +42,7 @@ describe('ChatWindow', () => {
     agentCard: 'https://agent.example.com/agent.json',
     theme: {},
     placeholder: 'Type here...',
-    welcomeMessage: 'Welcome!'
+    welcomeMessage: 'Welcome!',
   };
 
   beforeEach(async () => {
@@ -56,7 +52,7 @@ describe('ChatWindow', () => {
       isConnected: true,
       agentName: 'Test Agent',
       sendMessage: mockSendMessage,
-      clearSession: vi.fn()
+      clearSession: vi.fn(),
     });
   });
 
@@ -74,13 +70,13 @@ describe('ChatWindow', () => {
       ...defaultProps,
       theme: {
         branding: {
-          logoPosition: 'header' as const
-        }
-      }
+          logoPosition: 'header' as const,
+        },
+      },
     };
 
     render(<ChatWindow {...props} />);
-    
+
     const logos = screen.getAllByTestId('company-logo');
     expect(logos).toHaveLength(1);
     expect(logos[0].parentElement?.className).toContain('header');
@@ -91,13 +87,13 @@ describe('ChatWindow', () => {
       ...defaultProps,
       theme: {
         branding: {
-          logoPosition: 'footer' as const
-        }
-      }
+          logoPosition: 'footer' as const,
+        },
+      },
     };
 
     render(<ChatWindow {...props} />);
-    
+
     const logos = screen.getAllByTestId('company-logo');
     expect(logos).toHaveLength(1);
     expect(logos[0].parentElement?.className).toContain('footer');
@@ -105,7 +101,7 @@ describe('ChatWindow', () => {
 
   it('should not show logo when not configured', () => {
     render(<ChatWindow {...defaultProps} />);
-    
+
     expect(screen.queryByTestId('company-logo')).not.toBeInTheDocument();
   });
 
@@ -114,11 +110,11 @@ describe('ChatWindow', () => {
       ...defaultProps,
       allowFileUpload: false,
       maxFileSize: 5000000,
-      allowedFileTypes: ['image/*', '.pdf']
+      allowedFileTypes: ['image/*', '.pdf'],
     };
 
     render(<ChatWindow {...props} />);
-    
+
     const input = screen.getByTestId('input-field');
     expect(input).toHaveAttribute('placeholder', 'Type here...');
     expect(input).not.toBeDisabled();
@@ -130,24 +126,24 @@ describe('ChatWindow', () => {
       isConnected: false,
       agentName: '',
       sendMessage: mockSendMessage,
-      clearSession: vi.fn()
+      clearSession: vi.fn(),
     });
 
     render(<ChatWindow {...defaultProps} />);
-    
+
     const input = screen.getByTestId('input-field');
     expect(input).toBeDisabled();
   });
 
   it('should use A2A connection with provided agentCard', async () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
-    
+
     render(<ChatWindow {...defaultProps} />);
-    
+
     expect(useChatConnection).toHaveBeenCalledWith({
       agentCard: 'https://agent.example.com/agent.json',
       onMessage: undefined,
-      onConnectionChange: undefined
+      onConnectionChange: undefined,
     });
   });
 
@@ -157,11 +153,11 @@ describe('ChatWindow', () => {
       isConnected: true,
       agentName: '',
       sendMessage: mockSendMessage,
-      clearSession: vi.fn()
+      clearSession: vi.fn(),
     });
 
     render(<ChatWindow {...defaultProps} />);
-    
+
     expect(screen.getByText('Agent: Assistant')).toBeInTheDocument();
   });
 
@@ -170,8 +166,8 @@ describe('ChatWindow', () => {
       agentCard: 'https://agent.example.com/agent.json',
       theme: {
         branding: {
-          logoPosition: 'header' as const
-        }
+          logoPosition: 'header' as const,
+        },
       },
       onMessage: vi.fn(),
       onConnectionChange: vi.fn(),
@@ -181,11 +177,11 @@ describe('ChatWindow', () => {
       welcomeMessage: 'Custom welcome',
       allowFileUpload: true,
       maxFileSize: 10000000,
-      allowedFileTypes: ['.jpg', '.png']
+      allowedFileTypes: ['.jpg', '.png'],
     };
 
     render(<ChatWindow {...props} />);
-    
+
     // Verify the component renders without errors
     expect(screen.getByTestId('message-list')).toBeInTheDocument();
     expect(screen.getByTestId('message-input')).toBeInTheDocument();
@@ -195,26 +191,26 @@ describe('ChatWindow', () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
     const onMessage = vi.fn();
     const onConnectionChange = vi.fn();
-    
+
     const props = {
       ...defaultProps,
       onMessage,
-      onConnectionChange
+      onConnectionChange,
     };
 
     render(<ChatWindow {...props} />);
-    
+
     expect(useChatConnection).toHaveBeenCalledWith({
       agentCard: 'https://agent.example.com/agent.json',
       auth: undefined,
       onMessage,
-      onConnectionChange
+      onConnectionChange,
     });
   });
 
   it('should show new session button when connected', () => {
     render(<ChatWindow {...defaultProps} />);
-    
+
     expect(screen.getByText('New Session')).toBeInTheDocument();
     expect(screen.getByTitle('Start new session')).toBeInTheDocument();
   });
@@ -222,34 +218,34 @@ describe('ChatWindow', () => {
   it('should call clearSession when new session button is clicked', async () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
     const mockClearSession = vi.fn();
-    
+
     useChatConnection.mockReturnValue({
       isConnected: true,
       agentName: 'Test Agent',
       sendMessage: mockSendMessage,
-      clearSession: mockClearSession
+      clearSession: mockClearSession,
     });
 
     render(<ChatWindow {...defaultProps} />);
-    
+
     const newSessionButton = screen.getByText('New Session');
     newSessionButton.click();
-    
+
     expect(mockClearSession).toHaveBeenCalled();
   });
 
   it('should not show new session button when not connected', async () => {
     const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
-    
+
     useChatConnection.mockReturnValue({
       isConnected: false,
       agentName: 'Test Agent',
       sendMessage: mockSendMessage,
-      clearSession: vi.fn()
+      clearSession: vi.fn(),
     });
 
     render(<ChatWindow {...defaultProps} />);
-    
+
     expect(screen.queryByText('New Session')).not.toBeInTheDocument();
   });
 
@@ -258,13 +254,13 @@ describe('ChatWindow', () => {
       ...defaultProps,
       theme: {
         branding: {
-          logoPosition: 'footer' as const
-        }
-      }
+          logoPosition: 'footer' as const,
+        },
+      },
     };
 
     render(<ChatWindow {...props} />);
-    
+
     // Should show header because user is connected (for new session button)
     expect(screen.getByText('New Session')).toBeInTheDocument();
     // Logo should be in footer

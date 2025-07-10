@@ -6,11 +6,11 @@ describe('Part schema', () => {
   it('should validate text part', () => {
     const textPart = {
       type: 'text',
-      content: 'Hello, world!'
+      content: 'Hello, world!',
     };
 
     const result = PartSchema.safeParse(textPart);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.type).toBe('text');
@@ -23,11 +23,11 @@ describe('Part schema', () => {
       type: 'file',
       mimeType: 'image/png',
       data: 'base64encodeddata',
-      filename: 'image.png'
+      filename: 'image.png',
     };
 
     const result = PartSchema.safeParse(filePart);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.type).toBe('file');
@@ -41,14 +41,14 @@ describe('Part schema', () => {
       schema: {
         type: 'object',
         properties: {
-          name: { type: 'string' }
-        }
+          name: { type: 'string' },
+        },
       },
-      data: { name: 'Test' }
+      data: { name: 'Test' },
     };
 
     const result = PartSchema.safeParse(structuredPart);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.type).toBe('structured');
@@ -64,13 +64,13 @@ describe('Message schema', () => {
       content: [
         {
           type: 'text',
-          content: 'What is the weather today?'
-        }
-      ]
+          content: 'What is the weather today?',
+        },
+      ],
     };
 
     const result = MessageSchema.safeParse(userMessage);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.role).toBe('user');
@@ -84,17 +84,17 @@ describe('Message schema', () => {
       content: [
         {
           type: 'text',
-          content: 'The weather is sunny today.'
-        }
+          content: 'The weather is sunny today.',
+        },
       ],
       metadata: {
         model: 'gpt-4',
-        temperature: 0.7
-      }
+        temperature: 0.7,
+      },
     };
 
     const result = MessageSchema.safeParse(assistantMessage);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.role).toBe('assistant');
@@ -108,19 +108,19 @@ describe('Message schema', () => {
       content: [
         {
           type: 'text',
-          content: 'Please analyze this image:'
+          content: 'Please analyze this image:',
         },
         {
           type: 'file',
           mimeType: 'image/jpeg',
           data: 'base64data',
-          filename: 'photo.jpg'
-        }
-      ]
+          filename: 'photo.jpg',
+        },
+      ],
     };
 
     const result = MessageSchema.safeParse(multiPartMessage);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.content).toHaveLength(2);
@@ -135,11 +135,11 @@ describe('Task schema', () => {
       id: 'task-123',
       state: 'pending',
       createdAt: new Date().toISOString(),
-      messages: []
+      messages: [],
     };
 
     const result = TaskSchema.safeParse(pendingTask);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.state).toBe('pending');
@@ -156,25 +156,25 @@ describe('Task schema', () => {
       messages: [
         {
           role: 'user',
-          content: [{ type: 'text', content: 'Hello' }]
+          content: [{ type: 'text', content: 'Hello' }],
         },
         {
           role: 'assistant',
-          content: [{ type: 'text', content: 'Hi there!' }]
-        }
+          content: [{ type: 'text', content: 'Hi there!' }],
+        },
       ],
       artifacts: [
         {
           id: 'artifact-1',
           type: 'text',
           title: 'Summary',
-          content: 'Conversation summary...'
-        }
-      ]
+          content: 'Conversation summary...',
+        },
+      ],
     };
 
     const result = TaskSchema.safeParse(completedTask);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.state).toBe('completed');
@@ -185,8 +185,8 @@ describe('Task schema', () => {
 
   it('should validate task state enum', () => {
     const validStates = ['pending', 'running', 'completed', 'failed', 'cancelled'];
-    
-    validStates.forEach(state => {
+
+    validStates.forEach((state) => {
       const result = TaskStateSchema.safeParse(state);
       expect(result.success).toBe(true);
     });
@@ -205,13 +205,13 @@ describe('Task schema', () => {
         code: 'RATE_LIMIT_EXCEEDED',
         message: 'Too many requests',
         details: {
-          retryAfter: 60
-        }
-      }
+          retryAfter: 60,
+        },
+      },
     };
 
     const result = TaskSchema.safeParse(failedTask);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.state).toBe('failed');

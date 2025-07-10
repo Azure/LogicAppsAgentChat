@@ -5,12 +5,12 @@ import type { ChatTheme } from '../types';
 
 describe('useTheme', () => {
   let setPropertySpy: ReturnType<typeof vi.spyOn>;
-  
+
   beforeEach(() => {
     // Spy on the existing setProperty method instead of mocking the entire element
     setPropertySpy = vi.spyOn(document.documentElement.style, 'setProperty');
   });
-  
+
   afterEach(() => {
     vi.clearAllMocks();
     setPropertySpy.mockRestore();
@@ -18,7 +18,7 @@ describe('useTheme', () => {
 
   it('returns default theme when no custom theme provided', () => {
     const { result } = renderHook(() => useTheme());
-    
+
     expect(result.current).toEqual({
       colors: {
         primary: '#0066cc',
@@ -61,20 +61,20 @@ describe('useTheme', () => {
         textSecondary: '#666666',
         border: '#e0e0e0',
         error: '#d32f2f',
-        success: '#388e3c'
+        success: '#388e3c',
       },
       typography: {
         fontFamily: 'sans-serif',
         fontSize: {
           small: '0.75rem',
           base: '1rem',
-          large: '1.125rem'
+          large: '1.125rem',
         },
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current.colors.primary).toBe('#ff0000');
     expect(result.current.colors.background).toBe('#000000');
     expect(result.current.colors.text).toBe('#333333'); // Default value
@@ -84,7 +84,7 @@ describe('useTheme', () => {
 
   it('applies theme to document root on mount', () => {
     renderHook(() => useTheme());
-    
+
     // Check color CSS variables
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#0066cc');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
@@ -95,7 +95,7 @@ describe('useTheme', () => {
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-border', '#e0e0e0');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-error', '#d32f2f');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-success', '#388e3c');
-    
+
     // Check typography CSS variables
     expect(setPropertySpy).toHaveBeenCalledWith(
       '--chat-font-family',
@@ -104,10 +104,10 @@ describe('useTheme', () => {
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-small', '0.875rem');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-base', '1rem');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-font-size-large', '1.125rem');
-    
+
     // Check spacing CSS variable
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '8px');
-    
+
     // Check border radius CSS variables
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-radius-small', '4px');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-radius-medium', '8px');
@@ -125,15 +125,15 @@ describe('useTheme', () => {
         textSecondary: '#666666',
         border: '#e0e0e0',
         error: '#d32f2f',
-        success: '#388e3c'
+        success: '#388e3c',
       },
       spacing: {
         unit: 16,
       },
     };
-    
+
     renderHook(() => useTheme(customTheme));
-    
+
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#ff0000');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '16px');
   });
@@ -168,9 +168,9 @@ describe('useTheme', () => {
         large: '6px',
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current).toEqual(customTheme);
   });
 
@@ -182,9 +182,9 @@ describe('useTheme', () => {
         logoPosition: 'header',
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current.branding).toEqual(customTheme.branding);
   });
 
@@ -195,9 +195,9 @@ describe('useTheme', () => {
         logoSize: 'large',
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current.branding).toEqual(customTheme.branding);
   });
 
@@ -215,15 +215,15 @@ describe('useTheme', () => {
         success: '#388e3c',
       },
     };
-    
+
     const { result, rerender } = renderHook(() => useTheme(customTheme));
-    
+
     const firstTheme = result.current;
-    
+
     rerender();
-    
+
     const secondTheme = result.current;
-    
+
     // Deep equal but not same reference due to merging
     expect(secondTheme).toEqual(firstTheme);
   });
@@ -242,9 +242,9 @@ describe('useTheme', () => {
         success: '#388e3c',
       },
     };
-    
+
     renderHook(() => useTheme(customTheme));
-    
+
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary-text', '#ffffff');
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-text-secondary', '#666666');
   });
@@ -260,9 +260,9 @@ describe('useTheme', () => {
         },
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current.typography.fontFamily).toBe('Arial');
     expect(result.current.typography.fontSize).toEqual({
       small: '0.875rem',
@@ -282,9 +282,9 @@ describe('useTheme', () => {
         },
       },
     };
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     expect(result.current.typography.fontSize.small).toBe('0.875rem');
     expect(result.current.typography.fontSize.base).toBe('18px');
     expect(result.current.typography.fontSize.large).toBe('1.125rem');
@@ -297,9 +297,9 @@ describe('useTheme', () => {
         initialProps: { theme: undefined as Partial<ChatTheme> | undefined },
       }
     );
-    
+
     const initialCallCount = setPropertySpy.mock.calls.length;
-    
+
     const customTheme: Partial<ChatTheme> = {
       colors: {
         primary: '#00ff00',
@@ -313,18 +313,18 @@ describe('useTheme', () => {
         success: '#388e3c',
       },
     };
-    
+
     rerender({ theme: customTheme });
-    
+
     expect(setPropertySpy.mock.calls.length).toBeGreaterThan(initialCallCount);
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-color-primary', '#00ff00');
   });
 
   it('handles undefined custom theme properties', () => {
     const customTheme: Partial<ChatTheme> = {};
-    
+
     const { result } = renderHook(() => useTheme(customTheme));
-    
+
     // Should still have all default values
     expect(result.current.colors.primary).toBe('#0066cc');
     expect(result.current.typography.fontSize.base).toBe('1rem');
@@ -338,9 +338,9 @@ describe('useTheme', () => {
         unit: 0,
       },
     };
-    
+
     renderHook(() => useTheme(customTheme));
-    
+
     expect(setPropertySpy).toHaveBeenCalledWith('--chat-spacing-unit', '0px');
   });
 });

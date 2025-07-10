@@ -22,7 +22,7 @@ describe('ChatInterface', () => {
       description: 'A test agent',
       version: '1.0.0',
       serviceEndpoint: 'https://api.test.com',
-      capabilities: [{ name: 'text-generation', description: 'Can generate text' }]
+      capabilities: [{ name: 'text-generation', description: 'Can generate text' }],
     };
 
     mockClient = new A2AClient({ agentCard: mockAgentCard });
@@ -31,13 +31,13 @@ describe('ChatInterface', () => {
     // Mock client methods
     mockClient.message = {
       send: vi.fn(),
-      stream: vi.fn()
+      stream: vi.fn(),
     };
 
     mockClient.task = {
       get: vi.fn(),
       cancel: vi.fn(),
-      waitForCompletion: vi.fn()
+      waitForCompletion: vi.fn(),
     };
 
     // Mock session methods
@@ -58,9 +58,9 @@ describe('ChatInterface', () => {
       const existingId = 'existing-conv-123';
       mockSession.get.mockReturnValue(existingId);
 
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession
+        session: mockSession,
       });
 
       expect(chat.getConversationId()).toBe(existingId);
@@ -73,15 +73,15 @@ describe('ChatInterface', () => {
           role: 'user',
           content: 'Hello',
           timestamp: new Date('2024-01-01'),
-          conversationId: 'conv-123'
+          conversationId: 'conv-123',
         },
         {
           id: 'msg-2',
           role: 'assistant',
           content: 'Hi there!',
           timestamp: new Date('2024-01-01'),
-          conversationId: 'conv-123'
-        }
+          conversationId: 'conv-123',
+        },
       ];
 
       mockSession.get.mockImplementation((key: string) => {
@@ -90,9 +90,9 @@ describe('ChatInterface', () => {
         return undefined;
       });
 
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession
+        session: mockSession,
       });
 
       const messages = chat.getMessages();
@@ -110,15 +110,15 @@ describe('ChatInterface', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Hello' }]
+            content: [{ type: 'text', content: 'Hello' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Hi there!' }]
-          }
+            content: [{ type: 'text', content: 'Hi there!' }],
+          },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
@@ -133,11 +133,11 @@ describe('ChatInterface', () => {
       expect(mockClient.message.send).toHaveBeenCalledWith({
         message: {
           role: 'user',
-          content: [{ type: 'text', content: 'Hello' }]
+          content: [{ type: 'text', content: 'Hello' }],
         },
         context: expect.objectContaining({
-          conversationId: expect.any(String)
-        })
+          conversationId: expect.any(String),
+        }),
       });
     });
 
@@ -148,26 +148,26 @@ describe('ChatInterface', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Hello' }]
+            content: [{ type: 'text', content: 'Hello' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Hi!' }]
-          }
+            content: [{ type: 'text', content: 'Hi!' }],
+          },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
       mockClient.task.waitForCompletion.mockResolvedValue(mockTask);
 
       const chat = new ChatInterface({ client: mockClient });
-      
+
       expect(chat.getMessages()).toHaveLength(0);
-      
+
       await chat.send('Hello');
-      
+
       const messages = chat.getMessages();
       expect(messages).toHaveLength(2);
       expect(messages[0].role).toBe('user');
@@ -183,24 +183,24 @@ describe('ChatInterface', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Test' }]
+            content: [{ type: 'text', content: 'Test' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Response' }]
-          }
+            content: [{ type: 'text', content: 'Response' }],
+          },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
       mockClient.task.waitForCompletion.mockResolvedValue(mockTask);
 
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
         session: mockSession,
-        persistMessages: true
+        persistMessages: true,
       });
 
       await chat.send('Test');
@@ -209,7 +209,7 @@ describe('ChatInterface', () => {
         expect.stringContaining('a2a-chat-history'),
         expect.arrayContaining([
           expect.objectContaining({ role: 'user', content: 'Test' }),
-          expect.objectContaining({ role: 'assistant', content: 'Response' })
+          expect.objectContaining({ role: 'assistant', content: 'Response' }),
         ])
       );
     });
@@ -223,28 +223,26 @@ describe('ChatInterface', () => {
             role: 'user',
             content: [
               { type: 'text', content: 'Look at this:' },
-              { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' }
-            ]
+              { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' },
+            ],
           },
           {
             role: 'assistant',
-            content: [
-              { type: 'text', content: 'I see an image' }
-            ]
-          }
+            content: [{ type: 'text', content: 'I see an image' }],
+          },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
       mockClient.task.waitForCompletion.mockResolvedValue(mockTask);
 
       const chat = new ChatInterface({ client: mockClient });
-      
+
       const response = await chat.sendMultipart([
         { type: 'text', content: 'Look at this:' },
-        { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' }
+        { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' },
       ]);
 
       expect(response.content).toBe('I see an image');
@@ -253,20 +251,20 @@ describe('ChatInterface', () => {
           role: 'user',
           content: [
             { type: 'text', content: 'Look at this:' },
-            { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' }
-          ]
+            { type: 'file', mimeType: 'image/png', data: 'base64data', filename: 'test.png' },
+          ],
         },
-        context: expect.any(Object)
+        context: expect.any(Object),
       });
     });
 
     it('should include conversation context', async () => {
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
         context: {
           userId: 'user-123',
-          sessionId: 'session-456'
-        }
+          sessionId: 'session-456',
+        },
       });
 
       const mockTask: Task = {
@@ -274,10 +272,10 @@ describe('ChatInterface', () => {
         state: 'completed',
         messages: [
           { role: 'user', content: [{ type: 'text', content: 'Hello' }] },
-          { role: 'assistant', content: [{ type: 'text', content: 'Hi!' }] }
+          { role: 'assistant', content: [{ type: 'text', content: 'Hi!' }] },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
@@ -290,8 +288,8 @@ describe('ChatInterface', () => {
         context: expect.objectContaining({
           conversationId: expect.any(String),
           userId: 'user-123',
-          sessionId: 'session-456'
-        })
+          sessionId: 'session-456',
+        }),
       });
     });
   });
@@ -304,31 +302,31 @@ describe('ChatInterface', () => {
           state: 'running',
           messages: [
             { role: 'user', content: [{ type: 'text', content: 'Tell me a story' }] },
-            { role: 'assistant', content: [{ type: 'text', content: 'Once upon' }] }
+            { role: 'assistant', content: [{ type: 'text', content: 'Once upon' }] },
           ],
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: 'task-123',
           state: 'running',
           messages: [
             { role: 'user', content: [{ type: 'text', content: 'Tell me a story' }] },
-            { role: 'assistant', content: [{ type: 'text', content: 'Once upon a time' }] }
+            { role: 'assistant', content: [{ type: 'text', content: 'Once upon a time' }] },
           ],
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: 'task-123',
           state: 'completed',
           messages: [
             { role: 'user', content: [{ type: 'text', content: 'Tell me a story' }] },
-            { role: 'assistant', content: [{ type: 'text', content: 'Once upon a time...' }] }
+            { role: 'assistant', content: [{ type: 'text', content: 'Once upon a time...' }] },
           ],
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
       // Create async iterable from mock tasks
@@ -337,7 +335,7 @@ describe('ChatInterface', () => {
           for (const task of mockTasks) {
             yield task;
           }
-        }
+        },
       };
 
       mockClient.message.stream.mockReturnValue(mockStream);
@@ -362,48 +360,45 @@ describe('ChatInterface', () => {
             error: { message: 'Connection lost' },
             messages: [],
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           };
-        }
+        },
       };
 
       mockClient.message.stream.mockReturnValue(errorStream);
 
       const chat = new ChatInterface({ client: mockClient });
-      
+
       await expect(chat.stream('Test', () => {})).rejects.toThrow('Connection lost');
     });
   });
 
   describe('conversation management', () => {
     it('should clear conversation', () => {
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession
+        session: mockSession,
       });
 
       // Add some mock history
       (chat as any).messages = [
         { id: 'msg-1', role: 'user', content: 'Hi' },
-        { id: 'msg-2', role: 'assistant', content: 'Hello' }
+        { id: 'msg-2', role: 'assistant', content: 'Hello' },
       ];
 
       chat.clearConversation();
 
       expect(chat.getMessages()).toHaveLength(0);
-      expect(mockSession.set).toHaveBeenCalledWith(
-        expect.stringContaining('a2a-chat-history'),
-        []
-      );
+      expect(mockSession.set).toHaveBeenCalledWith(expect.stringContaining('a2a-chat-history'), []);
     });
 
     it('should start new conversation', () => {
       const oldId = 'old-conv-123';
       mockSession.get.mockReturnValue(oldId);
 
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession
+        session: mockSession,
       });
 
       expect(chat.getConversationId()).toBe(oldId);
@@ -422,15 +417,15 @@ describe('ChatInterface', () => {
           role: 'user',
           content: 'Hello',
           timestamp: new Date('2024-01-01T10:00:00Z'),
-          conversationId: 'conv-123'
+          conversationId: 'conv-123',
         },
         {
           id: 'msg-2',
           role: 'assistant',
           content: 'Hi there!',
           timestamp: new Date('2024-01-01T10:01:00Z'),
-          conversationId: 'conv-123'
-        }
+          conversationId: 'conv-123',
+        },
       ];
 
       const chat = new ChatInterface({ client: mockClient });
@@ -443,7 +438,7 @@ describe('ChatInterface', () => {
         messages: messages,
         startedAt: messages[0].timestamp,
         lastMessageAt: messages[1].timestamp,
-        messageCount: 2
+        messageCount: 2,
       });
     });
   });
@@ -455,10 +450,10 @@ describe('ChatInterface', () => {
         state: 'completed',
         messages: [
           { role: 'user', content: [{ type: 'text', content: 'Hi' }] },
-          { role: 'assistant', content: [{ type: 'text', content: 'Hello!' }] }
+          { role: 'assistant', content: [{ type: 'text', content: 'Hello!' }] },
         ],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       mockClient.message.send.mockResolvedValue(mockTask);
@@ -466,7 +461,7 @@ describe('ChatInterface', () => {
 
       const chat = new ChatInterface({ client: mockClient });
       const messageHandler = vi.fn();
-      
+
       chat.on('message', messageHandler);
       await chat.send('Hi');
 
@@ -485,9 +480,9 @@ describe('ChatInterface', () => {
 
       const chat = new ChatInterface({ client: mockClient });
       const errorHandler = vi.fn();
-      
+
       chat.on('error', errorHandler);
-      
+
       await expect(chat.send('Test')).rejects.toThrow('Network error');
       expect(errorHandler).toHaveBeenCalledWith(error);
     });
@@ -495,9 +490,9 @@ describe('ChatInterface', () => {
 
   describe('cleanup', () => {
     it('should clean up resources', () => {
-      const chat = new ChatInterface({ 
+      const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession
+        session: mockSession,
       });
 
       chat.destroy();

@@ -33,17 +33,17 @@ const DEFAULT_THEME: ChatTheme = {
 
 export function useTheme(customTheme?: Partial<ChatTheme>) {
   const theme = mergeTheme(DEFAULT_THEME, customTheme);
-  
+
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
-  
+
   return theme;
 }
 
 function mergeTheme(defaultTheme: ChatTheme, customTheme?: Partial<ChatTheme>): ChatTheme {
   if (!customTheme) return defaultTheme;
-  
+
   return {
     colors: { ...defaultTheme.colors, ...customTheme.colors },
     typography: {
@@ -62,21 +62,21 @@ function mergeTheme(defaultTheme: ChatTheme, customTheme?: Partial<ChatTheme>): 
 
 function applyTheme(theme: ChatTheme) {
   const root = document.documentElement;
-  
+
   // Colors
   Object.entries(theme.colors).forEach(([key, value]) => {
     root.style.setProperty(`--chat-color-${kebabCase(key)}`, value);
   });
-  
+
   // Typography
   root.style.setProperty('--chat-font-family', theme.typography.fontFamily);
   Object.entries(theme.typography.fontSize).forEach(([key, value]) => {
     root.style.setProperty(`--chat-font-size-${key}`, value);
   });
-  
+
   // Spacing
   root.style.setProperty('--chat-spacing-unit', `${theme.spacing.unit}px`);
-  
+
   // Border radius
   Object.entries(theme.borderRadius).forEach(([key, value]) => {
     root.style.setProperty(`--chat-radius-${key}`, value);

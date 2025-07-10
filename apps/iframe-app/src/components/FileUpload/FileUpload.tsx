@@ -8,65 +8,65 @@ interface FileUploadProps {
   disabled?: boolean;
 }
 
-export function FileUpload({ 
-  onFileSelect, 
+export function FileUpload({
+  onFileSelect,
   maxFileSize = 10 * 1024 * 1024, // 10MB default
   allowedFileTypes,
-  disabled 
+  disabled,
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   const handleClick = () => {
     if (inputRef.current && !disabled) {
       inputRef.current.click();
     }
   };
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     if (input.files && input.files.length > 0) {
       const validFiles: File[] = [];
-      
+
       for (let i = 0; i < input.files.length; i++) {
         const file = input.files[i];
-        
+
         // Check file size
         if (file.size > maxFileSize) {
           alert(`File "${file.name}" is too large. Maximum size is ${formatFileSize(maxFileSize)}`);
           continue;
         }
-        
+
         // Check file type
         if (allowedFileTypes && allowedFileTypes.length > 0) {
           const fileExtension = file.name.split('.').pop()?.toLowerCase();
-          const isAllowed = allowedFileTypes.some(type => {
+          const isAllowed = allowedFileTypes.some((type) => {
             if (type.includes('*')) {
               // Handle wildcard types like "image/*"
               return file.type.startsWith(type.replace('*', ''));
             }
             return type === `.${fileExtension}` || type === file.type;
           });
-          
+
           if (!isAllowed) {
             alert(`File type "${fileExtension}" is not allowed`);
             continue;
           }
         }
-        
+
         validFiles.push(file);
       }
-      
+
       if (validFiles.length > 0) {
         const dataTransfer = new DataTransfer();
-        validFiles.forEach(file => dataTransfer.items.add(file));
+        validFiles.forEach((file) => dataTransfer.items.add(file));
         onFileSelect(dataTransfer.files);
       }
-      
+
       // Reset input
       input.value = '';
     }
   };
-  
+
   return (
     <>
       <input
@@ -85,20 +85,21 @@ export function FileUpload({
         disabled={disabled}
         title="Attach files"
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path 
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
             d="M10.5 4.5L10.5 13.5M10.5 13.5L7 10M10.5 13.5L14 10"
-            stroke="currentColor" 
-            strokeWidth="1.5" 
-            strokeLinecap="round" 
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path 
-            d="M5 16H16" 
-            stroke="currentColor" 
-            strokeWidth="1.5" 
-            strokeLinecap="round"
-          />
+          <path d="M5 16H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
     </>

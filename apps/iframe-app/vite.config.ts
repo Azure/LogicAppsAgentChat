@@ -10,12 +10,12 @@ export default defineConfig({
         manualChunks: undefined,
         assetFileNames: '[name]-[hash].[ext]',
         chunkFileNames: '[name]-[hash].js',
-        entryFileNames: '[name]-[hash].js'
-      }
-    }
+        entryFileNames: '[name]-[hash].js',
+      },
+    },
   },
   server: {
     port: 3001,
-    host: true
-  }
+    host: true,
+  },
 });

@@ -8,7 +8,7 @@ global.fetch = vi.fn();
 
 describe('PublicAgentRegistry', () => {
   let registry: PublicAgentRegistry;
-  
+
   beforeEach(() => {
     registry = new PublicAgentRegistry('https://registry.a2a.io');
     vi.clearAllMocks();
@@ -21,21 +21,21 @@ describe('PublicAgentRegistry', () => {
           id: 'agent-1',
           name: 'Test Agent 1',
           description: 'First test agent',
-          version: '1.0.0'
+          version: '1.0.0',
         },
         {
           id: 'agent-2',
           name: 'Test Agent 2',
           description: 'Second test agent',
-          version: '2.0.0'
-        }
-      ]
+          version: '2.0.0',
+        },
+      ],
     };
 
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResults
+      json: async () => mockResults,
     } as Response);
 
     const results = await registry.searchAgents('test');
@@ -44,8 +44,8 @@ describe('PublicAgentRegistry', () => {
       'https://registry.a2a.io/search?q=test',
       expect.objectContaining({
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: 'application/json',
+        },
       })
     );
     expect(results).toHaveLength(2);
@@ -57,13 +57,13 @@ describe('PublicAgentRegistry', () => {
       name: 'Test Agent',
       description: 'A test agent',
       version: '1.0.0',
-      url: 'https://api.test-agent.com'
+      url: 'https://api.test-agent.com',
     });
 
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockAgentCard
+      json: async () => mockAgentCard,
     } as Response);
 
     const agentCard = await registry.getAgentCard('agent-123');
@@ -72,8 +72,8 @@ describe('PublicAgentRegistry', () => {
       'https://registry.a2a.io/agents/agent-123',
       expect.objectContaining({
         headers: {
-          'Accept': 'application/json'
-        }
+          Accept: 'application/json',
+        },
       })
     );
     expect(agentCard.name).toBe('Test Agent');
@@ -82,9 +82,12 @@ describe('PublicAgentRegistry', () => {
 
 describe('EnterpriseAgentRegistry', () => {
   let registry: EnterpriseAgentRegistry;
-  
+
   beforeEach(() => {
-    registry = new EnterpriseAgentRegistry('https://enterprise.example.com/registry', 'api-key-123');
+    registry = new EnterpriseAgentRegistry(
+      'https://enterprise.example.com/registry',
+      'api-key-123'
+    );
     vi.clearAllMocks();
   });
 
@@ -95,15 +98,15 @@ describe('EnterpriseAgentRegistry', () => {
           id: 'enterprise-agent-1',
           name: 'Enterprise Agent',
           description: 'Internal enterprise agent',
-          version: '1.0.0'
-        }
-      ]
+          version: '1.0.0',
+        },
+      ],
     };
 
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResults
+      json: async () => mockResults,
     } as Response);
 
     const results = await registry.searchAgents('enterprise');
@@ -112,9 +115,9 @@ describe('EnterpriseAgentRegistry', () => {
       'https://enterprise.example.com/registry/search?q=enterprise',
       expect.objectContaining({
         headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer api-key-123'
-        }
+          Accept: 'application/json',
+          Authorization: 'Bearer api-key-123',
+        },
       })
     );
     expect(results).toHaveLength(1);
@@ -125,13 +128,13 @@ describe('EnterpriseAgentRegistry', () => {
       name: 'Enterprise Agent',
       description: 'Internal agent',
       version: '1.0.0',
-      url: 'https://api.enterprise.com'
+      url: 'https://api.enterprise.com',
     });
 
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockAgentCard
+      json: async () => mockAgentCard,
     } as Response);
 
     const agentCard = await registry.getAgentCard('enterprise-123');
@@ -140,9 +143,9 @@ describe('EnterpriseAgentRegistry', () => {
       'https://enterprise.example.com/registry/agents/enterprise-123',
       expect.objectContaining({
         headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer api-key-123'
-        }
+          Accept: 'application/json',
+          Authorization: 'Bearer api-key-123',
+        },
       })
     );
   });
@@ -152,10 +155,11 @@ describe('EnterpriseAgentRegistry', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
-      statusText: 'Unauthorized'
+      statusText: 'Unauthorized',
     } as Response);
 
-    await expect(registry.searchAgents('test'))
-      .rejects.toThrow('Failed to search agents: 401 Unauthorized');
+    await expect(registry.searchAgents('test')).rejects.toThrow(
+      'Failed to search agents: 401 Unauthorized'
+    );
   });
 });

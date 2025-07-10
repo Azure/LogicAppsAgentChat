@@ -1,9 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
-import type { 
-  SessionData, 
-  SessionOptions,
-  SessionEventMap 
-} from './types';
+import type { SessionData, SessionOptions, SessionEventMap } from './types';
 
 export class SessionManager extends EventEmitter<SessionEventMap> {
   private session: SessionData;
@@ -20,16 +16,14 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       storageKey: 'a2a-session-default',
       autoSave: true,
       ttl: 0, // No expiration by default
-      ...options
+      ...options,
     };
 
-    this.storage = this.options.storage === 'local' 
-      ? localStorage 
-      : sessionStorage;
+    this.storage = this.options.storage === 'local' ? localStorage : sessionStorage;
 
     // Load existing session or create new one
     this.session = this.loadSession() || this.createSession();
-    
+
     // Save initial session if it's new and auto-save is enabled
     if (!this.loadSession() && this.options.autoSave) {
       this.persistSession();
@@ -51,7 +45,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       id: this.options.sessionId,
       createdAt: now,
       updatedAt: now,
-      data: {}
+      data: {},
     };
 
     if (this.options.ttl > 0) {
@@ -71,7 +65,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
         ...parsed,
         createdAt: new Date(parsed.createdAt),
         updatedAt: new Date(parsed.updatedAt),
-        expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined
+        expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined,
       };
 
       // Check if session is expired
@@ -91,7 +85,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       ...this.session,
       createdAt: this.session.createdAt.toISOString(),
       updatedAt: this.session.updatedAt.toISOString(),
-      expiresAt: this.session.expiresAt?.toISOString()
+      expiresAt: this.session.expiresAt?.toISOString(),
     };
 
     this.storage.setItem(this.options.storageKey, JSON.stringify(toStore));
@@ -125,7 +119,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
         ...newSession,
         createdAt: new Date(newSession.createdAt),
         updatedAt: new Date(newSession.updatedAt),
-        expiresAt: newSession.expiresAt ? new Date(newSession.expiresAt) : undefined
+        expiresAt: newSession.expiresAt ? new Date(newSession.expiresAt) : undefined,
       };
 
       this.emit('sync', this.session);
@@ -172,11 +166,11 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     this.session.updatedAt = new Date();
 
     // Emit change events for each cleared key
-    Object.keys(oldData).forEach(key => {
-      this.emit('change', { 
-        key, 
-        value: undefined, 
-        previousValue: oldData[key] 
+    Object.keys(oldData).forEach((key) => {
+      this.emit('change', {
+        key,
+        value: undefined,
+        previousValue: oldData[key],
       });
     });
 
@@ -191,8 +185,8 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
 
   rotate(preserveKeys: string[] = []): void {
     const preservedData: Record<string, unknown> = {};
-    
-    preserveKeys.forEach(key => {
+
+    preserveKeys.forEach((key) => {
       if (key in this.session.data) {
         preservedData[key] = this.session.data[key];
       }
@@ -218,7 +212,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     if (typeof window !== 'undefined') {
       window.removeEventListener('storage', this.handleStorageEvent);
     }
-    
+
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
     }

@@ -19,7 +19,7 @@ export function MessageInput({
   disabled = false,
   allowFileUpload = true,
   maxFileSize,
-  allowedFileTypes
+  allowedFileTypes,
 }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
@@ -32,7 +32,7 @@ export function MessageInput({
     e.preventDefault();
 
     if (message.trim() || pendingAttachments.length > 0) {
-      const attachments: Attachment[] = pendingAttachments.map(file => ({
+      const attachments: Attachment[] = pendingAttachments.map((file) => ({
         id: generateId(),
         name: file.name,
         size: file.size,
@@ -69,11 +69,11 @@ export function MessageInput({
 
   const handleFileSelect = (files: FileList) => {
     const newFiles = Array.from(files);
-    setPendingAttachments(prev => [...prev, ...newFiles]);
+    setPendingAttachments((prev) => [...prev, ...newFiles]);
   };
 
   const removeAttachment = (index: number) => {
-    setPendingAttachments(prev => prev.filter((_, i) => i !== index));
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -121,7 +121,13 @@ export function MessageInput({
           disabled={isDisabled || (!message.trim() && pendingAttachments.length === 0)}
           className={styles.sendButton}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <path
               d="M3.5 10L17.5 10M17.5 10L12.5 5M17.5 10L12.5 15"
               stroke="currentColor"
@@ -133,11 +139,7 @@ export function MessageInput({
         </button>
       </div>
 
-      {!isConnected && (
-        <div className={styles.connectionStatus}>
-          Connecting...
-        </div>
-      )}
+      {!isConnected && <div className={styles.connectionStatus}>Connecting...</div>}
     </form>
   );
 }
@@ -146,18 +148,18 @@ function generateId(): string {
   // Generate a UUID v4 format GUID similar to C# Guid.NewGuid()
   // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
   // where x is any hexadecimal digit and y is one of 8, 9, a, or b
-  
+
   const hex = '0123456789abcdef';
   let guid = '';
-  
+
   // Generate random bytes
   const randomBytes = new Uint8Array(16);
   crypto.getRandomValues(randomBytes);
-  
+
   // Set version (4) and variant bits
   randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; // Version 4
   randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80; // Variant 10
-  
+
   // Convert to hex string with proper formatting
   for (let i = 0; i < 16; i++) {
     if (i === 4 || i === 6 || i === 8 || i === 10) {
@@ -165,6 +167,6 @@ function generateId(): string {
     }
     guid += hex[randomBytes[i] >> 4] + hex[randomBytes[i] & 0x0f];
   }
-  
+
   return guid;
 }

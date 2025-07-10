@@ -12,8 +12,8 @@ describe('PluginManager', () => {
       session: {} as any,
       config: {
         apiVersion: '1.0.0',
-        debug: false
-      }
+        debug: false,
+      },
     };
 
     manager = new PluginManager(context);
@@ -24,7 +24,7 @@ describe('PluginManager', () => {
       const plugin: Plugin = {
         name: 'test-plugin',
         version: '1.0.0',
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       manager.register(plugin);
@@ -37,11 +37,11 @@ describe('PluginManager', () => {
       const plugin: Plugin = {
         name: 'test-plugin',
         version: '1.0.0',
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       manager.register(plugin);
-      
+
       expect(() => manager.register(plugin)).toThrow('Plugin test-plugin is already registered');
     });
 
@@ -51,7 +51,7 @@ describe('PluginManager', () => {
         name: 'test-plugin',
         version: '1.0.0',
         install: vi.fn(),
-        uninstall
+        uninstall,
       };
 
       manager.register(plugin);
@@ -65,13 +65,13 @@ describe('PluginManager', () => {
       const plugin1: Plugin = {
         name: 'plugin-1',
         version: '1.0.0',
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       const plugin2: Plugin = {
         name: 'plugin-2',
         version: '2.0.0',
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       manager.register(plugin1);
@@ -87,15 +87,18 @@ describe('PluginManager', () => {
   describe('hook execution', () => {
     it('should execute beforeRequest hooks', async () => {
       const hook1 = vi.fn((request) => ({ ...request, headers: { 'X-Plugin-1': 'true' } }));
-      const hook2 = vi.fn((request) => ({ ...request, headers: { ...request.headers, 'X-Plugin-2': 'true' } }));
+      const hook2 = vi.fn((request) => ({
+        ...request,
+        headers: { ...request.headers, 'X-Plugin-2': 'true' },
+      }));
 
       const plugin1: Plugin = {
         name: 'plugin-1',
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: hook1
-        }
+          beforeRequest: hook1,
+        },
       };
 
       const plugin2: Plugin = {
@@ -103,8 +106,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: hook2
-        }
+          beforeRequest: hook2,
+        },
       };
 
       manager.register(plugin1);
@@ -120,8 +123,8 @@ describe('PluginManager', () => {
         url: '/test',
         headers: {
           'X-Plugin-1': 'true',
-          'X-Plugin-2': 'true'
-        }
+          'X-Plugin-2': 'true',
+        },
       });
     });
 
@@ -134,8 +137,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          afterResponse: hook1
-        }
+          afterResponse: hook1,
+        },
       };
 
       const plugin2: Plugin = {
@@ -143,8 +146,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          afterResponse: hook2
-        }
+          afterResponse: hook2,
+        },
       };
 
       manager.register(plugin1);
@@ -157,13 +160,13 @@ describe('PluginManager', () => {
         status: 200,
         data: { message: 'ok' },
         modified: true,
-        plugin2: true
+        plugin2: true,
       });
     });
 
     it('should handle async hooks', async () => {
       const asyncHook = vi.fn(async (data) => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         return { ...data, async: true };
       });
 
@@ -172,8 +175,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: asyncHook
-        }
+          beforeRequest: asyncHook,
+        },
       };
 
       manager.register(plugin);
@@ -193,8 +196,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: errorHook
-        }
+          beforeRequest: errorHook,
+        },
       };
 
       const plugin2: Plugin = {
@@ -202,8 +205,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: successHook
-        }
+          beforeRequest: successHook,
+        },
       };
 
       manager.register(plugin1);
@@ -221,8 +224,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          onError: errorHook
-        }
+          onError: errorHook,
+        },
       };
 
       manager.register(plugin);
@@ -236,11 +239,9 @@ describe('PluginManager', () => {
     it('should execute message transformation hooks', async () => {
       const transformHook = vi.fn((message) => ({
         ...message,
-        content: message.content.map((part: any) => 
-          part.type === 'text' 
-            ? { ...part, content: part.content.toUpperCase() }
-            : part
-        )
+        content: message.content.map((part: any) =>
+          part.type === 'text' ? { ...part, content: part.content.toUpperCase() } : part
+        ),
       }));
 
       const plugin: Plugin = {
@@ -248,15 +249,15 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeMessageSend: transformHook
-        }
+          beforeMessageSend: transformHook,
+        },
       };
 
       manager.register(plugin);
 
       const message = {
         role: 'user',
-        content: [{ type: 'text', content: 'hello' }]
+        content: [{ type: 'text', content: 'hello' }],
       };
 
       const result = await manager.executeHook('beforeMessageSend', message);
@@ -272,8 +273,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          onStart
-        }
+          onStart,
+        },
       };
 
       manager.register(plugin);
@@ -289,8 +290,8 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          onStop
-        }
+          onStop,
+        },
       };
 
       manager.register(plugin);
@@ -304,16 +305,16 @@ describe('PluginManager', () => {
       const plugin: Plugin = {
         name: 'state-plugin',
         version: '1.0.0',
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       manager.register(plugin);
-      
+
       expect(manager.isEnabled('state-plugin')).toBe(true); // Default enabled
-      
+
       await manager.disablePlugin('state-plugin');
       expect(manager.isEnabled('state-plugin')).toBe(false);
-      
+
       await manager.enablePlugin('state-plugin');
       expect(manager.isEnabled('state-plugin')).toBe(true);
     });
@@ -325,15 +326,15 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: vi.fn(),
         hooks: {
-          beforeRequest: hook
-        }
+          beforeRequest: hook,
+        },
       };
 
       manager.register(plugin);
       await manager.disablePlugin('disabled-plugin');
 
       const result = await manager.executeHook('beforeRequest', { test: true });
-      
+
       expect(hook).not.toHaveBeenCalled();
       expect(result).toEqual({ test: true });
     });
@@ -349,7 +350,7 @@ describe('PluginManager', () => {
         install: (ctx) => {
           capturedContext = ctx;
           ctx.config.customValue = 'test';
-        }
+        },
       };
 
       manager.register(plugin);
@@ -363,7 +364,7 @@ describe('PluginManager', () => {
         name: 'dependent',
         version: '1.0.0',
         dependencies: ['required-plugin'],
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       expect(() => manager.register(dependentPlugin)).toThrow(
@@ -376,21 +377,21 @@ describe('PluginManager', () => {
         name: 'plugin-1',
         version: '1.0.0',
         dependencies: ['plugin-2'],
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       const plugin2: Plugin = {
         name: 'plugin-2',
         version: '1.0.0',
         dependencies: ['plugin-1'],
-        install: vi.fn()
+        install: vi.fn(),
       };
 
       // First plugin with dependency should fail
       expect(() => manager.register(plugin1)).toThrow(
         'Plugin plugin-1 requires plugin plugin-2 to be registered first'
       );
-      
+
       // Second plugin with circular dependency should also fail
       expect(() => manager.register(plugin2)).toThrow(
         'Plugin plugin-2 requires plugin plugin-1 to be registered first'
@@ -405,10 +406,12 @@ describe('PluginManager', () => {
         version: '1.0.0',
         install: () => {
           throw new Error('Installation failed');
-        }
+        },
       };
 
-      expect(() => manager.register(plugin)).toThrow('Failed to install plugin error-plugin: Installation failed');
+      expect(() => manager.register(plugin)).toThrow(
+        'Failed to install plugin error-plugin: Installation failed'
+      );
     });
 
     it('should handle plugin uninstall errors gracefully', () => {
@@ -418,11 +421,11 @@ describe('PluginManager', () => {
         install: vi.fn(),
         uninstall: () => {
           throw new Error('Uninstall failed');
-        }
+        },
       };
 
       manager.register(plugin);
-      
+
       // Should not throw
       expect(() => manager.unregister('error-plugin')).not.toThrow();
       expect(manager.getPlugin('error-plugin')).toBeUndefined();

@@ -23,10 +23,10 @@ export class SSEClient {
       onClose: () => {},
       method: 'GET',
       body: '',
-      ...options
+      ...options,
     };
     this.reconnectDelay = this.options.reconnectDelay;
-    
+
     this.connect();
   }
 
@@ -40,10 +40,10 @@ export class SSEClient {
           method: this.options.method || 'POST',
           headers: {
             ...this.options.headers,
-            'Accept': 'text/event-stream'
+            Accept: 'text/event-stream',
           },
           body: this.options.body,
-          credentials: this.options.withCredentials ? 'include' : 'same-origin'
+          credentials: this.options.withCredentials ? 'include' : 'same-origin',
         });
 
         if (!response.ok) {
@@ -56,7 +56,7 @@ export class SSEClient {
 
         this.options.onOpen();
         this.reconnectDelay = this.options.reconnectDelay;
-        
+
         // Process the stream
         this.reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -65,39 +65,39 @@ export class SSEClient {
         while (this.reader && !this.closed) {
           try {
             const { done, value } = await this.reader.read();
-            
+
             if (done) {
               break;
             }
 
-          buffer += decoder.decode(value, { stream: true });
-          
-          // Process complete SSE messages
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // Keep incomplete line in buffer
-          
-          let currentMessage: Partial<SSEMessage> = {};
-          
-          for (const line of lines) {
-            if (line.trim() === '') {
-              // Empty line indicates end of message
-              if (Object.keys(currentMessage).length > 0) {
-                this.handleSSEMessage(currentMessage as SSEMessage);
-                currentMessage = {};
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE messages
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+            let currentMessage: Partial<SSEMessage> = {};
+
+            for (const line of lines) {
+              if (line.trim() === '') {
+                // Empty line indicates end of message
+                if (Object.keys(currentMessage).length > 0) {
+                  this.handleSSEMessage(currentMessage as SSEMessage);
+                  currentMessage = {};
+                }
+              } else if (line.startsWith('event:')) {
+                currentMessage.event = line.slice(6).trim();
+              } else if (line.startsWith('data:')) {
+                const data = line.slice(5).trim();
+                try {
+                  currentMessage.data = JSON.parse(data);
+                } catch {
+                  currentMessage.data = data;
+                }
+              } else if (line.startsWith('id:')) {
+                currentMessage.id = line.slice(3).trim();
               }
-            } else if (line.startsWith('event:')) {
-              currentMessage.event = line.slice(6).trim();
-            } else if (line.startsWith('data:')) {
-              const data = line.slice(5).trim();
-              try {
-                currentMessage.data = JSON.parse(data);
-              } catch {
-                currentMessage.data = data;
-              }
-            } else if (line.startsWith('id:')) {
-              currentMessage.id = line.slice(3).trim();
             }
-          }
           } catch (error) {
             if (!this.closed) {
               console.error('Error reading stream:', error);
@@ -109,7 +109,7 @@ export class SSEClient {
       } else {
         // Use EventSource for GET requests
         const eventSourceInit: EventSourceInit = {
-          withCredentials: this.options.withCredentials
+          withCredentials: this.options.withCredentials,
         };
 
         this.eventSource = new EventSource(this.url, eventSourceInit);
@@ -125,7 +125,7 @@ export class SSEClient {
 
         this.eventSource.onerror = () => {
           this.handleError(new Error('SSE connection error'));
-          
+
           if (this.options.reconnect && !this.closed) {
             this.scheduleReconnect();
           }
@@ -167,7 +167,7 @@ export class SSEClient {
   private handleMessage(event: MessageEvent): void {
     try {
       const message = this.parseMessage(event);
-      
+
       // Handle event ID if needed in the future
       // Currently not tracking lastEventId
 
@@ -187,11 +187,11 @@ export class SSEClient {
   private parseMessage(event: MessageEvent): SSEMessage {
     const eventType = event.type || 'message';
     let data: unknown;
-    
+
     try {
       // Parse the raw SSE format
       const rawData = event.data;
-      
+
       if (typeof rawData === 'string') {
         // Handle SSE format with event type and data
         const lines = rawData.split('\n');
@@ -210,7 +210,7 @@ export class SSEClient {
             // Return special retry message
             return {
               event: 'retry',
-              data: parseInt(line.slice(6).trim(), 10)
+              data: parseInt(line.slice(6).trim(), 10),
             };
           }
           // Ignore comment lines starting with ':'
@@ -218,7 +218,7 @@ export class SSEClient {
 
         // Join multiline data
         const dataString = dataLines.join('');
-        
+
         // Try to parse as JSON, fallback to string
         try {
           data = JSON.parse(dataString);
@@ -261,22 +261,22 @@ export class SSEClient {
 
   close(): void {
     this.closed = true;
-    
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    
+
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
-    
+
     if (this.reader) {
       this.reader.cancel();
       this.reader = null;
     }
-    
+
     this.options.onClose();
   }
 

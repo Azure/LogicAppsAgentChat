@@ -17,7 +17,7 @@ describe('lib/index', () => {
     unmount: ReturnType<typeof vi.fn>;
   };
   let mockCreateRoot: ReturnType<typeof vi.fn>;
-  
+
   beforeEach(() => {
     // Mock createRoot
     mockRoot = {
@@ -27,7 +27,7 @@ describe('lib/index', () => {
     mockCreateRoot = vi.fn().mockReturnValue(mockRoot);
     vi.mocked(createRoot).mockImplementation(mockCreateRoot);
   });
-  
+
   afterEach(() => {
     vi.clearAllMocks();
     document.body.innerHTML = '';
@@ -59,9 +59,9 @@ describe('lib/index', () => {
     it('mounts widget with HTMLElement container', () => {
       const container = document.createElement('div');
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget(container, defaultProps);
-      
+
       expect(mockCreateRoot).toHaveBeenCalledWith(container);
       expect(mockRoot.render).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -76,9 +76,9 @@ describe('lib/index', () => {
       const container = document.createElement('div');
       container.id = 'chat-container';
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget('#chat-container', defaultProps);
-      
+
       expect(mockCreateRoot).toHaveBeenCalledWith(container);
       expect(mockRoot.render).toHaveBeenCalled();
       expect(typeof unmount).toBe('function');
@@ -88,9 +88,9 @@ describe('lib/index', () => {
       const container = document.createElement('div');
       container.className = 'chat-widget';
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget('.chat-widget', defaultProps);
-      
+
       expect(mockCreateRoot).toHaveBeenCalledWith(container);
       expect(mockRoot.render).toHaveBeenCalled();
       expect(typeof unmount).toBe('function');
@@ -100,7 +100,7 @@ describe('lib/index', () => {
       expect(() => {
         mountChatWidget('#non-existent', defaultProps);
       }).toThrow('Chat widget container not found');
-      
+
       expect(mockCreateRoot).not.toHaveBeenCalled();
       expect(mockRoot.render).not.toHaveBeenCalled();
     });
@@ -109,7 +109,7 @@ describe('lib/index', () => {
       expect(() => {
         mountChatWidget(null as any, defaultProps);
       }).toThrow('Chat widget container not found');
-      
+
       expect(mockCreateRoot).not.toHaveBeenCalled();
       expect(mockRoot.render).not.toHaveBeenCalled();
     });
@@ -117,7 +117,7 @@ describe('lib/index', () => {
     it('passes all props to ChatWindow', () => {
       const container = document.createElement('div');
       document.body.appendChild(container);
-      
+
       const props: ChatWidgetProps = {
         agentCard: 'http://test.agent/agent.json',
         placeholder: 'Type here...',
@@ -159,9 +159,9 @@ describe('lib/index', () => {
         metadata: { key: 'value' },
         userId: 'user123',
       };
-      
+
       mountChatWidget(container, props);
-      
+
       const renderCall = mockRoot.render.mock.calls[0][0];
       expect(renderCall.props).toEqual(props);
     });
@@ -169,13 +169,13 @@ describe('lib/index', () => {
     it('unmount function calls root.unmount', () => {
       const container = document.createElement('div');
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget(container, defaultProps);
-      
+
       expect(mockRoot.unmount).not.toHaveBeenCalled();
-      
+
       unmount();
-      
+
       expect(mockRoot.unmount).toHaveBeenCalledTimes(1);
     });
 
@@ -183,30 +183,30 @@ describe('lib/index', () => {
       const container1 = document.createElement('div');
       container1.id = 'chat1';
       document.body.appendChild(container1);
-      
+
       const container2 = document.createElement('div');
       container2.id = 'chat2';
       document.body.appendChild(container2);
-      
+
       const unmount1 = mountChatWidget('#chat1', {
         ...defaultProps,
         userId: 'user1',
       });
-      
+
       const unmount2 = mountChatWidget('#chat2', {
         ...defaultProps,
         userId: 'user2',
       });
-      
+
       expect(mockCreateRoot).toHaveBeenCalledTimes(2);
       expect(mockRoot.render).toHaveBeenCalledTimes(2);
-      
+
       const firstCall = mockRoot.render.mock.calls[0][0];
       const secondCall = mockRoot.render.mock.calls[1][0];
-      
+
       expect(firstCall.props.userId).toBe('user1');
       expect(secondCall.props.userId).toBe('user2');
-      
+
       expect(typeof unmount1).toBe('function');
       expect(typeof unmount2).toBe('function');
     });
@@ -215,9 +215,9 @@ describe('lib/index', () => {
       const container = document.createElement('div');
       container.setAttribute('data-chat', 'widget');
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget('[data-chat="widget"]', defaultProps);
-      
+
       expect(mockCreateRoot).toHaveBeenCalledWith(container);
       expect(typeof unmount).toBe('function');
     });
@@ -231,12 +231,12 @@ describe('lib/index', () => {
     it('handles container being removed from DOM', () => {
       const container = document.createElement('div');
       document.body.appendChild(container);
-      
+
       const unmount = mountChatWidget(container, defaultProps);
-      
+
       // Remove container from DOM
       container.remove();
-      
+
       // Unmount should still work without errors
       expect(() => unmount()).not.toThrow();
       expect(mockRoot.unmount).toHaveBeenCalled();

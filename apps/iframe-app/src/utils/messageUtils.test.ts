@@ -5,7 +5,7 @@ import {
   getLanguageFromFilename,
   formatCodeContent,
   createArtifactMessage,
-  createGroupedArtifactMessage
+  createGroupedArtifactMessage,
 } from './messageUtils';
 
 describe('messageUtils', () => {
@@ -17,7 +17,7 @@ describe('messageUtils', () => {
     it('should generate unique IDs', () => {
       const id1 = generateMessageId();
       const id2 = generateMessageId();
-      
+
       expect(id1).toBeTruthy();
       expect(id2).toBeTruthy();
       expect(id1).not.toBe(id2);
@@ -39,7 +39,7 @@ describe('messageUtils', () => {
       expect(message).toMatchObject({
         content,
         sender: 'user',
-        status: 'sending'
+        status: 'sending',
       });
       expect(message.id).toBeTruthy();
       expect(message.timestamp).toBeInstanceOf(Date);
@@ -52,20 +52,19 @@ describe('messageUtils', () => {
       expect(message).toMatchObject({
         content,
         sender: 'assistant',
-        status: 'sent'
+        status: 'sent',
       });
     });
 
     it('should include attachments when provided', () => {
       const attachments = [
-        { id: '1', name: 'file.txt', type: 'text/plain', size: 100, status: 'uploaded' as const }
+        { id: '1', name: 'file.txt', type: 'text/plain', size: 100, status: 'uploaded' as const },
       ];
       const message = createMessage('Message with attachment', 'user', attachments);
 
       expect(message.attachments).toEqual(attachments);
     });
   });
-
 
   describe('getLanguageFromFilename', () => {
     it('should return correct language for common extensions', () => {
@@ -96,14 +95,14 @@ describe('messageUtils', () => {
     it('should format code content with language tag', () => {
       const content = 'console.log("Hello");';
       const result = formatCodeContent(content, 'script.js');
-      
+
       expect(result).toBe('```javascript\nconsole.log("Hello");\n```');
     });
 
     it('should return content as-is for unknown file types', () => {
       const content = 'Some text content';
       const result = formatCodeContent(content, 'file.unknown');
-      
+
       expect(result).toBe(content);
     });
   });
@@ -120,7 +119,7 @@ describe('messageUtils', () => {
         isArtifact: true,
         artifactName: 'Main.java',
         rawContent: content,
-        isCodeFile: true
+        isCodeFile: true,
       });
     });
 
@@ -133,7 +132,7 @@ describe('messageUtils', () => {
         isArtifact: true,
         artifactName: 'readme.txt',
         rawContent: content,
-        isCodeFile: false
+        isCodeFile: false,
       });
     });
 
@@ -152,7 +151,7 @@ describe('messageUtils', () => {
       const artifacts = [
         { name: 'index.html', content: '<html></html>' },
         { name: 'style.css', content: 'body { margin: 0; }' },
-        { name: 'script.js', content: 'console.log("test");' }
+        { name: 'script.js', content: 'console.log("test");' },
       ];
 
       const message = createGroupedArtifactMessage(artifacts);
@@ -166,22 +165,22 @@ describe('messageUtils', () => {
         artifacts: [
           { name: 'index.html', rawContent: '<html></html>', isCodeFile: true },
           { name: 'style.css', rawContent: 'body { margin: 0; }', isCodeFile: true },
-          { name: 'script.js', rawContent: 'console.log("test");', isCodeFile: true }
-        ]
+          { name: 'script.js', rawContent: 'console.log("test");', isCodeFile: true },
+        ],
       });
     });
 
     it('should handle artifacts with explicit isCodeFile property', () => {
       const artifacts = [
         { name: 'code.js', content: 'const x = 1;', isCodeFile: true },
-        { name: 'readme.txt', content: 'Hello', isCodeFile: false }
+        { name: 'readme.txt', content: 'Hello', isCodeFile: false },
       ];
 
       const message = createGroupedArtifactMessage(artifacts);
 
       expect(message.metadata?.artifacts).toEqual([
         { name: 'code.js', rawContent: 'const x = 1;', isCodeFile: true },
-        { name: 'readme.txt', rawContent: 'Hello', isCodeFile: false }
+        { name: 'readme.txt', rawContent: 'Hello', isCodeFile: false },
       ]);
     });
 

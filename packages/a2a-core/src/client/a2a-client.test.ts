@@ -10,17 +10,17 @@ vi.mock('../discovery/agent-discovery');
 describe('A2AClient', () => {
   let client: A2AClient;
   let mockAgentCard: AgentCard;
-  
+
   beforeEach(() => {
     mockAgentCard = getMockAgentCard({
       url: 'https://api.test-agent.com',
       capabilities: {
         streaming: true,
         pushNotifications: false,
-        stateTransitionHistory: false
-      }
+        stateTransitionHistory: false,
+      },
     });
-    
+
     vi.clearAllMocks();
   });
 
@@ -30,8 +30,8 @@ describe('A2AClient', () => {
         agentCard: mockAgentCard,
         auth: {
           type: 'bearer',
-          token: 'test-token'
-        }
+          token: 'test-token',
+        },
       });
 
       expect(client.getAgentCard()).toEqual(mockAgentCard);
@@ -44,8 +44,8 @@ describe('A2AClient', () => {
         agentCard: mockAgentCard,
         httpOptions: {
           timeout: 60000,
-          retries: 5
-        }
+          retries: 5,
+        },
       });
 
       expect(client.getAgentCard()).toEqual(mockAgentCard);
@@ -58,8 +58,8 @@ describe('A2AClient', () => {
         agentCard: mockAgentCard,
         auth: {
           type: 'bearer',
-          token: 'test-token'
-        }
+          token: 'test-token',
+        },
       });
     });
 
@@ -68,14 +68,14 @@ describe('A2AClient', () => {
         id: 'task-123',
         state: 'pending',
         createdAt: new Date().toISOString(),
-        messages: []
+        messages: [],
       };
 
       const mockHttpClient = (client as any).httpClient;
       mockHttpClient.post = vi.fn().mockResolvedValue({
         jsonrpc: '2.0',
         result: mockTask,
-        id: 1
+        id: 1,
       });
 
       const message: Message = {
@@ -83,14 +83,14 @@ describe('A2AClient', () => {
         content: [
           {
             type: 'text',
-            content: 'Hello, agent!'
-          }
-        ]
+            content: 'Hello, agent!',
+          },
+        ],
       };
 
       const result = await client.message.send({
         message,
-        context: { sessionId: 'session-123' }
+        context: { sessionId: 'session-123' },
       });
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
@@ -105,13 +105,13 @@ describe('A2AClient', () => {
               parts: [
                 {
                   kind: 'text',
-                  text: 'Hello, agent!'
-                }
-              ]
+                  text: 'Hello, agent!',
+                },
+              ],
             }),
-            configuration: { sessionId: 'session-123' }
+            configuration: { sessionId: 'session-123' },
           },
-          id: expect.any(Number)
+          id: expect.any(Number),
         })
       );
       expect(result).toEqual(mockTask);
@@ -120,12 +120,14 @@ describe('A2AClient', () => {
     it('should validate message before sending', async () => {
       const invalidMessage = {
         role: 'invalid-role',
-        content: []
+        content: [],
       };
 
-      await expect(client.message.send({
-        message: invalidMessage as any
-      })).rejects.toThrow('Invalid message');
+      await expect(
+        client.message.send({
+          message: invalidMessage as any,
+        })
+      ).rejects.toThrow('Invalid message');
     });
   });
 
@@ -135,8 +137,8 @@ describe('A2AClient', () => {
         agentCard: mockAgentCard,
         auth: {
           type: 'bearer',
-          token: 'test-token'
-        }
+          token: 'test-token',
+        },
       });
     });
 
@@ -148,13 +150,13 @@ describe('A2AClient', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Test' }]
+            content: [{ type: 'text', content: 'Test' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Response' }]
-          }
-        ]
+            content: [{ type: 'text', content: 'Response' }],
+          },
+        ],
       };
 
       const mockHttpClient = (client as any).httpClient;
@@ -172,12 +174,9 @@ describe('A2AClient', () => {
 
       await client.task.cancel('task-789', 'User requested');
 
-      expect(mockHttpClient.post).toHaveBeenCalledWith(
-        '/tasks/task-789/cancel',
-        {
-          reason: 'User requested'
-        }
-      );
+      expect(mockHttpClient.post).toHaveBeenCalledWith('/tasks/task-789/cancel', {
+        reason: 'User requested',
+      });
     });
 
     it('should poll task status', async () => {
@@ -185,23 +184,24 @@ describe('A2AClient', () => {
         id: 'task-999',
         state: 'running',
         createdAt: new Date().toISOString(),
-        messages: []
+        messages: [],
       };
 
       const completedTask: Task = {
         ...mockTask,
-        state: 'completed'
+        state: 'completed',
       };
 
       const mockHttpClient = (client as any).httpClient;
-      mockHttpClient.get = vi.fn()
+      mockHttpClient.get = vi
+        .fn()
         .mockResolvedValueOnce(mockTask)
         .mockResolvedValueOnce(mockTask)
         .mockResolvedValueOnce(completedTask);
 
       const result = await client.task.waitForCompletion('task-999', {
         pollingInterval: 100,
-        timeout: 1000
+        timeout: 1000,
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledTimes(3);
@@ -213,23 +213,25 @@ describe('A2AClient', () => {
         id: 'task-timeout',
         state: 'running',
         createdAt: new Date().toISOString(),
-        messages: []
+        messages: [],
       };
 
       const mockHttpClient = (client as any).httpClient;
       mockHttpClient.get = vi.fn().mockResolvedValue(mockTask);
 
-      await expect(client.task.waitForCompletion('task-timeout', {
-        pollingInterval: 100,
-        timeout: 300
-      })).rejects.toThrow('Timeout waiting for task completion');
+      await expect(
+        client.task.waitForCompletion('task-timeout', {
+          pollingInterval: 100,
+          timeout: 300,
+        })
+      ).rejects.toThrow('Timeout waiting for task completion');
     });
   });
 
   describe('capability checking', () => {
     it('should check if agent has capability', () => {
       client = new A2AClient({
-        agentCard: mockAgentCard
+        agentCard: mockAgentCard,
       });
 
       expect(client.hasCapability('streaming')).toBe(true);
@@ -238,7 +240,7 @@ describe('A2AClient', () => {
 
     it('should get all capabilities', () => {
       client = new A2AClient({
-        agentCard: mockAgentCard
+        agentCard: mockAgentCard,
       });
 
       const capabilities = client.getCapabilities();

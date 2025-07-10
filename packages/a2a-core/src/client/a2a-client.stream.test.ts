@@ -8,7 +8,7 @@ vi.mock('../streaming/sse-client', () => {
   class MockSSEClient {
     url: string;
     options: any;
-    private handlers: { message: any[], error: any[] } = { message: [], error: [] };
+    private handlers: { message: any[]; error: any[] } = { message: [], error: [] };
     closed = false;
 
     constructor(url: string, options: any) {
@@ -32,13 +32,13 @@ vi.mock('../streaming/sse-client', () => {
     simulateMessage(message: any) {
       // Call handlers asynchronously to simulate real SSE behavior
       setTimeout(() => {
-        this.handlers.message.forEach(h => h(message));
+        this.handlers.message.forEach((h) => h(message));
       }, 0);
     }
 
     simulateError(error: any) {
       setTimeout(() => {
-        this.handlers.error.forEach(h => h(error));
+        this.handlers.error.forEach((h) => h(error));
       }, 0);
     }
   }
@@ -52,8 +52,8 @@ const mockAgentCard: AgentCard = getMockAgentCard({
     streaming: true,
     pushNotifications: false,
     stateTransitionHistory: false,
-    extensions: []
-  }
+    extensions: [],
+  },
 });
 
 describe('A2AClient - Stream', () => {
@@ -62,22 +62,27 @@ describe('A2AClient - Stream', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     client = new A2AClient({ agentCard: mockAgentCard });
-    
+
     // Mock fetch for POST /message/send
     global.fetch = vi.fn().mockImplementation((request: Request) => {
       if (request.url.endsWith('/message/send') && request.method === 'POST') {
-        return Promise.resolve(new Response(JSON.stringify({
-          id: 'task-123',
-          state: 'pending',
-          messages: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: 'task-123',
+              state: 'pending',
+              messages: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        );
       }
-      
+
       return Promise.resolve(new Response('Not found', { status: 404 }));
     }) as any;
   });
@@ -86,18 +91,16 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Hello' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Hello' }],
+      },
     };
 
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start consuming the stream
     const promise = iterator.next();
-    
+
     // Should create SSE connection to the correct endpoint
     expect(promise).toBeDefined();
   });
@@ -106,23 +109,21 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Tell me a story' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Tell me a story' }],
+      },
     };
 
     const updates: Task[] = [];
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start the iteration first to trigger SSE setup
     const pendingPromise = iterator.next();
-    
+
     // Wait for SSE setup
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const sseClient = (client as any).sseClient;
-    
+
     // 1. Simulate initial pending update
     sseClient?.simulateMessage({
       event: 'task.created',
@@ -131,12 +132,12 @@ describe('A2AClient - Stream', () => {
         state: 'pending',
         messages: [],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const pendingUpdate = await pendingPromise;
     updates.push(pendingUpdate.value);
-    
+
     // 2. Processing update
     const processingPromise = iterator.next();
     sseClient?.simulateMessage({
@@ -146,12 +147,12 @@ describe('A2AClient - Stream', () => {
         state: 'running',
         messages: [],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const processingUpdate = await processingPromise;
     updates.push(processingUpdate.value);
-    
+
     // 3. Completed update
     const completedPromise = iterator.next();
     sseClient?.simulateMessage({
@@ -162,16 +163,16 @@ describe('A2AClient - Stream', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Tell me a story' }]
+            content: [{ type: 'text', content: 'Tell me a story' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time...' }]
-          }
+            content: [{ type: 'text', content: 'Once upon a time...' }],
+          },
         ],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const completedUpdate = await completedPromise;
     updates.push(completedUpdate.value);
@@ -187,24 +188,22 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Hello' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Hello' }],
+      },
     };
 
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start iteration to trigger SSE setup
     const firstPromise = iterator.next();
-    
+
     // Wait for SSE setup
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // Get SSE client
     const sseClient = (client as any).sseClient;
-    
+
     // First send an initial task to complete the first promise
     sseClient?.simulateMessage({
       event: 'task.created',
@@ -213,19 +212,19 @@ describe('A2AClient - Stream', () => {
         state: 'pending',
         messages: [],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
-    
+
     // Wait for first task
     await firstPromise;
-    
+
     // Try to get next update after error
     const errorPromise = iterator.next();
-    
+
     // Simulate connection error
     sseClient?.simulateError(new Error('Connection lost'));
-    
+
     await expect(errorPromise).rejects.toThrow('Connection lost');
   });
 
@@ -234,27 +233,25 @@ describe('A2AClient - Stream', () => {
       agentCard: mockAgentCard,
       auth: {
         type: 'bearer',
-        token: 'test-token'
-      }
+        token: 'test-token',
+      },
     });
 
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Hello' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Hello' }],
+      },
     };
 
     const stream = authenticatedClient.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start consuming
     iterator.next();
-    
+
     // Wait for setup
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // The SSE client should be created with auth headers
     const sseClient = (authenticatedClient as any).sseClient;
@@ -265,8 +262,8 @@ describe('A2AClient - Stream', () => {
     const invalidRequest = {
       message: {
         role: 'invalid-role' as any,
-        content: []
-      }
+        content: [],
+      },
     };
 
     await expect(async () => {
@@ -281,28 +278,26 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Hello' }
-        ]
+        content: [{ type: 'text' as const, content: 'Hello' }],
       },
       context: {
         sessionId: 'test-session',
-        custom: 'value'
+        custom: 'value',
       },
       options: {
-        temperature: 0.7
-      }
+        temperature: 0.7,
+      },
     };
 
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start consuming
     iterator.next();
-    
+
     // The request should include context and options
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // In a real implementation, we'd verify the POST body
     // For now, just ensure it doesn't throw
     expect(stream).toBeDefined();
@@ -312,24 +307,22 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Hello' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Hello' }],
+      },
     };
 
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start iteration
     const firstPromise = iterator.next();
-    
+
     // Wait for SSE setup
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // Get SSE client
     const sseClient = (client as any).sseClient;
-    
+
     // Send initial task to complete first promise
     sseClient?.simulateMessage({
       event: 'task.created',
@@ -338,12 +331,12 @@ describe('A2AClient - Stream', () => {
         state: 'pending',
         messages: [],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
-    
+
     await firstPromise;
-    
+
     // Call return to close the stream
     await iterator.return!();
 
@@ -355,21 +348,19 @@ describe('A2AClient - Stream', () => {
     const request = {
       message: {
         role: 'user' as const,
-        content: [
-          { type: 'text' as const, content: 'Write a long story' }
-        ]
-      }
+        content: [{ type: 'text' as const, content: 'Write a long story' }],
+      },
     };
 
     const updates: Task[] = [];
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
-    
+
     // Start iteration
     const initialPromise = iterator.next();
-    
+
     // Wait for SSE setup
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const sseClient = (client as any).sseClient;
 
     // Send initial task
@@ -380,14 +371,14 @@ describe('A2AClient - Stream', () => {
         state: 'pending',
         messages: [],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const initial = await initialPromise;
     updates.push(initial.value);
 
     // Simulate and collect incremental updates
-    
+
     // 1. First partial content
     const update1Promise = iterator.next();
     sseClient?.simulateMessage({
@@ -398,16 +389,16 @@ describe('A2AClient - Stream', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }]
+            content: [{ type: 'text', content: 'Write a long story' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a' }]
-          }
+            content: [{ type: 'text', content: 'Once upon a' }],
+          },
         ],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const update1 = await update1Promise;
     updates.push(update1.value);
@@ -422,16 +413,16 @@ describe('A2AClient - Stream', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }]
+            content: [{ type: 'text', content: 'Write a long story' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time, in a' }]
-          }
+            content: [{ type: 'text', content: 'Once upon a time, in a' }],
+          },
         ],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const update2 = await update2Promise;
     updates.push(update2.value);
@@ -446,16 +437,16 @@ describe('A2AClient - Stream', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }]
+            content: [{ type: 'text', content: 'Write a long story' }],
           },
           {
             role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time, in a land far away...' }]
-          }
+            content: [{ type: 'text', content: 'Once upon a time, in a land far away...' }],
+          },
         ],
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
     const update3 = await update3Promise;
     updates.push(update3.value);
@@ -463,6 +454,8 @@ describe('A2AClient - Stream', () => {
     expect(updates).toHaveLength(4); // Initial + 3 updates
     expect(updates[1].messages[1].content[0].content).toBe('Once upon a');
     expect(updates[2].messages[1].content[0].content).toBe('Once upon a time, in a');
-    expect(updates[3].messages[1].content[0].content).toBe('Once upon a time, in a land far away...');
+    expect(updates[3].messages[1].content[0].content).toBe(
+      'Once upon a time, in a land far away...'
+    );
   });
 });

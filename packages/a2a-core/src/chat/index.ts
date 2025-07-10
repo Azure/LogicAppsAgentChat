@@ -1,10 +1,10 @@
 export { ChatInterface } from './chat-interface';
 export type { ChatInterfaceConfig } from './chat-interface';
-export type { 
-  ChatMessage, 
+export type {
+  ChatMessage,
   ChatRole,
-  ChatOptions, 
+  ChatOptions,
   StreamUpdate,
   ConversationExport,
-  ChatEventMap
+  ChatEventMap,
 } from './types';

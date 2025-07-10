@@ -20,9 +20,7 @@ vi.mock('../Message', () => ({
 }));
 vi.mock('../TypingIndicator', () => ({
   TypingIndicator: ({ agentName }: any) => (
-    <div data-testid="typing-indicator">
-      {agentName} is typing...
-    </div>
+    <div data-testid="typing-indicator">{agentName} is typing...</div>
   ),
 }));
 
@@ -60,14 +58,14 @@ describe('MessageList', () => {
 
   it('renders empty list with no messages', () => {
     render(<MessageList />);
-    
+
     const messageElements = screen.queryAllByTestId(/^message-/);
     expect(messageElements).toHaveLength(0);
   });
 
   it('renders welcome message when no messages and welcomeMessage provided', () => {
     render(<MessageList welcomeMessage="Welcome to the chat!" />);
-    
+
     expect(screen.getByText('Welcome to the chat!')).toBeInTheDocument();
   });
 
@@ -81,9 +79,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList welcomeMessage="Welcome to the chat!" />);
-    
+
     expect(screen.queryByText('Welcome to the chat!')).not.toBeInTheDocument();
   });
 
@@ -97,9 +95,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList />);
-    
+
     expect(screen.getByTestId('message-1')).toBeInTheDocument();
     expect(screen.getByTestId('message-2')).toBeInTheDocument();
     expect(screen.getByText('Hello')).toBeInTheDocument();
@@ -116,9 +114,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList agentName="Support Bot" />);
-    
+
     const message2 = screen.getByTestId('message-2');
     expect(message2).toHaveTextContent('Support Bot');
   });
@@ -133,9 +131,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList />);
-    
+
     const message = screen.getByTestId('message-2');
     expect(message).toHaveTextContent('Agent');
   });
@@ -150,16 +148,16 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList />);
-    
+
     expect(screen.getByTestId('typing-indicator')).toBeInTheDocument();
     expect(screen.getByText('Agent is typing...')).toBeInTheDocument();
   });
 
   it('does not show typing indicator when isTyping is false', () => {
     render(<MessageList />);
-    
+
     expect(screen.queryByTestId('typing-indicator')).not.toBeInTheDocument();
   });
 
@@ -173,15 +171,15 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList agentName="AI Assistant" />);
-    
+
     expect(screen.getByText('AI Assistant is typing...')).toBeInTheDocument();
   });
 
   it('applies correct CSS classes', () => {
     const { container } = render(<MessageList />);
-    
+
     const messageList = container.firstChild as HTMLElement;
     expect(messageList).toHaveClass(styles.messageList);
     expect(messageList).toHaveClass('chat-scrollbar');
@@ -194,13 +192,13 @@ describe('MessageList', () => {
       value: 1000,
       writable: false,
     });
-    
+
     const scrollSpy = vi.spyOn(mockScrollElement, 'scrollTop', 'set');
-    
+
     vi.spyOn(React, 'useRef').mockReturnValue({ current: mockScrollElement });
-    
+
     const { rerender } = render(<MessageList />);
-    
+
     // Update messages
     mockUseChatStore.mockReturnValue({
       messages: mockMessages,
@@ -211,9 +209,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     rerender(<MessageList />);
-    
+
     expect(scrollSpy).toHaveBeenCalledWith(1000);
   });
 
@@ -224,13 +222,13 @@ describe('MessageList', () => {
       value: 800,
       writable: false,
     });
-    
+
     const scrollSpy = vi.spyOn(mockScrollElement, 'scrollTop', 'set');
-    
+
     vi.spyOn(React, 'useRef').mockReturnValue({ current: mockScrollElement });
-    
+
     const { rerender } = render(<MessageList />);
-    
+
     // Update typing status
     mockUseChatStore.mockReturnValue({
       messages: [],
@@ -241,15 +239,15 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     rerender(<MessageList />);
-    
+
     expect(scrollSpy).toHaveBeenCalledWith(800);
   });
 
   it('renders welcome message with correct CSS class', () => {
     render(<MessageList welcomeMessage="Welcome!" />);
-    
+
     const welcomeDiv = screen.getByText('Welcome!');
     expect(welcomeDiv).toHaveClass(styles.welcomeMessage);
   });
@@ -278,7 +276,7 @@ describe('MessageList', () => {
         status: 'sent',
       },
     ];
-    
+
     mockUseChatStore.mockReturnValue({
       messages: orderedMessages,
       isTyping: false,
@@ -288,9 +286,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList />);
-    
+
     const messageElements = screen.getAllByTestId(/^message-/);
     expect(messageElements).toHaveLength(3);
     expect(messageElements[0]).toHaveTextContent('First');
@@ -300,7 +298,7 @@ describe('MessageList', () => {
 
   it('handles empty welcomeMessage prop', () => {
     const { container } = render(<MessageList welcomeMessage="" />);
-    
+
     // Empty welcome message should not render
     const welcomeDiv = container.querySelector(`.${styles.welcomeMessage}`);
     expect(welcomeDiv).not.toBeInTheDocument();
@@ -316,9 +314,9 @@ describe('MessageList', () => {
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
     });
-    
+
     render(<MessageList />);
-    
+
     expect(screen.getByTestId('message-1')).toBeInTheDocument();
     expect(screen.getByTestId('message-2')).toBeInTheDocument();
     expect(screen.getByTestId('typing-indicator')).toBeInTheDocument();

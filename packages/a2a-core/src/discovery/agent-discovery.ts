@@ -19,7 +19,7 @@ export class AgentDiscovery {
     this.options = {
       cache: true,
       cacheTTL: 3600000, // 1 hour default
-      ...options
+      ...options,
     };
   }
 
@@ -53,7 +53,7 @@ export class AgentDiscovery {
     if (this.options.cache) {
       this.cache.set(url, {
         agentCard: result.data,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
@@ -76,7 +76,9 @@ export class AgentDiscovery {
     // Fetch from registry
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch agent card from registry: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch agent card from registry: ${response.status} ${response.statusText}`
+      );
     }
 
     const data = await response.json();
@@ -90,7 +92,7 @@ export class AgentDiscovery {
     if (this.options.cache) {
       this.cache.set(url, {
         agentCard: result.data,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
 
@@ -126,7 +128,7 @@ export class AgentDiscovery {
       if (this.options.cache) {
         this.cache.set(url, {
           agentCard: result.data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
 

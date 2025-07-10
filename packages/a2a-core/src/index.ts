@@ -18,7 +18,6 @@ export * from './session';
 // Export plugins
 export * from './plugins';
 
-
 // Re-export commonly used items at top level for convenience
 export { A2AClient } from './client/a2a-client';
 export { AgentDiscovery } from './discovery/agent-discovery';
@@ -30,9 +29,4 @@ export { PluginManager } from './plugins/plugin-manager';
 export { AnalyticsPlugin, LoggerPlugin } from './plugins';
 
 // Export schemas for validation
-export {
-  AgentCardSchema,
-  MessageSchema,
-  TaskSchema,
-  PartSchema
-} from './types/schemas';
+export { AgentCardSchema, MessageSchema, TaskSchema, PartSchema } from './types/schemas';

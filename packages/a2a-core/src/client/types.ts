@@ -1,4 +1,4 @@
-export type AuthConfig = 
+export type AuthConfig =
   | { type: 'bearer'; token: string }
   | { type: 'oauth2'; accessToken: string; tokenType?: string }
   | { type: 'api-key'; key: string; header: string }
@@ -14,7 +14,9 @@ export interface RequestConfig {
 }
 
 export interface RequestInterceptor {
-  (config: RequestConfig & { url: string }): RequestConfig & { url: string } | Promise<RequestConfig & { url: string }>;
+  (
+    config: RequestConfig & { url: string }
+  ): (RequestConfig & { url: string }) | Promise<RequestConfig & { url: string }>;
 }
 
 export interface ResponseInterceptor {

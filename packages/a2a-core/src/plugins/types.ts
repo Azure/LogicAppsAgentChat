@@ -12,19 +12,19 @@ export type PluginHooks = {
   // HTTP hooks
   beforeRequest?: (request: any) => any | Promise<any>;
   afterResponse?: (response: any) => any | Promise<any>;
-  
+
   // Message hooks
   beforeMessageSend?: (message: Message) => Message | Promise<Message>;
   afterMessageReceive?: (message: Message) => Message | Promise<Message>;
-  
+
   // Task hooks
   onTaskCreated?: (task: any) => void | Promise<void>;
   onTaskCompleted?: (task: any) => void | Promise<void>;
   onTaskFailed?: (task: any) => void | Promise<void>;
-  
+
   // Error handling
   onError?: (error: Error) => void | Promise<void>;
-  
+
   // Lifecycle hooks
   onStart?: () => void | Promise<void>;
   onStop?: () => void | Promise<void>;

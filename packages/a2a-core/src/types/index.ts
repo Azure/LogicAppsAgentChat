@@ -11,5 +11,5 @@ export {
   MessageStreamRequestSchema,
   TaskGetRequestSchema,
   TaskCancelRequestSchema,
-  PushSubscribeRequestSchema
+  PushSubscribeRequestSchema,
 } from './schemas';

@@ -8,7 +8,7 @@ describe('AgentCard schema', () => {
     const minimalCard = getMockAgentCard();
 
     const result = AgentCardSchema.safeParse(minimalCard);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.name).toBe('Test Agent');
@@ -25,7 +25,7 @@ describe('AgentCard schema', () => {
       url: 'https://api.advanced-agent.com',
       provider: {
         organization: 'A2A Team',
-        url: 'https://example.com'
+        url: 'https://example.com',
       },
       iconUrl: 'https://example.com/icon.png',
       documentationUrl: 'https://docs.example.com',
@@ -33,13 +33,13 @@ describe('AgentCard schema', () => {
         streaming: true,
         pushNotifications: true,
         stateTransitionHistory: true,
-        extensions: []
+        extensions: [],
       },
       securitySchemes: {
         bearer: {
           type: 'http',
-          scheme: 'bearer'
-        }
+          scheme: 'bearer',
+        },
       },
       security: [{ bearer: [] }],
       skills: [
@@ -48,14 +48,14 @@ describe('AgentCard schema', () => {
           name: 'Text Generation',
           description: 'Generate text based on prompts',
           tags: ['text', 'generation'],
-          examples: ['Generate a story about...']
-        }
+          examples: ['Generate a story about...'],
+        },
       ],
-      supportsAuthenticatedExtendedCard: true
+      supportsAuthenticatedExtendedCard: true,
     });
 
     const result = AgentCardSchema.safeParse(completeCard);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.name).toBe('Advanced Agent');
@@ -68,15 +68,15 @@ describe('AgentCard schema', () => {
   it('should reject agent card without required fields', () => {
     const invalidCard = {
       name: 'Invalid Agent',
-      description: 'Missing required fields'
+      description: 'Missing required fields',
       // Missing url, version, capabilities, defaultInputModes, defaultOutputModes, skills
     };
 
     const result = AgentCardSchema.safeParse(invalidCard);
-    
+
     expect(result.success).toBe(false);
     if (!result.success) {
-      const missingFields = result.error.issues.map(issue => issue.path.join('.'));
+      const missingFields = result.error.issues.map((issue) => issue.path.join('.'));
       expect(missingFields).toContain('protocolVersion');
       expect(missingFields).toContain('url');
       expect(missingFields).toContain('version');
@@ -89,14 +89,14 @@ describe('AgentCard schema', () => {
 
   it('should reject agent card with invalid service endpoint', () => {
     const invalidCard = getMockAgentCard({
-      url: 'not-a-valid-url'
+      url: 'not-a-valid-url',
     });
 
     const result = AgentCardSchema.safeParse(invalidCard);
-    
+
     expect(result.success).toBe(false);
     if (!result.success) {
-      const urlIssue = result.error.issues.find(issue => issue.path.includes('url'));
+      const urlIssue = result.error.issues.find((issue) => issue.path.includes('url'));
       expect(urlIssue).toBeDefined();
       expect(urlIssue?.code).toBe('invalid_format');
     }
@@ -109,7 +109,7 @@ describe('AgentCard schema', () => {
           id: 'text-gen',
           name: 'Text Generation',
           description: 'Generate text',
-          tags: ['text', 'generation']
+          tags: ['text', 'generation'],
         },
         {
           id: 'code-gen',
@@ -117,20 +117,20 @@ describe('AgentCard schema', () => {
           description: 'Generate code',
           tags: ['code', 'programming'],
           inputModes: ['text/plain'],
-          outputModes: ['text/plain', 'application/javascript']
+          outputModes: ['text/plain', 'application/javascript'],
         },
         {
           id: 'analysis',
           name: 'Data Analysis',
           description: 'Analyze data',
           tags: ['data', 'analysis'],
-          examples: ['Analyze this CSV file...']
-        }
-      ]
+          examples: ['Analyze this CSV file...'],
+        },
+      ],
     });
 
     const result = AgentCardSchema.safeParse(multiSkillCard);
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.skills).toHaveLength(3);

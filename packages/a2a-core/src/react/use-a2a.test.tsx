@@ -10,21 +10,21 @@ let mockStreamReturnValue: any = {
       id: 'task-1',
       state: 'completed',
       messages: [],
-      artifacts: []
+      artifacts: [],
     };
-  }
+  },
 };
 
 vi.mock('../client/a2a-client', () => ({
   A2AClient: vi.fn().mockImplementation(() => ({
     message: {
-      stream: vi.fn().mockImplementation(() => mockStreamReturnValue)
+      stream: vi.fn().mockImplementation(() => mockStreamReturnValue),
     },
     getCapabilities: vi.fn().mockReturnValue({
       streaming: true,
-      stateTransitionHistory: true
-    })
-  }))
+      stateTransitionHistory: true,
+    }),
+  })),
 }));
 
 describe('useA2A', () => {
@@ -34,11 +34,13 @@ describe('useA2A', () => {
     version: '1.0.0',
     url: 'http://example.com/.well-known/agent.json',
     serviceEndpoint: 'http://example.com/agent',
-    capabilities: [{
-      features: ['streaming', 'artifacts'],
-      outputModes: ['text', 'structured'],
-      inputModes: ['text', 'structured']
-    }]
+    capabilities: [
+      {
+        features: ['streaming', 'artifacts'],
+        outputModes: ['text', 'structured'],
+        inputModes: ['text', 'structured'],
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -73,27 +75,31 @@ describe('useA2A', () => {
           id: 'task-1',
           state: 'pending',
           messages: [],
-          artifacts: []
+          artifacts: [],
         };
         yield {
           id: 'task-1',
           state: 'running',
-          messages: [{
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Hello from agent' }]
-          }],
-          artifacts: []
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Hello from agent' }],
+            },
+          ],
+          artifacts: [],
         };
         yield {
           id: 'task-1',
           state: 'completed',
-          messages: [{
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Hello from agent' }]
-          }],
-          artifacts: []
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Hello from agent' }],
+            },
+          ],
+          artifacts: [],
         };
-      }
+      },
     };
 
     const { result } = renderHook(() => useA2A());
@@ -112,13 +118,13 @@ describe('useA2A', () => {
     expect(result.current.messages).toHaveLength(2);
     expect(result.current.messages[0]).toMatchObject({
       role: 'user',
-      content: 'Hello agent'
+      content: 'Hello agent',
     });
 
     // Check that assistant message was added
     expect(result.current.messages[1]).toMatchObject({
       role: 'assistant',
-      content: 'Hello from agent'
+      content: 'Hello from agent',
     });
   });
 
@@ -129,20 +135,26 @@ describe('useA2A', () => {
         yield {
           id: 'task-1',
           state: 'completed',
-          messages: [{
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Generated code' }]
-          }],
-          artifacts: [{
-            artifactId: 'file.js',
-            name: 'file.js',
-            parts: [{
-              kind: 'text',
-              text: 'console.log("Hello");'
-            }]
-          }]
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Generated code' }],
+            },
+          ],
+          artifacts: [
+            {
+              artifactId: 'file.js',
+              name: 'file.js',
+              parts: [
+                {
+                  kind: 'text',
+                  text: 'console.log("Hello");',
+                },
+              ],
+            },
+          ],
         };
-      }
+      },
     };
 
     const { result } = renderHook(() => useA2A());
@@ -165,17 +177,19 @@ describe('useA2A', () => {
     // Mock a slow stream
     mockStreamReturnValue = {
       async *[Symbol.asyncIterator]() {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         yield {
           id: 'task-1',
           state: 'completed',
-          messages: [{
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Response' }]
-          }],
-          artifacts: []
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Response' }],
+            },
+          ],
+          artifacts: [],
         };
-      }
+      },
     };
 
     const { result } = renderHook(() => useA2A());
@@ -209,13 +223,15 @@ describe('useA2A', () => {
         yield {
           id: 'task-1',
           state: 'completed',
-          messages: [{
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Test response' }]
-          }],
-          artifacts: []
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Test response' }],
+            },
+          ],
+          artifacts: [],
         };
-      }
+      },
     };
 
     const { result } = renderHook(() => useA2A());
@@ -242,7 +258,7 @@ describe('useA2A', () => {
     mockStreamReturnValue = {
       async *[Symbol.asyncIterator]() {
         throw new Error('Stream failed');
-      }
+      },
     };
 
     const { result } = renderHook(() => useA2A());

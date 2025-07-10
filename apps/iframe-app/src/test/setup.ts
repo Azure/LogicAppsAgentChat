@@ -8,7 +8,7 @@ global.fetch = vi.fn();
 // Reset fetch mock before each test
 beforeEach(() => {
   vi.mocked(global.fetch).mockReset();
-  
+
   // Ensure document.body exists for happy-dom v18
   if (!document.body) {
     const body = document.createElement('body');
@@ -28,7 +28,7 @@ global.TextDecoderStream = class TextDecoderStream {
     const { readable, writable } = new TransformStream<Uint8Array, string>({
       transform(chunk, controller) {
         controller.enqueue(new TextDecoder(label, options).decode(chunk));
-      }
+      },
     });
     this.readable = readable;
     this.writable = writable;

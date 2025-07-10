@@ -2,12 +2,12 @@ import { EventEmitter } from 'eventemitter3';
 import type { A2AClient } from '../client/a2a-client';
 import type { SessionManager } from '../session/session-manager';
 import type { Message, Part } from '../types';
-import type { 
-  ChatMessage, 
-  ChatOptions, 
-  ChatEventMap, 
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatEventMap,
   StreamUpdate,
-  ConversationExport 
+  ConversationExport,
 } from './types';
 
 export interface ChatInterfaceConfig {
@@ -41,14 +41,14 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       persistMessages: config.persistMessages ?? !!config.session,
       context: this.context,
       streamingEnabled: config.streamingEnabled ?? true,
-      maxHistorySize: config.maxHistorySize ?? 100
+      maxHistorySize: config.maxHistorySize ?? 100,
     };
 
     // Load or set conversation ID
     if (this.session) {
       const existingId = this.session.get('a2a-conversation-id') as string;
       this.conversationId = existingId || this.options.conversationId;
-      
+
       if (!existingId) {
         this.session.set('a2a-conversation-id', this.conversationId);
       }
@@ -71,9 +71,9 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
     const history = this.session.get(historyKey) as ChatMessage[];
 
     if (history && Array.isArray(history)) {
-      this.messages = history.map(msg => ({
+      this.messages = history.map((msg) => ({
         ...msg,
-        timestamp: new Date(msg.timestamp)
+        timestamp: new Date(msg.timestamp),
       }));
     }
   }
@@ -82,23 +82,23 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
     if (!this.session || !this.options.persistMessages) return;
 
     const historyKey = `a2a-chat-history-${this.conversationId}`;
-    
+
     // Limit history size
     const messagesToSave = this.messages.slice(-this.options.maxHistorySize);
-    
+
     this.session.set(historyKey, messagesToSave);
   }
 
   private extractTextContent(parts: Part[]): string {
     return parts
-      .filter(part => part.type === 'text')
-      .map(part => part.content)
+      .filter((part) => part.type === 'text')
+      .map((part) => part.content)
       .join(' ');
   }
 
   private createChatMessage(
-    role: ChatMessage['role'], 
-    parts: Part[], 
+    role: ChatMessage['role'],
+    parts: Part[],
     messageId?: string
   ): ChatMessage {
     return {
@@ -107,7 +107,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       content: this.extractTextContent(parts),
       parts,
       timestamp: new Date(),
-      conversationId: this.conversationId
+      conversationId: this.conversationId,
     };
   }
 
@@ -139,7 +139,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       // Prepare A2A message
       const message: Message = {
         role: 'user',
-        content: parts
+        content: parts,
       };
 
       // Send to agent
@@ -147,16 +147,16 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
         message,
         context: {
           conversationId: this.conversationId,
-          ...this.context
-        }
+          ...this.context,
+        },
       });
 
       // Wait for completion
       const completedTask = await this.client.task.waitForCompletion(task.id);
 
       // Find assistant response
-      const assistantMessage = completedTask.messages.find(m => m.role === 'assistant');
-      
+      const assistantMessage = completedTask.messages.find((m) => m.role === 'assistant');
+
       if (!assistantMessage) {
         throw new Error('No assistant response received');
       }
@@ -179,10 +179,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
     }
   }
 
-  async stream(
-    content: string, 
-    onUpdate: (update: StreamUpdate) => void
-  ): Promise<ChatMessage> {
+  async stream(content: string, onUpdate: (update: StreamUpdate) => void): Promise<ChatMessage> {
     try {
       // Create user message
       const userMessage = this.createChatMessage('user', [{ type: 'text', content }]);
@@ -193,7 +190,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       // Prepare message
       const message: Message = {
         role: 'user',
-        content: [{ type: 'text', content }]
+        content: [{ type: 'text', content }],
       };
 
       // Stream from agent
@@ -201,8 +198,8 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
         message,
         context: {
           conversationId: this.conversationId,
-          ...this.context
-        }
+          ...this.context,
+        },
       });
 
       let lastContent = '';
@@ -214,8 +211,8 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
           throw new Error(task.error?.message || 'Task failed');
         }
 
-        const assistantMessage = task.messages.find(m => m.role === 'assistant');
-        
+        const assistantMessage = task.messages.find((m) => m.role === 'assistant');
+
         if (assistantMessage) {
           const currentContent = this.extractTextContent(assistantMessage.content);
           messageId = `msg-${task.id}`;
@@ -224,7 +221,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
             const update: StreamUpdate = {
               content: currentContent,
               isComplete: task.state === 'completed',
-              messageId
+              messageId,
             };
 
             onUpdate(update);
@@ -233,11 +230,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
           }
 
           if (task.state === 'completed') {
-            finalMessage = this.createChatMessage(
-              'assistant',
-              assistantMessage.content,
-              messageId
-            );
+            finalMessage = this.createChatMessage('assistant', assistantMessage.content, messageId);
             break;
           }
         }
@@ -266,11 +259,11 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
   newConversation(): void {
     this.conversationId = this.generateConversationId();
     this.messages = [];
-    
+
     if (this.session) {
       this.session.set('a2a-conversation-id', this.conversationId);
     }
-    
+
     this.emit('conversationStarted', { conversationId: this.conversationId });
     this.saveConversationHistory();
   }
@@ -278,7 +271,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
   exportConversation(): ConversationExport {
     const firstMessage = this.messages[0];
     const lastMessage = this.messages[this.messages.length - 1];
-    
+
     const startedAt = firstMessage ? firstMessage.timestamp : new Date();
     const lastMessageAt = lastMessage ? lastMessage.timestamp : new Date();
 
@@ -287,7 +280,7 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       messages: this.getMessages(),
       startedAt,
       lastMessageAt,
-      messageCount: this.messages.length
+      messageCount: this.messages.length,
     };
   }
 

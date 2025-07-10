@@ -3,19 +3,24 @@ import { z } from 'zod';
 // Agent Card related schemas
 const AgentProviderSchema = z.object({
   organization: z.string(),
-  url: z.string().url()
+  url: z.string().url(),
 });
 
 const AgentCapabilitiesSchema = z.object({
   streaming: z.boolean().optional().default(false),
   pushNotifications: z.boolean().optional().default(false),
   stateTransitionHistory: z.boolean().optional().default(false),
-  extensions: z.array(z.object({
-    uri: z.string(),
-    required: z.boolean().optional(),
-    description: z.string().optional(),
-    params: z.record(z.string(), z.unknown()).optional()
-  })).optional().default([])
+  extensions: z
+    .array(
+      z.object({
+        uri: z.string(),
+        required: z.boolean().optional(),
+        description: z.string().optional(),
+        params: z.record(z.string(), z.unknown()).optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 const SecuritySchemeSchema = z.record(z.string(), z.unknown());
@@ -27,12 +32,12 @@ const AgentSkillSchema = z.object({
   tags: z.array(z.string()),
   examples: z.array(z.string()).optional(),
   inputModes: z.array(z.string()).optional(),
-  outputModes: z.array(z.string()).optional()
+  outputModes: z.array(z.string()).optional(),
 });
 
 const AgentInterfaceSchema = z.object({
   url: z.string().url(),
-  transport: z.enum(['JSONRPC', 'GRPC', 'HTTP+JSON'])
+  transport: z.enum(['JSONRPC', 'GRPC', 'HTTP+JSON']),
 });
 
 export const AgentCardSchema = z.object({
@@ -52,7 +57,7 @@ export const AgentCardSchema = z.object({
   defaultInputModes: z.array(z.string()),
   defaultOutputModes: z.array(z.string()),
   skills: z.array(AgentSkillSchema),
-  supportsAuthenticatedExtendedCard: z.boolean().optional()
+  supportsAuthenticatedExtendedCard: z.boolean().optional(),
 });
 
 export type AgentCard = z.infer<typeof AgentCardSchema>;
@@ -67,26 +72,26 @@ export type AgentInterface = z.infer<typeof AgentInterfaceSchema>;
 export const PartSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('text'),
-    content: z.string()
+    content: z.string(),
   }),
   z.object({
     type: z.literal('file'),
     mimeType: z.string(),
     data: z.string(),
-    filename: z.string().optional()
+    filename: z.string().optional(),
   }),
   z.object({
     type: z.literal('structured'),
     schema: z.record(z.string(), z.unknown()),
-    data: z.unknown()
-  })
+    data: z.unknown(),
+  }),
 ]);
 
 // Message schema - communication turns
 export const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.array(PartSchema),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Task states
@@ -98,14 +103,14 @@ const ArtifactSchema = z.object({
   type: z.string(),
   title: z.string(),
   content: z.string(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Error schema
 const ErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
-  details: z.record(z.string(), z.unknown()).optional()
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Task schema - stateful unit of work
@@ -117,7 +122,7 @@ export const TaskSchema = z.object({
   messages: z.array(MessageSchema),
   artifacts: z.array(ArtifactSchema).optional(),
   error: ErrorSchema.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type Part = z.infer<typeof PartSchema>;
@@ -133,7 +138,7 @@ export type TaskError = z.infer<typeof ErrorSchema>;
 export const MessageSendRequestSchema = z.object({
   message: MessageSchema,
   context: z.record(z.string(), z.unknown()).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Message stream request
@@ -141,28 +146,30 @@ export const MessageStreamRequestSchema = z.object({
   message: MessageSchema,
   context: z.record(z.string(), z.unknown()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  streamOptions: z.object({
-    includeUsage: z.boolean().optional(),
-    includePartialArtifacts: z.boolean().optional()
-  }).optional()
+  streamOptions: z
+    .object({
+      includeUsage: z.boolean().optional(),
+      includePartialArtifacts: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 // Task get request
 export const TaskGetRequestSchema = z.object({
-  taskId: z.string()
+  taskId: z.string(),
 });
 
 // Task cancel request
 export const TaskCancelRequestSchema = z.object({
   taskId: z.string(),
-  reason: z.string().optional()
+  reason: z.string().optional(),
 });
 
 // Push subscribe request
 export const PushSubscribeRequestSchema = z.object({
   endpoint: z.string().url(),
   events: z.array(z.string()),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type MessageSendRequest = z.infer<typeof MessageSendRequestSchema>;

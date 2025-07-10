@@ -11,11 +11,11 @@ export function getMockAgentCard(overrides: Partial<AgentCard> = {}): AgentCard 
       streaming: false,
       pushNotifications: false,
       stateTransitionHistory: false,
-      extensions: []
+      extensions: [],
     },
     defaultInputModes: ['text/plain', 'application/json'],
     defaultOutputModes: ['text/plain', 'application/json'],
     skills: [],
-    ...overrides
+    ...overrides,
   };
 }

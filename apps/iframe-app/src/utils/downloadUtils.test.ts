@@ -22,12 +22,16 @@ describe('downloadUtils', () => {
     const mockLink = {
       href: '',
       download: '',
-      click: clickMock
+      click: clickMock,
     };
-    
-    createElementSpy= vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any) as any;
-    appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any) as any;
-    removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any) as any;
+
+    createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any) as any;
+    appendChildSpy = vi
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation(() => mockLink as any) as any;
+    removeChildSpy = vi
+      .spyOn(document.body, 'removeChild')
+      .mockImplementation(() => mockLink as any) as any;
   });
 
   afterEach(() => {
@@ -38,14 +42,14 @@ describe('downloadUtils', () => {
     it('should create a blob and trigger download', () => {
       const content = 'Hello, World!';
       const filename = 'test.txt';
-      
+
       downloadFile(content, filename);
 
       // Check blob creation
       expect(createObjectURLMock).toHaveBeenCalledWith(
         expect.objectContaining({
           size: content.length,
-          type: 'text/plain'
+          type: 'text/plain',
         })
       );
 
@@ -68,12 +72,12 @@ describe('downloadUtils', () => {
       const content = 'const x = 1;';
       const filename = 'script.js';
       const mimeType = 'text/javascript';
-      
+
       downloadFile(content, filename, mimeType);
 
       expect(createObjectURLMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'text/javascript'
+          type: 'text/javascript',
         })
       );
     });
@@ -83,7 +87,7 @@ describe('downloadUtils', () => {
 
       expect(createObjectURLMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'text/plain'
+          type: 'text/plain',
         })
       );
     });

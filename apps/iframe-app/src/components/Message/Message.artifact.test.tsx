@@ -174,7 +174,7 @@ describe('Message - Artifact Features', () => {
       const { container } = render(<Message message={artifactMessage} />);
 
       const viewButton = screen.getByRole('button', { name: /Show content/i });
-      
+
       // Content should be hidden initially
       expect(container.querySelector('pre')).not.toBeInTheDocument();
 
@@ -337,7 +337,7 @@ describe('Message - Artifact Features', () => {
     it('downloads all files when download all clicked', async () => {
       vi.clearAllMocks();
       vi.useFakeTimers();
-      
+
       render(<Message message={groupedArtifactMessage} />);
 
       const downloadAllButton = screen.getByRole('button', { name: /download all/i });
@@ -347,7 +347,7 @@ describe('Message - Artifact Features', () => {
       await vi.waitFor(() => {
         expect(downloadUtils.downloadFile).toHaveBeenCalled();
       });
-      
+
       // First file should download immediately
       expect(downloadUtils.downloadFile).toHaveBeenCalledWith(
         '<html></html>',
@@ -371,7 +371,7 @@ describe('Message - Artifact Features', () => {
       );
 
       expect(downloadUtils.downloadFile).toHaveBeenCalledTimes(3);
-      
+
       vi.useRealTimers();
     });
 
@@ -397,13 +397,13 @@ describe('Message - Artifact Features', () => {
       // Get the third view button (for script.js)
       const viewButtons = screen.getAllByRole('button', { name: 'View content' });
       const scriptViewButton = viewButtons[2];
-      
+
       // Content should be hidden initially
       expect(container.querySelector('pre')).not.toBeInTheDocument();
 
       // Click to show content
       fireEvent.click(scriptViewButton);
-      
+
       const codeBlock = container.querySelector('pre');
       expect(codeBlock).toBeInTheDocument();
       expect(codeBlock?.textContent).toContain('console.log("test");');
@@ -415,13 +415,13 @@ describe('Message - Artifact Features', () => {
       // View first file
       const viewButtons = screen.getAllByRole('button', { name: 'View content' });
       fireEvent.click(viewButtons[0]);
-      
+
       let codeBlock = container.querySelector('pre');
       expect(codeBlock?.textContent).toContain('<html></html>');
 
       // View second file
       fireEvent.click(viewButtons[1]);
-      
+
       codeBlock = container.querySelector('pre');
       expect(codeBlock?.textContent).toContain('body { margin: 0; }');
       expect(codeBlock?.textContent).not.toContain('<html></html>');
@@ -431,7 +431,7 @@ describe('Message - Artifact Features', () => {
       const { container } = render(<Message message={groupedArtifactMessage} />);
 
       const viewButton = screen.getAllByRole('button', { name: 'View content' })[0];
-      
+
       // Show content
       fireEvent.click(viewButton);
       expect(container.querySelector('pre')).toBeInTheDocument();
@@ -535,7 +535,9 @@ describe('Message - Artifact Features', () => {
       const { container } = render(<Message message={regularMessage} />);
 
       expect(container.querySelector(`.${styles.artifactContainer}`)).not.toBeInTheDocument();
-      expect(container.querySelector(`.${styles.groupedArtifactContainer}`)).not.toBeInTheDocument();
+      expect(
+        container.querySelector(`.${styles.groupedArtifactContainer}`)
+      ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /download/i })).not.toBeInTheDocument();
     });
   });

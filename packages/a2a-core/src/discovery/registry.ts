@@ -16,16 +16,16 @@ export interface AgentRegistry {
 
 export class PublicAgentRegistry implements AgentRegistry {
   name = 'Public A2A Registry';
-  
+
   constructor(private baseUrl: string) {}
 
   async searchAgents(query: string): Promise<AgentSummary[]> {
     const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}`;
-    
+
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     if (!response.ok) {
@@ -38,11 +38,11 @@ export class PublicAgentRegistry implements AgentRegistry {
 
   async getAgentCard(agentId: string): Promise<AgentCard> {
     const url = `${this.baseUrl}/agents/${agentId}`;
-    
+
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     if (!response.ok) {
@@ -62,7 +62,7 @@ export class PublicAgentRegistry implements AgentRegistry {
 
 export class EnterpriseAgentRegistry implements AgentRegistry {
   name = 'Enterprise Agent Registry';
-  
+
   constructor(
     private baseUrl: string,
     private apiKey: string
@@ -70,12 +70,12 @@ export class EnterpriseAgentRegistry implements AgentRegistry {
 
   async searchAgents(query: string): Promise<AgentSummary[]> {
     const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}`;
-    
+
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      }
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
     });
 
     if (!response.ok) {
@@ -88,12 +88,12 @@ export class EnterpriseAgentRegistry implements AgentRegistry {
 
   async getAgentCard(agentId: string): Promise<AgentCard> {
     const url = `${this.baseUrl}/agents/${agentId}`;
-    
+
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      }
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
     });
 
     if (!response.ok) {

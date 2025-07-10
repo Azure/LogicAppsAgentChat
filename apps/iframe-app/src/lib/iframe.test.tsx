@@ -15,20 +15,20 @@ describe('iframe', () => {
   let originalLocation: Location;
   let originalReadyState: string;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-  
+
   beforeEach(() => {
     // Clear module cache to allow re-importing
     vi.resetModules();
-    
+
     // Mock createRoot
     mockRoot = { render: vi.fn() };
     mockCreateRoot = vi.fn().mockReturnValue(mockRoot);
     vi.mocked(createRoot).mockImplementation(mockCreateRoot);
-    
+
     // Save original values
     originalLocation = window.location;
     originalReadyState = document.readyState;
-    
+
     // Mock dataset on documentElement for happy-dom v18
     const mockDataset: Record<string, string> = {};
     Object.defineProperty(document.documentElement, 'dataset', {
@@ -36,29 +36,29 @@ describe('iframe', () => {
       writable: true,
       configurable: true,
     });
-    
+
     // Mock window.location
     Object.defineProperty(window, 'location', {
-      value: { 
+      value: {
         href: 'http://localhost',
-        search: '' 
+        search: '',
       },
       writable: true,
       configurable: true,
     });
-    
+
     // Mock console.error
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     // Ensure document.body exists before setting innerHTML
     if (!document.body) {
       const body = document.createElement('body');
       document.documentElement.appendChild(body);
     }
-    
+
     // Create chat-root element
     document.body.innerHTML = '<div id="chat-root"></div>';
-    
+
     // Mock document.readyState
     Object.defineProperty(document, 'readyState', {
       value: 'complete',
@@ -66,13 +66,13 @@ describe('iframe', () => {
       configurable: true,
     });
   });
-  
+
   afterEach(() => {
     // Clean up dataset by clearing all properties
-    Object.keys(document.documentElement.dataset).forEach(key => {
+    Object.keys(document.documentElement.dataset).forEach((key) => {
       delete document.documentElement.dataset[key];
     });
-    
+
     // Restore original values
     Object.defineProperty(window, 'location', {
       value: originalLocation,
@@ -90,12 +90,12 @@ describe('iframe', () => {
 
   it('initializes with agent URL from data attribute', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     expect(mockCreateRoot).toHaveBeenCalledWith(document.getElementById('chat-root'));
     expect(mockRoot.render).toHaveBeenCalled();
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.agentCard).toBe('http://test.agent/agent.json');
     expect(renderCall.props.allowFileUpload).toBe(true);
@@ -103,9 +103,9 @@ describe('iframe', () => {
 
   it('initializes with agent URL from URL parameter', async () => {
     window.location.search = '?agentCard=http://url.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.agentCard).toBe('http://url.agent/agent.json');
   });
@@ -113,68 +113,74 @@ describe('iframe', () => {
   it('prefers data attribute over URL parameter for agent URL', async () => {
     document.documentElement.dataset.agentCard = 'http://data.agent/agent.json';
     window.location.search = '?agentCard=http://url.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.agentCard).toBe('http://data.agent/agent.json');
   });
 
   it('throws error when agent URL is missing and URL pattern does not match', async () => {
     await import('./iframe');
-    
+
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to initialize chat widget:',
       expect.any(Error)
     );
     expect(document.body.innerHTML).toContain('Failed to load chat widget');
-    expect(document.body.innerHTML).toContain('data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern');
+    expect(document.body.innerHTML).toContain(
+      'data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern'
+    );
   });
 
   it('transforms URL to agent card when no agentCard parameter is provided', async () => {
     Object.defineProperty(window, 'location', {
-      value: { 
+      value: {
         href: 'https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame',
-        search: '' 
+        search: '',
       },
       writable: true,
       configurable: true,
     });
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentCard).toBe('https://rarayudu-test-agentauth.azurewebsites.net/api/agents/TestAgentKind/.well-known/agent.json');
+    expect(renderCall.props.agentCard).toBe(
+      'https://rarayudu-test-agentauth.azurewebsites.net/api/agents/TestAgentKind/.well-known/agent.json'
+    );
   });
 
   it('handles case-insensitive URL pattern matching', async () => {
     Object.defineProperty(window, 'location', {
-      value: { 
+      value: {
         href: 'https://example.com/api/agentsChat/MyAgent/iframe',
-        search: '' 
+        search: '',
       },
       writable: true,
       configurable: true,
     });
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
-    expect(renderCall.props.agentCard).toBe('https://example.com/api/agents/MyAgent/.well-known/agent.json');
+    expect(renderCall.props.agentCard).toBe(
+      'https://example.com/api/agents/MyAgent/.well-known/agent.json'
+    );
   });
 
   it('prefers explicit agentCard over URL transformation', async () => {
     Object.defineProperty(window, 'location', {
-      value: { 
+      value: {
         href: 'https://example.com/api/agentsChat/MyAgent/IFrame',
-        search: '?agentCard=http://explicit.agent/agent.json' 
+        search: '?agentCard=http://explicit.agent/agent.json',
       },
       writable: true,
       configurable: true,
     });
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.agentCard).toBe('http://explicit.agent/agent.json');
   });
@@ -183,9 +189,9 @@ describe('iframe', () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.themePrimary = '#ff0000';
     document.documentElement.dataset.themeBackground = '#000000';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.theme).toEqual({
       colors: {
@@ -207,9 +213,9 @@ describe('iframe', () => {
     document.documentElement.dataset.logoUrl = 'http://logo.png';
     document.documentElement.dataset.logoSize = 'large';
     document.documentElement.dataset.logoPosition = 'footer';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.theme).toEqual({
       branding: {
@@ -228,9 +234,9 @@ describe('iframe', () => {
     document.documentElement.dataset.allowFileUpload = 'false';
     document.documentElement.dataset.maxFileSize = '5242880';
     document.documentElement.dataset.allowedFileTypes = '.pdf, .doc, .txt';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.userId).toBe('user123');
     expect(renderCall.props.placeholder).toBe('Type here...');
@@ -241,10 +247,11 @@ describe('iframe', () => {
   });
 
   it('parses configuration from URL parameters', async () => {
-    window.location.search = '?agentCard=http://test.agent/agent.json&userId=user456&placeholder=Ask me';
-    
+    window.location.search =
+      '?agentCard=http://test.agent/agent.json&userId=user456&placeholder=Ask me';
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.agentCard).toBe('http://test.agent/agent.json');
     expect(renderCall.props.userId).toBe('user456');
@@ -254,9 +261,9 @@ describe('iframe', () => {
   it('parses valid metadata JSON', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.metadata = '{"key": "value", "num": 123}';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.metadata).toEqual({ key: 'value', num: 123 });
   });
@@ -264,14 +271,11 @@ describe('iframe', () => {
   it('handles invalid metadata JSON gracefully', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.metadata = 'invalid json';
-    
+
     await import('./iframe');
-    
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to parse metadata:',
-      expect.any(Error)
-    );
-    
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to parse metadata:', expect.any(Error));
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.metadata).toBeUndefined();
   });
@@ -279,9 +283,9 @@ describe('iframe', () => {
   it('handles missing chat-root element', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.body.innerHTML = ''; // Remove chat-root
-    
+
     await import('./iframe');
-    
+
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to initialize chat widget:',
       expect.any(Error)
@@ -296,20 +300,20 @@ describe('iframe', () => {
       writable: true,
       configurable: true,
     });
-    
+
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
-    
+
     await import('./iframe');
-    
+
     expect(addEventListenerSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
     expect(mockCreateRoot).not.toHaveBeenCalled();
-    
+
     // Simulate DOMContentLoaded
     const handler = addEventListenerSpy.mock.calls[0][1] as () => void;
     handler();
-    
+
     expect(mockCreateRoot).toHaveBeenCalled();
     expect(mockRoot.render).toHaveBeenCalled();
   });
@@ -320,20 +324,20 @@ describe('iframe', () => {
       writable: true,
       configurable: true,
     });
-    
+
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     expect(mockCreateRoot).toHaveBeenCalled();
     expect(mockRoot.render).toHaveBeenCalled();
   });
 
   it('does not include theme when no theme attributes are set', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.theme).toBeUndefined();
   });
@@ -342,9 +346,9 @@ describe('iframe', () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.logoUrl = 'http://logo.png';
     // logoSize and logoPosition not specified
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.theme).toEqual({
       branding: {
@@ -357,9 +361,9 @@ describe('iframe', () => {
 
   it('handles allowFileUpload as true by default', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.allowFileUpload).toBe(true);
   });
@@ -367,9 +371,9 @@ describe('iframe', () => {
   it('handles empty allowedFileTypes string', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.allowedFileTypes = '';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.allowedFileTypes).toEqual(['']);
   });
@@ -377,9 +381,9 @@ describe('iframe', () => {
   it('trims whitespace from allowed file types', async () => {
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
     document.documentElement.dataset.allowedFileTypes = ' .pdf , .doc , .txt ';
-    
+
     await import('./iframe');
-    
+
     const renderCall = mockRoot.render.mock.calls[0][0];
     expect(renderCall.props.allowedFileTypes).toEqual(['.pdf', '.doc', '.txt']);
   });
@@ -389,11 +393,11 @@ describe('iframe', () => {
     vi.mocked(createRoot).mockImplementation(() => {
       throw errorObject;
     });
-    
+
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     expect(document.body.innerHTML).toContain('Custom error');
   });
 
@@ -401,11 +405,11 @@ describe('iframe', () => {
     vi.mocked(createRoot).mockImplementation(() => {
       throw 'String error';
     });
-    
+
     document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
-    
+
     await import('./iframe');
-    
+
     expect(document.body.innerHTML).toContain('String error');
   });
 });
