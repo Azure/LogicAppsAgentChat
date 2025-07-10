@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 type ViewMode = 'iframe' | 'embed';
@@ -24,10 +24,9 @@ function App() {
   const getIframeUrl = () => {
     // In development, iframe app runs on port 3001
     // In production, this would be your deployed iframe app URL
-    const iframeBaseUrl =
-      process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3001'
-        : window.location.origin + '/iframe-app';
+    const iframeBaseUrl = import.meta.env.DEV
+      ? 'http://localhost:3001'
+      : window.location.origin + '/iframe-app';
 
     const params = new URLSearchParams({
       theme: selectedTheme,
