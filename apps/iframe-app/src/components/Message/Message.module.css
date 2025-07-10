@@ -15,6 +15,8 @@
 .messageContainer {
   max-width: 95%;
   min-width: 150px;
+  /* Prevent layout shifts */
+  contain: layout style;
 }
 
 .messageWrapper.user .messageContainer {
@@ -247,6 +249,44 @@
   flex-shrink: 0;
 }
 
+/* Streaming message styles */
+.streaming .markdownContent {
+  position: relative;
+}
+
+.streaming .markdownContent::after {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 0.9em;
+  background-color: var(--chat-color-text);
+  animation: blink 1s infinite;
+  margin-left: 2px;
+  vertical-align: baseline;
+  opacity: 0.7;
+}
+
+/* More subtle blink animation */
+@keyframes blink {
+  0%,
+  45% {
+    opacity: 0.7;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Prevent message bubble from animating during streaming */
+.messageWrapper.streaming {
+  animation: none !important;
+}
+
+.messageWrapper.streaming .message {
+  animation: none !important;
+}
+
 .groupedTitle {
   font-weight: 600;
   font-size: 1.1rem;
@@ -388,6 +428,10 @@
 
 .markdownContent {
   line-height: 1.6;
+  /* Prevent layout shifts during streaming */
+  min-height: 1.6em;
+  /* Smooth text appearance */
+  will-change: contents;
 }
 
 .markdownContent h1,

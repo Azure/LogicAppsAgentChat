@@ -85,5 +85,5 @@
 }
 
 .chat-fade-in {
-  animation: chat-fade-in 0.3s ease-out;
+  animation: chat-fade-in 0.15s ease-out;
 }

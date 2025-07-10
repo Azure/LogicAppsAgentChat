@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import { Message } from '../Message';
 import { TypingIndicator } from '../TypingIndicator';
 import { useChatStore } from '../../store/chatStore';
@@ -9,8 +9,12 @@ interface MessageListProps {
   agentName?: string;
 }
 
-export function MessageList({ welcomeMessage, agentName = 'Agent' }: MessageListProps) {
-  const { messages, isTyping } = useChatStore();
+export const MessageList = memo(function MessageList({
+  welcomeMessage,
+  agentName = 'Agent',
+}: MessageListProps) {
+  const messages = useChatStore((state) => state.messages);
+  const isTyping = useChatStore((state) => state.isTyping);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,14 +30,10 @@ export function MessageList({ welcomeMessage, agentName = 'Agent' }: MessageList
       )}
 
       {messages.map((message) => (
-        <Message
-          key={`${message.id}-${message.content.length}`}
-          message={message}
-          agentName={agentName}
-        />
+        <Message key={message.id} message={message} agentName={agentName} />
       ))}
 
       {isTyping && <TypingIndicator agentName={agentName} />}
     </div>
   );
-}
+});

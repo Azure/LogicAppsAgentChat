@@ -37,7 +37,16 @@ export const useChatStore = create<ChatState>((set) => ({
 
   updateMessage: (id, updates) =>
     set((state) => ({
-      messages: state.messages.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg)),
+      messages: state.messages.map((msg) =>
+        msg.id === id
+          ? {
+              ...msg,
+              ...updates,
+              // Ensure metadata is deeply merged
+              metadata: updates.metadata ? { ...msg.metadata, ...updates.metadata } : msg.metadata,
+            }
+          : msg
+      ),
     })),
 
   deleteMessage: (id) =>

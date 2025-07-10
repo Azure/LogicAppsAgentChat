@@ -50,7 +50,24 @@ export function useA2ANative({
   // Handle typing changes
   useEffect(() => {
     onTypingChange?.(isLoading);
-  }, [isLoading, onTypingChange]);
+
+    // When loading stops, ensure no messages are left in streaming state
+    if (!isLoading && messageIdMap.current.size > 0) {
+      // Small delay to ensure all final updates have been processed
+      const timeoutId = setTimeout(() => {
+        messageIdMap.current.forEach((internalId, sdkId) => {
+          // Update the message to ensure streaming is false
+          onUpdateMessage?.(internalId, {
+            metadata: {
+              isStreaming: false,
+            },
+          });
+        });
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isLoading, onTypingChange, onUpdateMessage]);
 
   // Handle incoming messages from SDK
   useEffect(() => {
@@ -67,7 +84,7 @@ export function useA2ANative({
           content: sdkMessage.content,
           metadata: {
             ...sdkMessage.metadata,
-            isStreaming: sdkMessage.isStreaming,
+            isStreaming: sdkMessage.isStreaming ?? false,
           },
         });
         return;
@@ -75,13 +92,14 @@ export function useA2ANative({
 
       // Skip if we've already processed this message as a new message
       if (processedMessageIds.current.has(sdkMessage.id)) {
-        // Check if content has changed (for final update)
+        // Check if this is a final update (streaming has stopped)
         if (existingInternalId && !sdkMessage.isStreaming) {
+          // This is likely the final update when streaming completes
           onUpdateMessage?.(existingInternalId, {
             content: sdkMessage.content,
             metadata: {
               ...sdkMessage.metadata,
-              isStreaming: false,
+              isStreaming: false, // Explicitly set to false for completion
             },
           });
         }
@@ -132,7 +150,7 @@ export function useA2ANative({
           ...internalMessage.metadata,
           sdkMessageId: sdkMessage.id,
           timestamp: sdkMessage.timestamp,
-          isStreaming: sdkMessage.isStreaming,
+          isStreaming: sdkMessage.isStreaming ?? false,
         };
 
         // Map SDK message ID to internal message ID

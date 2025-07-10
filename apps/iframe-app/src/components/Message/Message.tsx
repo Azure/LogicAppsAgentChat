@@ -31,7 +31,7 @@ import 'prismjs/components/prism-markdown';
 import 'prismjs/components/prism-diff';
 import 'prismjs/components/prism-scss';
 // Skip PHP for now as it has complex dependencies
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import styles from './Message.module.css';
 import type { Message as MessageType } from '../../types';
 import { downloadFile, getMimeType } from '../../utils/downloadUtils';
@@ -59,12 +59,13 @@ interface MessageProps {
   agentName?: string;
 }
 
-export function Message({ message, agentName = 'Agent' }: MessageProps) {
+export const Message = memo(function Message({ message, agentName = 'Agent' }: MessageProps) {
   const isUser = message.sender === 'user';
   const senderName = isUser ? (window.LOGGED_IN_USER_NAME ?? 'You') : agentName;
   const isArtifact = message.metadata?.isArtifact;
   const isGroupedArtifact = message.metadata?.isGroupedArtifact;
   const artifactName = message.metadata?.artifactName;
+  const isStreaming = message.metadata?.isStreaming;
   const [showContent, setShowContent] = useState(!isArtifact && !isGroupedArtifact);
   const [selectedArtifactIndex, setSelectedArtifactIndex] = useState<number | null>(null);
 
@@ -112,7 +113,7 @@ export function Message({ message, agentName = 'Agent' }: MessageProps) {
     setShowContent(!showContent);
   };
 
-  const renderContent = () => {
+  const renderContent = useMemo(() => {
     if (isUser) {
       return <div className={styles.textContent}>{message.content}</div>;
     }
@@ -159,7 +160,7 @@ export function Message({ message, agentName = 'Agent' }: MessageProps) {
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
-  };
+  }, [message.content, isUser, isArtifact, artifactName, message.metadata]);
 
   // Helper function to get language from filename
   const getLanguageFromFilename = (filename: string): string => {
@@ -204,12 +205,12 @@ export function Message({ message, agentName = 'Agent' }: MessageProps) {
 
   return (
     <div
-      className={`${styles.messageWrapper} ${isUser ? styles.user : styles.assistant} ${isArtifact ? styles.artifact : ''} chat-fade-in`}
+      className={`${styles.messageWrapper} ${isUser ? styles.user : styles.assistant} ${isArtifact ? styles.artifact : ''} ${isStreaming ? styles.streaming : ''} ${!isStreaming && !isUser ? 'chat-fade-in' : ''}`}
     >
       <div className={styles.messageContainer}>
         <div className={styles.senderName}>{senderName}</div>
         <div className={styles.messageBubble}>
-          <div className={styles.message}>
+          <div className={`${styles.message} ${isStreaming ? styles.streaming : ''}`}>
             {isGroupedArtifact && message.metadata?.artifacts ? (
               <div className={styles.groupedArtifactContainer}>
                 <div className={styles.groupedHeader}>
@@ -484,11 +485,11 @@ export function Message({ message, agentName = 'Agent' }: MessageProps) {
                   </div>
                 </div>
                 {showContent && (
-                  <div className={styles.artifactContentWrapper}>{renderContent()}</div>
+                  <div className={styles.artifactContentWrapper}>{renderContent}</div>
                 )}
               </div>
             ) : (
-              renderContent()
+              renderContent
             )}
             {message.attachments && message.attachments.length > 0 && (
               <div className={styles.attachments}>
@@ -512,7 +513,7 @@ export function Message({ message, agentName = 'Agent' }: MessageProps) {
       </div>
     </div>
   );
-}
+});
 
 function formatTime(date: Date | string): string {
   // Handle both Date objects and date strings (from localStorage)

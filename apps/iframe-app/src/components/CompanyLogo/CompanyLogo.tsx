@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import styles from './CompanyLogo.module.css';
 
@@ -5,7 +6,7 @@ interface CompanyLogoProps {
   className?: string;
 }
 
-export function CompanyLogo({ className }: CompanyLogoProps) {
+export const CompanyLogo = memo(function CompanyLogo({ className }: CompanyLogoProps) {
   const theme = useTheme();
 
   if (!theme.branding?.logoUrl) {
@@ -25,4 +26,4 @@ export function CompanyLogo({ className }: CompanyLogoProps) {
       <img src={theme.branding.logoUrl} alt="Company Logo" className={styles.logo} />
     </div>
   );
-}
+});

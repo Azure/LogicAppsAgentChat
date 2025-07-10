@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, memo } from 'react';
 import { FileUpload } from '../FileUpload';
 import { useChatStore } from '../../store/chatStore';
 import styles from './MessageInput.module.css';
@@ -13,7 +13,8 @@ interface MessageInputProps {
   allowedFileTypes?: string[];
 }
 
-export function MessageInput({
+// Memoize the component to prevent unnecessary re-renders from parent
+export const MessageInput = memo(function MessageInput({
   onSendMessage,
   placeholder = 'Type a message...',
   disabled = false,
@@ -24,57 +25,86 @@ export function MessageInput({
   const [message, setMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { isConnected } = useChatStore();
+  const isConnected = useChatStore((state) => state.isConnected);
 
   const isDisabled = disabled || !isConnected;
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (message.trim() || pendingAttachments.length > 0) {
-      const attachments: Attachment[] = pendingAttachments.map((file) => ({
-        id: generateId(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        status: 'uploading' as const,
-      }));
-
-      onSendMessage(message.trim(), attachments);
-      setMessage('');
-      setPendingAttachments([]);
-
-      // Reset textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
-    }
-  };
 
-  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    setMessage(textarea.value);
+      if (message.trim() || pendingAttachments.length > 0) {
+        const attachments: Attachment[] = pendingAttachments.map((file) => ({
+          id: generateId(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          status: 'uploading' as const,
+        }));
 
-    // Auto-resize textarea
-    textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-  };
+        onSendMessage(message.trim(), attachments);
+        setMessage('');
+        setPendingAttachments([]);
 
-  const handleFileSelect = (files: FileList) => {
+        // Reset textarea height
+        if (textareaRef.current) {
+          textareaRef.current.style.height = '';
+        }
+      }
+    },
+    [message, pendingAttachments, onSendMessage]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    },
+    [handleSubmit]
+  );
+
+  // Use RAF to batch DOM measurements and updates
+  const adjustTextareaHeight = useCallback(() => {
+    if (!textareaRef.current) return;
+
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      // Store current scroll position
+      const scrollTop = textarea.scrollTop;
+
+      // Reset height to auto to get accurate scrollHeight
+      textarea.style.height = 'auto';
+
+      // Set new height
+      const newHeight = Math.min(textarea.scrollHeight, 120);
+      textarea.style.height = `${newHeight}px`;
+
+      // Restore scroll position
+      textarea.scrollTop = scrollTop;
+    });
+  }, []);
+
+  const handleInput = useCallback(
+    (e: React.FormEvent<HTMLTextAreaElement>) => {
+      const textarea = e.currentTarget;
+      setMessage(textarea.value);
+      adjustTextareaHeight();
+    },
+    [adjustTextareaHeight]
+  );
+
+  const handleFileSelect = useCallback((files: FileList) => {
     const newFiles = Array.from(files);
     setPendingAttachments((prev) => [...prev, ...newFiles]);
-  };
+  }, []);
 
-  const removeAttachment = (index: number) => {
+  const removeAttachment = useCallback((index: number) => {
     setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
   return (
     <form onSubmit={handleSubmit} className={styles.inputContainer}>
@@ -142,7 +172,7 @@ export function MessageInput({
       {!isConnected && <div className={styles.connectionStatus}>Connecting...</div>}
     </form>
   );
-}
+});
 
 function generateId(): string {
   // Generate a UUID v4 format GUID similar to C# Guid.NewGuid()

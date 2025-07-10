@@ -1,3 +1,4 @@
+import { useCallback, memo } from 'react';
 import { MessageList } from '../MessageList';
 import { MessageInput } from '../MessageInput';
 import { CompanyLogo } from '../CompanyLogo';
@@ -10,7 +11,7 @@ export interface ChatWindowProps extends ChatWidgetProps {
   // All props come from ChatWidgetProps, which now uses agentCard
 }
 
-export function ChatWindow(props: ChatWindowProps) {
+export const ChatWindow = memo(function ChatWindow(props: ChatWindowProps) {
   const {
     agentCard,
     auth,
@@ -35,11 +36,11 @@ export function ChatWindow(props: ChatWindowProps) {
   const showHeaderLogo = chatTheme.branding?.logoPosition === 'header';
   const showFooterLogo = chatTheme.branding?.logoPosition === 'footer';
 
-  const handleClearSession = () => {
+  const handleClearSession = useCallback(() => {
     if (clearSession) {
       clearSession();
     }
-  };
+  }, [clearSession]);
 
   return (
     <div className={`${styles.chatWindow} chat-widget-container`}>
@@ -79,4 +80,4 @@ export function ChatWindow(props: ChatWindowProps) {
       />
     </div>
   );
-}
+});

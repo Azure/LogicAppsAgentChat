@@ -1,10 +1,13 @@
+import { memo } from 'react';
 import styles from './TypingIndicator.module.css';
 
 interface TypingIndicatorProps {
   agentName?: string;
 }
 
-export function TypingIndicator({ agentName = 'Agent' }: TypingIndicatorProps) {
+export const TypingIndicator = memo(function TypingIndicator({
+  agentName = 'Agent',
+}: TypingIndicatorProps) {
   return (
     <div className={styles.typingIndicator}>
       <div className={styles.typingContainer}>
@@ -17,4 +20,4 @@ export function TypingIndicator({ agentName = 'Agent' }: TypingIndicatorProps) {
       </div>
     </div>
   );
-}
+});

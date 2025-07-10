@@ -72,6 +72,8 @@
   min-height: 24px;
   max-height: 120px;
   line-height: 1.5;
+  transition: none; /* Remove transition to avoid animation during typing */
+  overflow-y: auto;
 }
 
 .textarea::placeholder {
