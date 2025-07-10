@@ -9,6 +9,42 @@
 .header {
   border-bottom: 1px solid var(--chat-color-border);
   background-color: var(--chat-color-background);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.clearButton {
+  background: none;
+  border: 1px solid var(--chat-color-border);
+  color: var(--chat-color-text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--chat-border-radius-small);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--chat-font-family);
+}
+
+.clearButton:hover {
+  background-color: var(--chat-color-surface);
+  color: var(--chat-color-text);
+}
+
+.clearButton:active {
+  transform: translateY(1px);
+}
+
+.clearButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .footer {

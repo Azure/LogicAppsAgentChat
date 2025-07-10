@@ -1,5 +1,4 @@
 import type { Message, Attachment } from '../types';
-import type { Part } from '../a2aclient/types';
 
 export function generateMessageId(): string {
   // Generate a UUID v4 format GUID similar to C# Guid.NewGuid()
@@ -43,33 +42,6 @@ export function createMessage(
   };
 }
 
-export function formatPart(part: Part): string {
-  // Handle both lowercase and uppercase kind values
-  const kind = part.kind.toLowerCase();
-  
-  switch (kind) {
-    case 'text': {
-      if ('text' in part) {
-        return part.text || '';
-      }
-      // Handle potential uppercase 'Text' property
-      const partWithUppercaseText = part as Part & { Text?: string };
-      return partWithUppercaseText.Text || '';
-    }
-    case 'file':
-      if ('file' in part) {
-        return `[File: ${part.file?.name || 'Unnamed'}]`;
-      }
-      return '[File: Unnamed]';
-    case 'data':
-      if ('data' in part) {
-        return `[Data: ${JSON.stringify(part.data)}]`;
-      }
-      return '[Data: unknown]';
-    default:
-      return '[Unknown part type]';
-  }
-}
 
 export function getLanguageFromFilename(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase();

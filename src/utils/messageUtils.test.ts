@@ -2,13 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   generateMessageId,
   createMessage,
-  formatPart,
   getLanguageFromFilename,
   formatCodeContent,
   createArtifactMessage,
   createGroupedArtifactMessage
 } from './messageUtils';
-import type { Part } from '../a2aclient/types';
 
 describe('messageUtils', () => {
   beforeEach(() => {
@@ -68,42 +66,6 @@ describe('messageUtils', () => {
     });
   });
 
-  describe('formatPart', () => {
-    it('should format text parts correctly', () => {
-      const part: Part = { kind: 'text', text: 'Hello, world!' };
-      expect(formatPart(part)).toBe('Hello, world!');
-    });
-
-    it('should format file parts correctly', () => {
-      const part: Part = {
-        kind: 'file',
-        file: { name: 'document.pdf', mimeType: 'application/pdf', uri: 'file://document.pdf' }
-      };
-      expect(formatPart(part)).toBe('[File: document.pdf]');
-    });
-
-    it('should handle unnamed files', () => {
-      const part: Part = {
-        kind: 'file',
-        file: { mimeType: 'application/pdf', uri: 'file://unnamed.pdf' }
-      };
-      expect(formatPart(part)).toBe('[File: Unnamed]');
-    });
-
-    it('should format data parts correctly', () => {
-      const part: Part = {
-        kind: 'data',
-        data: { key: 'value', number: 42 }
-      };
-      expect(formatPart(part)).toBe('[Data: {"key":"value","number":42}]');
-    });
-
-    it('should handle unknown part types', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const part = { kind: 'unknown' } as any;
-      expect(formatPart(part)).toBe('[Unknown part type]');
-    });
-  });
 
   describe('getLanguageFromFilename', () => {
     it('should return correct language for common extensions', () => {

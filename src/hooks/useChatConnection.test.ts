@@ -2,18 +2,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useChatConnection } from './useChatConnection';
-import { useA2AClient } from './useA2AClient';
+import { useA2ANative } from './useA2ANative';
 import { useChatStore } from '../store/chatStore';
 import { createMessage } from '../utils/messageUtils';
 import type { Message, Attachment } from '../types';
 
 // Mock dependencies
-vi.mock('./useA2AClient');
+vi.mock('./useA2ANative');
 vi.mock('../store/chatStore');
 vi.mock('../utils/messageUtils');
 
 describe('useChatConnection', () => {
-  const mockUseA2AClient = vi.mocked(useA2AClient);
+  const mockUseA2ANative = vi.mocked(useA2ANative);
   const mockUseChatStore = vi.mocked(useChatStore);
   const mockCreateMessage = vi.mocked(createMessage);
   
@@ -36,6 +36,9 @@ describe('useChatConnection', () => {
     currentTaskId: undefined,
     currentContextId: undefined,
     isStreamActive: false,
+    isTyping: false,
+    disconnect: vi.fn(),
+    clearMessages: vi.fn(),
   };
   
   beforeEach(() => {
@@ -54,7 +57,7 @@ describe('useChatConnection', () => {
     mockChatStore.clearMessages = vi.fn();
     
     mockUseChatStore.mockReturnValue(mockChatStore);
-    mockUseA2AClient.mockReturnValue(mockA2AClient as any);
+    mockUseA2ANative.mockReturnValue(mockA2AClient as any);
     mockCreateMessage.mockImplementation((content, sender, attachments) => ({
       id: 'msg-' + Date.now(),
       content,
@@ -74,8 +77,9 @@ describe('useChatConnection', () => {
       useChatConnection({ agentCard, onMessage, onConnectionChange })
     );
     
-    expect(mockUseA2AClient).toHaveBeenCalledWith({
+    expect(mockUseA2ANative).toHaveBeenCalledWith({
       agentCard,
+      auth: undefined,
       onConnectionChange: expect.any(Function),
       onMessage: expect.any(Function),
       onTypingChange: expect.any(Function),
@@ -84,6 +88,7 @@ describe('useChatConnection', () => {
     
     expect(result.current.isConnected).toBe(true);
     expect(result.current.agentName).toBe('Test Agent');
+    expect(result.current.clearSession).toBeDefined();
   });
 
   it('handles incoming messages', () => {
@@ -93,8 +98,8 @@ describe('useChatConnection', () => {
       useChatConnection({ agentCard: 'http://test.agent/agent.json', onMessage })
     );
     
-    // Get the message handler passed to useA2AClient
-    const messageHandler = mockUseA2AClient.mock.calls[0][0].onMessage;
+    // Get the message handler passed to useA2ANative
+    const messageHandler = mockUseA2ANative.mock.calls[0][0].onMessage;
     
     const incomingMessage: Message = {
       id: 'msg-1',
@@ -120,8 +125,8 @@ describe('useChatConnection', () => {
       useChatConnection({ agentCard: 'http://test.agent/agent.json', onConnectionChange })
     );
     
-    // Get the connection handler passed to useA2AClient
-    const connectionHandler = mockUseA2AClient.mock.calls[0][0].onConnectionChange;
+    // Get the connection handler passed to useA2ANative
+    const connectionHandler = mockUseA2ANative.mock.calls[0][0].onConnectionChange;
     
     // Simulate connection change
     act(() => {
@@ -144,8 +149,8 @@ describe('useChatConnection', () => {
       useChatConnection({ agentCard: 'http://test.agent/agent.json' })
     );
     
-    // Get the typing handler passed to useA2AClient
-    const typingHandler = mockUseA2AClient.mock.calls[0][0].onTypingChange;
+    // Get the typing handler passed to useA2ANative
+    const typingHandler = mockUseA2ANative.mock.calls[0][0].onTypingChange;
     
     // Simulate typing change
     act(() => {
@@ -355,7 +360,7 @@ describe('useChatConnection', () => {
       isConnected: false,
       agentName: 'Updated Agent',
     };
-    mockUseA2AClient.mockReturnValue(updatedClient as any);
+    mockUseA2ANative.mockReturnValue(updatedClient as any);
     
     rerender();
     
@@ -398,5 +403,18 @@ describe('useChatConnection', () => {
     expect(mockChatStore.addMessage).toHaveBeenCalledWith(mockMessage);
     expect(mockA2AClient.sendMessage).toHaveBeenCalledWith('', 'msg-empty');
     expect(mockChatStore.updateMessage).toHaveBeenCalledWith('msg-empty', { status: 'sent' });
+  });
+
+  it('clears session when clearSession is called', () => {
+    const { result } = renderHook(() => 
+      useChatConnection({ agentCard: 'http://test.agent/agent.json' })
+    );
+    
+    act(() => {
+      result.current.clearSession();
+    });
+    
+    expect(mockChatStore.clearMessages).toHaveBeenCalled();
+    expect(mockA2AClient.clearMessages).toHaveBeenCalled();
   });
 });

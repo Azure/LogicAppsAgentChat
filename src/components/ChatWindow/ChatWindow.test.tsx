@@ -55,7 +55,8 @@ describe('ChatWindow', () => {
     useChatConnection.mockReturnValue({
       isConnected: true,
       agentName: 'Test Agent',
-      sendMessage: mockSendMessage
+      sendMessage: mockSendMessage,
+      clearSession: vi.fn()
     });
   });
 
@@ -128,7 +129,8 @@ describe('ChatWindow', () => {
     useChatConnection.mockReturnValue({
       isConnected: false,
       agentName: '',
-      sendMessage: mockSendMessage
+      sendMessage: mockSendMessage,
+      clearSession: vi.fn()
     });
 
     render(<ChatWindow {...defaultProps} />);
@@ -154,7 +156,8 @@ describe('ChatWindow', () => {
     useChatConnection.mockReturnValue({
       isConnected: true,
       agentName: '',
-      sendMessage: mockSendMessage
+      sendMessage: mockSendMessage,
+      clearSession: vi.fn()
     });
 
     render(<ChatWindow {...defaultProps} />);
@@ -203,8 +206,70 @@ describe('ChatWindow', () => {
     
     expect(useChatConnection).toHaveBeenCalledWith({
       agentCard: 'https://agent.example.com/agent.json',
+      auth: undefined,
       onMessage,
       onConnectionChange
     });
+  });
+
+  it('should show new session button when connected', () => {
+    render(<ChatWindow {...defaultProps} />);
+    
+    expect(screen.getByText('New Session')).toBeInTheDocument();
+    expect(screen.getByTitle('Start new session')).toBeInTheDocument();
+  });
+
+  it('should call clearSession when new session button is clicked', async () => {
+    const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
+    const mockClearSession = vi.fn();
+    
+    useChatConnection.mockReturnValue({
+      isConnected: true,
+      agentName: 'Test Agent',
+      sendMessage: mockSendMessage,
+      clearSession: mockClearSession
+    });
+
+    render(<ChatWindow {...defaultProps} />);
+    
+    const newSessionButton = screen.getByText('New Session');
+    newSessionButton.click();
+    
+    expect(mockClearSession).toHaveBeenCalled();
+  });
+
+  it('should not show new session button when not connected', async () => {
+    const { useChatConnection } = vi.mocked(await import('../../hooks/useChatConnection'));
+    
+    useChatConnection.mockReturnValue({
+      isConnected: false,
+      agentName: 'Test Agent',
+      sendMessage: mockSendMessage,
+      clearSession: vi.fn()
+    });
+
+    render(<ChatWindow {...defaultProps} />);
+    
+    expect(screen.queryByText('New Session')).not.toBeInTheDocument();
+  });
+
+  it('should show header when connected even without logo', () => {
+    const props = {
+      ...defaultProps,
+      theme: {
+        branding: {
+          logoPosition: 'footer' as const
+        }
+      }
+    };
+
+    render(<ChatWindow {...props} />);
+    
+    // Should show header because user is connected (for new session button)
+    expect(screen.getByText('New Session')).toBeInTheDocument();
+    // Logo should be in footer
+    const logos = screen.getAllByTestId('company-logo');
+    expect(logos).toHaveLength(1);
+    expect(logos[0].parentElement?.className).toContain('footer');
   });
 });

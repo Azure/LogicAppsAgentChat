@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ChatWindow } from '../src/components/ChatWindow';
 import { useChatStore } from '../src/store/chatStore';
 import type { ChatTheme } from '../src/types';
-import type { AgentCard } from '../src/a2aclient/types';
+import type { AgentCard } from 'a2a-browser-sdk';
 import '../src/styles/base.css';
 
 // Theme presets
@@ -138,6 +138,10 @@ function DemoApp({ agentCard }: DemoAppProps) {
   return (
     <ChatWindow
       agentCard={agentCard}
+      auth={{
+        type: 'bearer',
+        token: 'test-token'
+      }}
       theme={themes[currentTheme]}
       onConnectionChange={handleConnectionChange}
       welcomeMessage="Hello! I'm ready to assist you. How can I help today?"
@@ -330,6 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Pass the agent card URL and let A2AClient fetch it
       mountChat(agentCardParam);
     }
+  }
+
+  // Set default agent card for testing
+  if (!agentCardParam && agentCardUrlInput) {
+    agentCardUrlInput.value = 'localhost:41242';
   }
 
   // Handle postMessage for embedded iframe mode

@@ -13,6 +13,7 @@ export interface ChatWindowProps extends ChatWidgetProps {
 export function ChatWindow(props: ChatWindowProps) {
   const {
     agentCard,
+    auth,
     theme,
     placeholder,
     welcomeMessage,
@@ -24,8 +25,9 @@ export function ChatWindow(props: ChatWindowProps) {
   } = props;
 
   const chatTheme = useTheme(theme);
-  const { isConnected, agentName, sendMessage } = useChatConnection({
+  const { isConnected, agentName, sendMessage, clearSession } = useChatConnection({
     agentCard,
+    auth,
     onMessage,
     onConnectionChange
   });
@@ -33,11 +35,29 @@ export function ChatWindow(props: ChatWindowProps) {
   const showHeaderLogo = chatTheme.branding?.logoPosition === 'header';
   const showFooterLogo = chatTheme.branding?.logoPosition === 'footer';
 
+  const handleClearSession = () => {
+    if (clearSession) {
+      clearSession();
+    }
+  };
+
   return (
     <div className={`${styles.chatWindow} chat-widget-container`}>
-      {showHeaderLogo && (
+      {(showHeaderLogo || isConnected) && (
         <div className={styles.header}>
-          <CompanyLogo />
+          {showHeaderLogo && <CompanyLogo />}
+          {isConnected && (
+            <div className={styles.headerActions}>
+              <button 
+                className={styles.clearButton}
+                onClick={handleClearSession}
+                disabled={!isConnected}
+                title="Start new session"
+              >
+                New Session
+              </button>
+            </div>
+          )}
         </div>
       )}
 

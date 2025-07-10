@@ -11,7 +11,10 @@ A lightweight, customizable chat interface library that can be distributed via N
 - 📎 **File uploads**: Built-in file attachment support with progress tracking
 - 🏢 **Company branding**: Add your logo to the chat interface
 - ⚛️ **React 18+ compatible**: Works seamlessly with modern React applications
-- 🤖 **A2A Protocol Support**: Built-in integration with A2A-compliant agents
+- 🤖 **A2A Browser SDK**: Built on the official A2A Browser SDK
+- 🔐 **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth
+- 🌊 **Real-time Streaming**: Server-Sent Events for real-time agent responses
+- 🔍 **Agent Discovery**: Automatic agent card resolution from domain names
 - ✅ **TypeScript**: Full type safety and IntelliSense support
 - 🧪 **Well tested**: Comprehensive test suite with Vitest
 - 🔄 **CI/CD**: Automated testing and builds with GitHub Actions
@@ -34,7 +37,11 @@ import '@microsoft/a2achat/styles.css';
 function App() {
   return (
     <ChatWindow
-      agentCard="https://my-a2a-agent.example.com/agent.json"  // URL to agent card
+      agentCard="https://my-a2a-agent.example.com"  // Agent domain
+      auth={{
+        type: 'bearer',
+        token: 'your-api-token'
+      }}
       theme={{
         colors: {
           primary: '#0066cc',
@@ -53,6 +60,50 @@ function App() {
       allowedFileTypes={['image/*', 'application/pdf', '.doc', '.docx']}
       onMessage={(message) => console.log('New message:', message)}
       onConnectionChange={(connected) => console.log('Connected:', connected)}
+    />
+  );
+}
+```
+
+#### With Different Authentication Methods
+
+```tsx
+import { ChatWindow, AuthConfig } from '@microsoft/a2achat';
+
+// Bearer token authentication
+const bearerAuth: AuthConfig = {
+  type: 'bearer',
+  token: 'your-bearer-token'
+};
+
+// API Key authentication
+const apiKeyAuth: AuthConfig = {
+  type: 'api-key',
+  key: 'your-api-key',
+  header: 'X-API-Key' // optional, defaults to 'X-API-Key'
+};
+
+// OAuth2 authentication
+const oauth2Auth: AuthConfig = {
+  type: 'oauth2',
+  accessToken: 'your-access-token'
+};
+
+// Custom authentication
+const customAuth: AuthConfig = {
+  type: 'custom',
+  handler: async (request) => {
+    const token = await getTokenFromYourAuthService();
+    request.headers.set('Authorization', `Custom ${token}`);
+    return request;
+  }
+};
+
+function App() {
+  return (
+    <ChatWindow
+      agentCard="https://my-a2a-agent.example.com"
+      auth={bearerAuth} // Use any of the auth configurations above
     />
   );
 }
@@ -257,7 +308,8 @@ interface ChatTheme {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `agentCard` | `string \| AgentCard` | Agent card URL or object (required) |
+| `agentCard` | `string \| AgentCard` | Agent domain or agent card object (required) |
+| `auth` | `AuthConfig` | Authentication configuration |
 | `theme` | `Partial<ChatTheme>` | Custom theme configuration |
 | `userId` | `string` | User identifier |
 | `metadata` | `Record<string, any>` | Additional metadata |
@@ -269,22 +321,27 @@ interface ChatTheme {
 | `onMessage` | `(message: Message) => void` | Message callback |
 | `onConnectionChange` | `(connected: boolean) => void` | Connection status callback |
 
-## A2A Protocol Support
+## A2A Browser SDK Integration
 
-This library includes built-in support for the A2A (Agent-to-Agent) protocol, enabling seamless integration with AI agents. When using an A2A agent:
+This library is built on the official [A2A Browser SDK](https://www.npmjs.com/package/a2a-browser-sdk), providing:
 
-- **Streaming Support**: Real-time message streaming with Server-Sent Events (SSE)
-- **Task Management**: Track and manage long-running tasks
-- **Artifact Support**: Handle code snippets and structured data from agents
-- **Status Updates**: Real-time progress updates for agent operations
+- **Agent Discovery**: Automatic agent card resolution from domain names
+- **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth methods
+- **Real-time Streaming**: Server-Sent Events for instant agent responses
+- **Task Management**: Automatic task and context management
+- **Error Handling**: Comprehensive error handling and recovery
 
 ### Using with A2A Agents
 
 ```tsx
-// Using agent card URL
+// Using agent domain (recommended)
 <ChatWindow
-  agentCard="https://my-a2a-agent.example.com/agent.json"
-  // The library automatically fetches the agent card,
+  agentCard="https://my-a2a-agent.example.com"
+  auth={{
+    type: 'bearer',
+    token: 'your-api-token'
+  }}
+  // The library automatically discovers the agent card,
   // detects capabilities, and enables streaming if supported
 />
 
@@ -295,7 +352,46 @@ This library includes built-in support for the A2A (Agent-to-Agent) protocol, en
     url: "https://agent.example.com/rpc",
     capabilities: { streaming: true }
   }}
+  auth={{
+    type: 'api-key',
+    key: 'your-api-key'
+  }}
 />
+```
+
+### Authentication Methods
+
+The library supports all A2A Browser SDK authentication methods:
+
+```tsx
+// Bearer token
+const bearerAuth = {
+  type: 'bearer',
+  token: 'your-bearer-token'
+};
+
+// API Key
+const apiKeyAuth = {
+  type: 'api-key',
+  key: 'your-api-key',
+  header: 'X-API-Key' // optional
+};
+
+// OAuth2
+const oauth2Auth = {
+  type: 'oauth2',
+  accessToken: 'your-access-token'
+};
+
+// Custom authentication
+const customAuth = {
+  type: 'custom',
+  handler: async (request) => {
+    // Add custom headers
+    request.headers.set('Authorization', `Custom ${await getToken()}`);
+    return request;
+  }
+};
 ```
 
 ## Bundle Size

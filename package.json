@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@types/prismjs": "^1.26.5",
+    "a2a-browser-sdk": "^0.1.0",
     "marked": "^12.0.0",
     "marked-highlight": "^2.2.1",
     "prismjs": "^1.30.0",
