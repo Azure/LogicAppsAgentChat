@@ -254,7 +254,8 @@
   position: relative;
 }
 
-.streaming .markdownContent::after {
+/* Streaming cursor removed as it doesn't provide useful information */
+/* .streaming .markdownContent::after {
   content: '';
   display: inline-block;
   width: 3px;
@@ -266,7 +267,6 @@
   opacity: 0.7;
 }
 
-/* More subtle blink animation */
 @keyframes blink {
   0%,
   45% {
@@ -276,7 +276,7 @@
   100% {
     opacity: 0;
   }
-}
+} */
 
 /* Prevent message bubble from animating during streaming */
 .messageWrapper.streaming {

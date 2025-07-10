@@ -65,7 +65,9 @@ export function useA2ANative({
         });
       }, 100);
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
   }, [isLoading, onTypingChange, onUpdateMessage]);
 
@@ -106,13 +108,6 @@ export function useA2ANative({
         return;
       }
 
-      console.log('DEBUG: Processing SDK message:', {
-        id: sdkMessage.id,
-        role: sdkMessage.role,
-        contentPreview: sdkMessage.content.substring(0, 50),
-        isStreaming: sdkMessage.isStreaming,
-      });
-
       // Mark as processed
       processedMessageIds.current.add(sdkMessage.id);
 
@@ -132,13 +127,6 @@ export function useA2ANative({
         if (isFromUI) {
           sentMessageContents.current.delete(sdkMessage.content);
         }
-
-        console.log('DEBUG: User message processing:', {
-          messageId: sdkMessage.id,
-          content: sdkMessage.content.substring(0, 50),
-          isFromUI,
-          shouldAddToUI,
-        });
       }
 
       if (shouldAddToUI) {
@@ -155,12 +143,6 @@ export function useA2ANative({
 
         // Map SDK message ID to internal message ID
         messageIdMap.current.set(sdkMessage.id, internalMessage.id);
-
-        console.log('DEBUG: Adding message to UI:', {
-          sender: internalMessage.sender,
-          id: internalMessage.id,
-          isFromPersistence: !sdkMessage.isStreaming && sdkMessage.role === 'user',
-        });
 
         onMessage?.(internalMessage);
       }
@@ -242,8 +224,6 @@ export function useA2ANative({
       try {
         // Mark this content as sent from UI
         sentMessageContents.current.add(content);
-        console.log('DEBUG: Marked message content as sent from UI:', content.substring(0, 50));
-
         await sdkSendMessage(content);
       } catch (error) {
         console.error('Error sending message:', error);

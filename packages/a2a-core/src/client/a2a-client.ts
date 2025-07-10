@@ -230,11 +230,6 @@ export class A2AClient {
                     try {
                       // Parse JSON-RPC response from SSE data
                       const jsonRpcData = message.data as any;
-                      console.log(
-                        'DEBUG: Raw SSE message data:',
-                        JSON.stringify(jsonRpcData, null, 2)
-                      );
-
                       // Check if it's a JSON-RPC error
                       if (jsonRpcData.error) {
                         errorOccurred = new Error(
