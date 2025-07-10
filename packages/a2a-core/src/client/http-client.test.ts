@@ -139,7 +139,7 @@ describe('HttpClient', () => {
         json: async () => ({ deleted: true })
       } as Response);
 
-      const result = await client.delete('/resource/123');
+      await client.delete('/resource/123');
 
       expect(mockFetch).toHaveBeenCalled();
       const [request] = mockFetch.mock.calls[0] as [Request];
