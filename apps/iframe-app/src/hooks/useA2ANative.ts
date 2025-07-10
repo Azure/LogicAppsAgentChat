@@ -24,7 +24,6 @@ export function useA2ANative({
 }: UseA2ANativeProps) {
   const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
-  const isRehydrating = useRef<boolean>(true);
   const messageIdMap = useRef<Map<string, string>>(new Map()); // Map SDK message IDs to internal message IDs
 
   const {
@@ -57,7 +56,7 @@ export function useA2ANative({
   useEffect(() => {
     if (messages.length === 0) return;
 
-    // Process all messages that haven't been processed yet
+    // Process all messages
     messages.forEach((sdkMessage) => {
       // Check if this is a streaming update for an existing message
       const existingInternalId = messageIdMap.current.get(sdkMessage.id);
@@ -89,14 +88,42 @@ export function useA2ANative({
         return;
       }
 
+      console.log('DEBUG: Processing SDK message:', {
+        id: sdkMessage.id,
+        role: sdkMessage.role,
+        contentPreview: sdkMessage.content.substring(0, 50),
+        isStreaming: sdkMessage.isStreaming,
+      });
+
       // Mark as processed
       processedMessageIds.current.add(sdkMessage.id);
 
-      // During rehydration, process all messages (user + assistant)
-      // During normal operation, only process assistant messages (user messages handled by UI)
-      const shouldProcessMessage = sdkMessage.role === 'assistant' || isRehydrating.current;
+      // Decide whether to add this message to UI
+      let shouldAddToUI = false;
 
-      if (shouldProcessMessage) {
+      if (sdkMessage.role === 'assistant') {
+        // Always add assistant messages
+        shouldAddToUI = true;
+      } else if (sdkMessage.role === 'user') {
+        // Check if this user message content was sent from our UI
+        const isFromUI = sentMessageContents.current.has(sdkMessage.content);
+        // Only add user messages that we didn't send from the UI (i.e., loaded from persistence)
+        shouldAddToUI = !isFromUI;
+
+        // If it's from UI, remove it from tracking after processing
+        if (isFromUI) {
+          sentMessageContents.current.delete(sdkMessage.content);
+        }
+
+        console.log('DEBUG: User message processing:', {
+          messageId: sdkMessage.id,
+          content: sdkMessage.content.substring(0, 50),
+          isFromUI,
+          shouldAddToUI,
+        });
+      }
+
+      if (shouldAddToUI) {
         const internalMessage = createMessage(
           sdkMessage.content,
           sdkMessage.role === 'user' ? 'user' : 'assistant'
@@ -111,14 +138,15 @@ export function useA2ANative({
         // Map SDK message ID to internal message ID
         messageIdMap.current.set(sdkMessage.id, internalMessage.id);
 
+        console.log('DEBUG: Adding message to UI:', {
+          sender: internalMessage.sender,
+          id: internalMessage.id,
+          isFromPersistence: !sdkMessage.isStreaming && sdkMessage.role === 'user',
+        });
+
         onMessage?.(internalMessage);
       }
     });
-
-    // After processing initial messages, mark rehydration as complete
-    if (isRehydrating.current && messages.length > 0) {
-      isRehydrating.current = false;
-    }
   }, [messages, onMessage, onUpdateMessage]);
 
   // Clear processed messages when disconnecting
@@ -126,7 +154,7 @@ export function useA2ANative({
     if (!isConnected) {
       processedMessageIds.current.clear();
       messageIdMap.current.clear();
-      isRehydrating.current = true; // Reset rehydration flag for next connection
+      sentMessageContents.current.clear();
     }
   }, [isConnected]);
 
@@ -184,6 +212,9 @@ export function useA2ANative({
     connectToAgent();
   }, [agentCard, auth, initialized, isConnected, connect]);
 
+  // Track the content of messages we're sending to identify them later
+  const sentMessageContents = useRef<Set<string>>(new Set());
+
   const sendMessage = useCallback(
     async (content: string, _messageId: string): Promise<void> => {
       if (!isConnected) {
@@ -191,6 +222,10 @@ export function useA2ANative({
       }
 
       try {
+        // Mark this content as sent from UI
+        sentMessageContents.current.add(content);
+        console.log('DEBUG: Marked message content as sent from UI:', content.substring(0, 50));
+
         await sdkSendMessage(content);
       } catch (error) {
         console.error('Error sending message:', error);
@@ -206,6 +241,7 @@ export function useA2ANative({
     // Clear processed message IDs
     processedMessageIds.current.clear();
     messageIdMap.current.clear();
+    sentMessageContents.current.clear();
   }, [clearMessages]);
 
   return {
