@@ -237,7 +237,6 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
       },
     };
 
-    
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
 
