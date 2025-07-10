@@ -9,8 +9,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "preview": "turbo run preview",
     "clean": "turbo run clean",
     "changeset": "changeset",
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
     "@vitejs/plugin-react": "^4.6.0",
+    "prettier": "^3.6.2",
     "turbo": "^2.5.4",
     "typescript": "^5.3.3",
     "vite": "^7.0.3"

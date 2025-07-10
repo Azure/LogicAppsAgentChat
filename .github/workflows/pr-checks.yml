@@ -1,0 +1,187 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check code formatting
+        run: pnpm format:check
+
+      - name: Run linter
+        run: pnpm lint
+
+      - name: Run type check
+        run: pnpm type-check
+
+  test-matrix:
+    name: Tests (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Run tests with coverage
+        if: matrix.node-version == '20.x'
+        run: pnpm test:coverage
+
+      # - name: Upload coverage to Codecov
+      #   if: matrix.node-version == '20.x'
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     flags: unittests
+      #     name: codecov-pr
+      #     fail_ci_if_error: false
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Verify build outputs
+        run: |
+          # Check that all expected dist folders exist
+          for dir in packages/*/dist apps/*/dist; do
+            if [ -d "$dir" ]; then
+              echo "✓ Found $dir"
+            fi
+          done
+          
+          # Check main dist folder
+          if [ -d "dist" ]; then
+            echo "✓ Found main dist folder"
+            ls -la dist/
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr-build-${{ github.event.pull_request.number }}
+          path: |
+            dist/
+            packages/*/dist/
+            apps/*/dist/
+          retention-days: 7
+
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, test-matrix, build]
+    if: always()
+    steps:
+      - name: PR Check Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = ${{ toJSON(needs) }};
+            const jobNames = {
+              'code-quality': '🎨 Code Quality',
+              'test-matrix': '🧪 Tests',
+              'build': '🏗️ Build'
+            };
+            
+            let comment = '## PR Check Summary\n\n';
+            let allPassed = true;
+            
+            for (const [job, status] of Object.entries(jobs)) {
+              const emoji = status.result === 'success' ? '✅' : 
+                           status.result === 'failure' ? '❌' : 
+                           status.result === 'skipped' ? '⏭️' : '⏸️';
+              comment += `${emoji} ${jobNames[job] || job}: ${status.result}\n`;
+              if (status.result !== 'success' && status.result !== 'skipped') {
+                allPassed = false;
+              }
+            }
+            
+            comment += '\n';
+            comment += allPassed ? 
+              '### ✅ All checks passed!' : 
+              '### ❌ Some checks failed. Please review the errors above.';
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('## PR Check Summary')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

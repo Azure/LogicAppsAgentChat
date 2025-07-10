@@ -1,5 +1,9 @@
 # A2A Chat Monorepo
 
+[![CI](https://github.com/travisvu/a2achat/actions/workflows/ci.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/ci.yml)
+[![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
+[![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
+
 A framework-agnostic chat library with wrappers for React, Vue, and Svelte.
 
 ## Structure

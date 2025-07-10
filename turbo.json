@@ -14,6 +14,11 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
     "lint": {
       "outputs": []
     },
@@ -23,6 +28,9 @@
     },
     "preview": {
       "dependsOn": ["build"],
+      "cache": false
+    },
+    "clean": {
       "cache": false
     }
   }
