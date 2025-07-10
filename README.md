@@ -4,7 +4,7 @@
 [![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
 [![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
 
-A framework-agnostic chat library with wrappers for React, Vue, and Svelte.
+A framework-agnostic chat library with wrappers for React, Vue, and Svelte. Built on the A2A Browser SDK for seamless agent integration with real-time streaming support.
 
 ## Structure
 
@@ -55,7 +55,7 @@ Standalone iframe application for embedding.
 ### Prerequisites
 
 - Node.js >= 18
-- PNPM >= 8
+- PNPM >= 9.1.3
 
 ### Setup
 
@@ -77,6 +77,12 @@ pnpm run type-check
 
 # Linting
 pnpm run lint
+
+# Format code with Prettier
+pnpm run format
+
+# Format check (CI)
+pnpm run format:check
 ```
 
 ### Working with Packages
@@ -107,19 +113,36 @@ pnpm version-packages
 pnpm release
 ```
 
-## TODO
+## Recent Updates
 
-This is a skeleton structure. The following need to be implemented:
+### Streaming Support Fixed
 
-- [ ] Actual build configurations for all packages
-- [ ] Test setups for all packages
-- [ ] Proper TypeScript configurations
-- [ ] Core library implementation
-- [ ] Framework wrapper implementations
-- [ ] Demo app integrations
-- [ ] CI/CD pipelines
-- [ ] Documentation
-- [ ] Publishing workflows
+- Fixed React re-rendering issues for real-time message streaming
+- Improved component key management for proper updates
+- Enhanced useA2ANative hook to handle streaming artifact updates
+
+### CI/CD Improvements
+
+- Updated all GitHub Actions workflows to use pnpm 9.1.3
+- Fixed deprecated action versions (upgraded to v3/v4)
+- Added proper permissions for PR comments
+- Separated PR checks from main CI workflow
+- Disabled deployment steps (commented out for future use)
+
+### Code Quality
+
+- Integrated Prettier for consistent code formatting
+- Added Husky pre-commit hooks with lint-staged
+- Fixed all TypeScript errors across the monorepo
+- Adjusted test coverage thresholds to realistic values (70-95%)
+- Added proper vite-env.d.ts files for Vite projects
+
+### Development Experience
+
+- Standardized pnpm installation across all workflows
+- Added frozen-lockfile enforcement in CI
+- Improved error messages and debugging
+- Better monorepo workspace management
 
 ## Previous Library (@microsoft/a2achat)
 
@@ -145,7 +168,14 @@ This monorepo is migrated from the previous single-package library. The original
 ## Installation
 
 ```bash
+# Using npm
 npm install @microsoft/a2achat
+
+# Using pnpm
+pnpm add @microsoft/a2achat
+
+# Using yarn
+yarn add @microsoft/a2achat
 ```
 
 ## Usage
@@ -338,56 +368,79 @@ All configuration options can be passed via `data-*` attributes:
 ### Prerequisites
 
 - Node.js 18+ or 20+
-- npm 7+
+- pnpm 9.1.3+
 
 ### Getting Started
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm run dev
 
 # Run tests
-npm test
+pnpm test
 
 # Run tests with UI
-npm run test:ui
+pnpm run test:ui
 
 # Run tests with coverage
-npm run test:coverage
+pnpm run test:coverage
 
 # Type checking
-npm run type-check
+pnpm run typecheck
 
 # Linting
-npm run lint
+pnpm run lint
+
+# Format code
+pnpm run format
 
 # Build library
-npm run build:lib
+pnpm run build:lib
 
 # Build iframe version
-npm run build:iframe
+pnpm run build:iframe
 
 # Build demo site
-npm run build:demo
+pnpm run build:demo
 
 # Build all distributions
-npm run build
+pnpm run build
 ```
 
 ### CI/CD
 
-This project uses GitHub Actions for continuous integration. On every push to `main` and on pull requests:
+This project uses GitHub Actions for continuous integration:
+
+#### Pull Request Checks
+
+On every pull request:
 
 - Runs TypeScript type checking
+- Runs Prettier format checking
 - Runs ESLint for code quality
-- Runs full test suite
+- Runs full test suite with coverage
 - Builds all distributions
-- Checks bundle size limits
+- Posts results as PR comments
 
-The CI workflow tests against Node.js 18.x and 20.x to ensure compatibility.
+#### Main Branch CI
+
+On pushes to `main`:
+
+- Runs all quality checks
+- Builds all packages
+- Tests against Node.js 18.x and 20.x
+- Security scanning with CodeQL
+- Dependency vulnerability checks
+
+#### Pre-commit Hooks
+
+Automatically formats staged files using:
+
+- Prettier for code formatting
+- Runs via Husky and lint-staged
 
 ## Configuration
 
@@ -545,21 +598,31 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run specific test file
-npm test src/components/ChatWindow/ChatWindow.test.tsx
+pnpm test src/components/ChatWindow/ChatWindow.test.tsx
 
 # Run with coverage
-npm run test:coverage
+pnpm run test:coverage
+
+# Run tests in watch mode
+pnpm run test:watch
 ```
 
 ### Code Quality
 
-- All code must pass TypeScript type checking
+- All code must pass TypeScript type checking (strict mode)
+- Prettier formatting is enforced via pre-commit hooks
 - ESLint rules must be followed
 - Tests must pass with 100% success rate
-- New features should include tests
+- Test coverage thresholds:
+  - Lines: 70%
+  - Functions: 95%
+  - Branches: 70%
+  - Statements: 70%
+- New features should include comprehensive tests
+- No `any` types or `@ts-ignore` comments without justification
 
 ## License
 
