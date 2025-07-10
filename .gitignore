@@ -90,6 +90,9 @@ next-env.d.ts
 .vscode-test/
 .size-limit.json
 
+# Turbo
+.turbo/
+
 # Debug
 debug/
 *.pid

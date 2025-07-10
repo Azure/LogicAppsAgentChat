@@ -1,6 +1,118 @@
-# @microsoft/a2achat
+# A2A Chat Monorepo
 
-A lightweight, customizable chat interface library that can be distributed via NPM and embedded as an iframe.
+A framework-agnostic chat library with wrappers for React, Vue, and Svelte.
+
+## Structure
+
+```
+├── packages/
+│   ├── a2a-core/          # Framework-agnostic core library
+│   ├── a2a-react/         # React wrapper
+│   ├── a2a-vue/           # Vue wrapper
+│   └── a2a-svelte/        # Svelte wrapper
+├── apps/
+│   ├── demo-app/          # Demo application
+│   └── iframe-app/        # Iframe application
+├── turbo.json             # Turbo configuration
+├── pnpm-workspace.yaml    # PNPM workspace configuration
+└── package.json           # Root package.json
+```
+
+## Packages
+
+### [@a2achat/core](./packages/a2a-core)
+Framework-agnostic core library that provides the base chat functionality.
+
+### [@a2achat/react](./packages/a2a-react)
+React wrapper around the core library.
+
+### [@a2achat/vue](./packages/a2a-vue)
+Vue wrapper around the core library.
+
+### [@a2achat/svelte](./packages/a2a-svelte)
+Svelte wrapper around the core library.
+
+## Applications
+
+### [Demo App](./apps/demo-app)
+Interactive demo showcasing all framework wrappers.
+
+### [Iframe App](./apps/iframe-app)
+Standalone iframe application for embedding.
+
+## Development
+
+### Prerequisites
+- Node.js >= 18
+- PNPM >= 8
+
+### Setup
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm run build
+
+# Run development mode
+pnpm run dev
+
+# Run tests
+pnpm run test
+
+# Type checking
+pnpm run type-check
+
+# Linting
+pnpm run lint
+```
+
+### Working with Packages
+
+```bash
+# Build a specific package
+pnpm --filter @a2achat/core build
+
+# Run tests for a specific package
+pnpm --filter @a2achat/react test
+
+# Add a dependency to a package
+pnpm --filter @a2achat/core add some-package
+```
+
+## Deployment
+
+### Publishing Packages
+
+```bash
+# Create a changeset
+pnpm changeset
+
+# Version packages
+pnpm version-packages
+
+# Publish to npm
+pnpm release
+```
+
+## TODO
+
+This is a skeleton structure. The following need to be implemented:
+
+- [ ] Actual build configurations for all packages
+- [ ] Test setups for all packages
+- [ ] Proper TypeScript configurations
+- [ ] Core library implementation
+- [ ] Framework wrapper implementations
+- [ ] Demo app integrations
+- [ ] CI/CD pipelines
+- [ ] Documentation
+- [ ] Publishing workflows
+
+## Previous Library (@microsoft/a2achat)
+
+This monorepo is migrated from the previous single-package library. The original functionality has been preserved and will be gradually migrated to the new structure.
 
 ## Features
 
