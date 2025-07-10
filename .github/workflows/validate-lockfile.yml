@@ -1,0 +1,71 @@
+name: Validate Lockfile
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '**/package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '**/package.json'
+
+jobs:
+  validate-lockfile:
+    name: Validate pnpm-lock.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Check lockfile existence
+        id: check-lockfile
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "✅ pnpm-lock.yaml exists"
+            echo "lockfile_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ pnpm-lock.yaml is missing"
+            echo "lockfile_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate lockfile is up to date
+        if: steps.check-lockfile.outputs.lockfile_exists == 'true'
+        run: |
+          echo "Checking if lockfile is in sync with package.json files..."
+          
+          # Try to install with frozen lockfile
+          if pnpm install --frozen-lockfile --ignore-scripts; then
+            echo "✅ Lockfile is up to date"
+          else
+            echo "❌ Lockfile is out of sync with package.json files"
+            echo "Please run 'pnpm install' locally and commit the updated pnpm-lock.yaml"
+            exit 1
+          fi
+
+      - name: Generate lockfile if missing
+        if: steps.check-lockfile.outputs.lockfile_exists == 'false'
+        run: |
+          echo "Generating pnpm-lock.yaml..."
+          pnpm install --ignore-scripts
+          
+          echo "⚠️  pnpm-lock.yaml was missing and has been generated"
+          echo "Please run 'pnpm install' locally and commit the generated pnpm-lock.yaml"
+          
+          # Show what would need to be committed
+          echo "Files that need to be committed:"
+          git status --porcelain pnpm-lock.yaml
+          
+          exit 1

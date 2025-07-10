@@ -33,8 +33,22 @@ jobs:
           node-version: '20.x'
           cache: 'pnpm'
       
-      - name: Install dependencies
+      - name: Check for lockfile
+        id: check-lockfile
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "lockfile_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "lockfile_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies (with lockfile)
+        if: steps.check-lockfile.outputs.lockfile_exists == 'true'
         run: pnpm install --frozen-lockfile
+
+      - name: Install dependencies (without lockfile)
+        if: steps.check-lockfile.outputs.lockfile_exists == 'false'
+        run: pnpm install
       
       - name: Build project
         run: pnpm build
@@ -72,8 +86,22 @@ jobs:
   #         node-version: '20.x'
   #         cache: 'pnpm'
   #     
-  #     - name: Install dependencies
+  #     - name: Check for lockfile
+  #       id: check-lockfile
+  #       run: |
+  #         if [ -f "pnpm-lock.yaml" ]; then
+  #           echo "lockfile_exists=true" >> $GITHUB_OUTPUT
+  #         else
+  #           echo "lockfile_exists=false" >> $GITHUB_OUTPUT
+  #         fi
+  #
+  #     - name: Install dependencies (with lockfile)
+  #       if: steps.check-lockfile.outputs.lockfile_exists == 'true'
   #       run: pnpm install --frozen-lockfile
+  #
+  #     - name: Install dependencies (without lockfile)
+  #       if: steps.check-lockfile.outputs.lockfile_exists == 'false'
+  #       run: pnpm install
   #     
   #     - name: Build project
   #       run: pnpm build
