@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      deploy_to_azure:
+        description: 'Deploy to Azure Static Web Apps'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.12.4
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Create changeset
+        run: |
+          cat > .changeset/release-changeset.md << EOF
+          ---
+          "@microsoft/a2achat-core": ${{ github.event.inputs.release_type }}
+          "@a2achat/iframe-app": ${{ github.event.inputs.release_type }}
+          "@a2achat/demo-app": ${{ github.event.inputs.release_type }}
+          ---
+          
+          Release triggered manually via workflow dispatch
+          EOF
+
+      - name: Version packages
+        run: pnpm version-packages
+
+      - name: Create release commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: release packages [skip ci]"
+
+      - name: Publish to npm
+        run: pnpm release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push changes
+        run: git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        uses: changesets/action@v1
+        with:
+          publish: echo "Already published"
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # DEPLOYMENT - Only runs if deploy_to_azure is true
+      - name: Deploy to Azure
+        if: ${{ github.event.inputs.deploy_to_azure == 'true' }}
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "dist/demo"
+          api_location: ""
+          output_location: "dist/demo"
+          skip_app_build: true

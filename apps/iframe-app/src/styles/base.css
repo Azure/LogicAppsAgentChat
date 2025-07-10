@@ -1,0 +1,89 @@
+:root {
+  /* Default CSS Custom Properties */
+  --chat-color-primary: #0066cc;
+  --chat-color-primary-text: #ffffff;
+  --chat-color-background: #ffffff;
+  --chat-color-surface: #f5f5f5;
+  --chat-color-text: #333333;
+  --chat-color-text-secondary: #666666;
+  --chat-color-border: #e0e0e0;
+  --chat-color-error: #d32f2f;
+  --chat-color-success: #388e3c;
+
+  --chat-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --chat-font-size-small: 0.875rem;
+  --chat-font-size-base: 1rem;
+  --chat-font-size-large: 1.125rem;
+
+  --chat-spacing-unit: 8px;
+
+  --chat-radius-small: 4px;
+  --chat-radius-medium: 8px;
+  --chat-radius-large: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.chat-widget-container {
+  font-family: var(--chat-font-family);
+  font-size: var(--chat-font-size-base);
+  color: var(--chat-color-text);
+  background-color: var(--chat-color-background);
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Utility classes */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes chat-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.chat-fade-in {
+  animation: chat-fade-in 0.3s ease-out;
+}

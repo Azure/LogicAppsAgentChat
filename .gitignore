@@ -69,9 +69,6 @@ desktop.ini
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
 
 # TypeScript
 *.tsbuildinfo
@@ -89,6 +86,9 @@ next-env.d.ts
 .tern-port
 .vscode-test/
 .size-limit.json
+
+# Turbo
+.turbo/
 
 # Debug
 debug/

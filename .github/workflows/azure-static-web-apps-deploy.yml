@@ -10,10 +10,11 @@ on:
       - main
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request_target' && github.event.action != 'closed')
+  # Build job for pull requests (without deployment)
+  build_job:
+    if: github.event_name == 'pull_request_target' && github.event.action != 'closed'
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    name: Build Job (PR)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,38 +22,80 @@ jobs:
           lfs: false
           ref: ${{ github.event.pull_request.head.sha }}
       
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.12.4
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
+          cache: 'pnpm'
       
       - name: Build project
-        run: npm run build
+        run: pnpm build
       
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "dist/demo" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "dist/demo" # Built app content directory
-          skip_app_build: true # We already built the app in previous step
+          name: build-artifacts
+          path: |
+            dist/
+            apps/*/dist/
+          retention-days: 7
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: "close"
+  # DEPLOYMENT DISABLED - Uncomment the jobs below to re-enable deployment
+  
+  # build_and_deploy_job:
+  #   if: github.event_name == 'push' || (github.event_name == 'pull_request_target' && github.event.action != 'closed')
+  #   runs-on: ubuntu-latest
+  #   name: Build and Deploy Job
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: true
+  #         lfs: false
+  #         ref: ${{ github.event.pull_request.head.sha }}
+  #     
+  #     - uses: pnpm/action-setup@v3
+  #       with:
+  #         version: 10.12.4
+  #         run_install: |
+  #           - recursive: true
+  #             args: [--frozen-lockfile, --strict-peer-dependencies]
+  #     
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20.x'
+  #         cache: 'pnpm'
+  #     
+  #     - name: Build project
+  #       run: pnpm build
+  #     
+  #     - name: Build And Deploy
+  #       id: builddeploy
+  #       uses: Azure/static-web-apps-deploy@v1
+  #       with:
+  #         azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         action: "upload"
+  #         app_location: "dist/demo" # App source code path
+  #         api_location: "" # Api source code path - optional
+  #         output_location: "dist/demo" # Built app content directory
+  #         skip_app_build: true # We already built the app in previous step
+
+  # close_pull_request_job:
+  #   if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+  #   runs-on: ubuntu-latest
+  #   name: Close Pull Request Job
+  #   steps:
+  #     - name: Close Pull Request
+  #       id: closepullrequest
+  #       uses: Azure/static-web-apps-deploy@v1
+  #       with:
+  #         azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+  #         action: "close"

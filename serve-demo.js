@@ -17,7 +17,7 @@ const MIME_TYPES = {
   '.jpg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
 };
 
 const PORT = process.env.PORT || 3000;
@@ -28,16 +28,16 @@ const server = createServer(async (req, res) => {
     // Parse URL and ignore query parameters
     const url = new URL(req.url, `http://localhost:${PORT}`);
     let pathname = url.pathname;
-    
+
     // Handle root and /demo/ routes
     if (pathname === '/') {
       pathname = '/demo/index-landing.html';
     } else if (pathname === '/demo' || pathname === '/demo/') {
       pathname = '/demo/index.html';
     }
-    
+
     let filePath = join(DEMO_DIR, pathname);
-    
+
     // Handle routes without extensions
     if (!extname(filePath) && !pathname.endsWith('/')) {
       filePath += '.html';
