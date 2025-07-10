@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { A2AClient } from '../client/a2a-client';
-import type { AgentCard, Message as A2AMessage, Part as A2APart } from '../types';
+import type { AgentCard, Part as A2APart } from '../types';
 import type { AuthConfig } from '../client/types';
 
 export interface ChatMessage {
@@ -117,16 +117,27 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       setIsLoading(true);
       setError(undefined);
 
-      // Add user message
+      // Add user message with unique ID
+      const userMessageId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
+        id: userMessageId,
         role: 'user',
         content,
         timestamp: new Date(),
       };
 
+      console.log('DEBUG: Adding user message:', {
+        id: userMessageId,
+        content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+      });
+
       setMessages((prev) => {
         const newMessages = [...prev, userMessage];
+
+        console.log('DEBUG: Messages after adding user message:', {
+          total: newMessages.length,
+          lastMessage: newMessages[newMessages.length - 1],
+        });
 
         // Persist messages immediately when user message is added
         if (options.persistSession && options.sessionKey) {
@@ -174,15 +185,14 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             }
           }
 
-          // Process assistant messages
+          // Process messages from the task
           if (task.messages && task.messages.length > 0) {
-            const assistantMessages = task.messages.filter(
-              (m: A2AMessage) => m.role === 'assistant'
-            );
+            // Process all messages but check for duplicates
+            for (let i = 0; i < task.messages.length; i++) {
+              const message = task.messages[i];
+              if (!message) continue; // Skip if message is undefined
 
-            for (let i = 0; i < assistantMessages.length; i++) {
-              const message = assistantMessages[i];
-              const contentParts = message?.content || [];
+              const contentParts = message.content || [];
 
               const textContent = contentParts
                 .filter((part: A2APart) => part.type === 'text')
@@ -191,11 +201,12 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
               if (textContent) {
                 // Each message should be its own separate UI message
-                const messageId = `assistant-${task.id}-${i}`;
+                const messageId = `${message.role}-${task.id}-${i}`;
                 const isStreaming = task.state === 'running' || task.state === 'pending';
 
                 console.log('DEBUG: Processing message update:', {
                   messageId,
+                  role: message.role,
                   taskId: task.id,
                   taskState: task.state,
                   isStreaming,
@@ -205,6 +216,16 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                 });
 
                 setMessages((prev) => {
+                  // Skip if this is a user message that we already have
+                  if (message.role === 'user') {
+                    const isDuplicate = prev.some(
+                      (msg) => msg.role === 'user' && msg.content === textContent
+                    );
+                    if (isDuplicate) {
+                      console.log('DEBUG: Skipping duplicate user message:', textContent);
+                      return prev; // Return unchanged messages
+                    }
+                  }
                   // Check if this specific message already exists
                   const existingIndex = prev.findIndex((msg) => msg.id === messageId);
 
@@ -255,7 +276,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                     const chatMessage: ChatMessage = {
                       id: messageId,
-                      role: 'assistant',
+                      role: message.role === 'assistant' ? 'assistant' : 'user',
                       content: textContent,
                       timestamp: new Date(),
                       isStreaming,

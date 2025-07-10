@@ -65,6 +65,12 @@ export function useChatConnection({
   const sendMessage = useCallback(
     async (content: string, attachments?: Attachment[]) => {
       const message = createMessage(content, 'user', attachments);
+
+      console.log('DEBUG: useChatConnection - Adding user message to store:', {
+        id: message.id,
+        content: content.substring(0, 50),
+      });
+
       addMessage(message);
 
       try {
