@@ -94,21 +94,21 @@ class DataTransferPolyfill implements DataTransfer {
     });
   }
 
-  clearData(format?: string): void {
-    if (!format) {
+  clearData(_format?: string): void {
+    if (!_format) {
       this.items.clear();
     }
   }
 
-  getData(format: string): string {
+  getData(_format: string): string {
     return '';
   }
 
-  setData(format: string, data: string): void {
+  setData(_format: string, _data: string): void {
     // Not implemented
   }
 
-  setDragImage(image: Element, x: number, y: number): void {
+  setDragImage(_image: Element, _x: number, _y: number): void {
     // Not implemented
   }
 }
