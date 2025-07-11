@@ -1,0 +1,82 @@
+import type { AgentCard } from '../../types';
+import type { AuthConfig } from '../../client/types';
+
+// Re-export types from main module
+export type { AgentCard, AuthConfig };
+
+// Define and export message roles and statuses
+export type MessageRole = 'user' | 'assistant';
+export type MessageStatus = 'sending' | 'sent' | 'error';
+export type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: MessageRole;
+  timestamp: Date;
+  status?: MessageStatus;
+  metadata?: Record<string, any>;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
+  status: AttachmentStatus;
+}
+
+export interface ChatTheme {
+  colors: {
+    primary: string;
+    primaryText: string;
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    border: string;
+    error: string;
+    success: string;
+  };
+  typography: {
+    fontFamily: string;
+    fontSize: {
+      small: string;
+      base: string;
+      large: string;
+    };
+  };
+  spacing: {
+    unit: number;
+  };
+  borderRadius: {
+    small: string;
+    medium: string;
+    large: string;
+  };
+  branding?: Branding;
+}
+
+export interface Branding {
+  logoUrl?: string;
+  logoSize?: 'small' | 'medium' | 'large';
+  logoPosition?: 'header' | 'footer';
+  name?: string;
+}
+
+export interface ChatWidgetProps {
+  agentCard: string | AgentCard;
+  auth?: AuthConfig;
+  theme?: Partial<ChatTheme>;
+  onMessage?: (message: Message) => void;
+  onConnectionChange?: (connected: boolean) => void;
+  userId?: string;
+  metadata?: Record<string, any>;
+  placeholder?: string;
+  welcomeMessage?: string;
+  allowFileUpload?: boolean;
+  maxFileSize?: number; // in bytes
+  allowedFileTypes?: string[];
+}

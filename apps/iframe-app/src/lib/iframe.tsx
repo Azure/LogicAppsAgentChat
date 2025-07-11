@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect } from 'react';
-import { ChatWindow } from '../components/ChatWindow';
-import type { ChatWidgetProps, ChatTheme } from '../types';
+import { ChatWidget, type ChatWidgetProps, type ChatTheme } from '@microsoft/a2achat-core/react';
+import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
 // Parse configuration from data attributes or URL parameters
@@ -254,7 +254,7 @@ function IframeWrapper(props: ChatWidgetProps) {
 
   // If we received an agent card via postMessage, use that instead
   const finalProps = agentCard ? { ...props, agentCard } : props;
-  return <ChatWindow {...finalProps} />;
+  return <ChatWidget {...finalProps} />;
 }
 
 // Initialize the widget
