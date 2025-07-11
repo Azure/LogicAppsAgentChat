@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { A2AClient } from '../client/a2a-client';
 import type { AgentCard, Part as A2APart } from '../types';
-import type { AuthConfig } from '../client/types';
+import type { AuthConfig, AuthRequiredHandler } from '../client/types';
 
 export interface ChatMessage {
   id: string;
@@ -19,6 +19,7 @@ export interface UseA2AOptions {
   auth?: AuthConfig;
   persistSession?: boolean;
   sessionKey?: string;
+  onAuthRequired?: AuthRequiredHandler;
 }
 
 export interface UseA2AReturn {
@@ -35,6 +36,7 @@ export interface UseA2AReturn {
   disconnect: () => void;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
+  sendAuthenticationCompleted: () => Promise<void>;
 }
 
 export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
@@ -63,6 +65,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         if (options.auth) {
           clientConfig.auth = options.auth;
+        }
+
+        if (options.onAuthRequired) {
+          clientConfig.onAuthRequired = options.onAuthRequired;
         }
 
         clientRef.current = new A2AClient(clientConfig);
@@ -413,6 +419,23 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     }
   }, [options.persistSession, options.sessionKey]);
 
+  const sendAuthenticationCompleted = useCallback(async () => {
+    if (!clientRef.current) {
+      throw new Error('Client not connected');
+    }
+
+    if (!contextIdRef.current) {
+      throw new Error('No context ID available for authentication');
+    }
+
+    try {
+      await clientRef.current.sendAuthenticationCompleted(contextIdRef.current);
+    } catch (error) {
+      setError(error as Error);
+      throw error;
+    }
+  }, []);
+
   return {
     isConnected,
     isLoading,
@@ -424,5 +447,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     disconnect,
     sendMessage,
     clearMessages,
+    sendAuthenticationCompleted,
   };
 }

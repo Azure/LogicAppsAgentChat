@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useA2A } from '../use-a2a';
 import { AgentDiscovery } from '../../discovery/agent-discovery';
 import type { AgentCard } from '../../types';
-import type { AuthConfig } from '../../client/types';
+import type { AuthConfig, AuthRequiredHandler, AuthRequiredEvent } from '../../client/types';
 import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
@@ -12,6 +12,7 @@ interface UseChatWidgetProps {
   auth?: AuthConfig;
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;
+  onAuthRequired?: AuthRequiredHandler;
 }
 
 export function useChatWidget({
@@ -19,6 +20,7 @@ export function useChatWidget({
   auth,
   onMessage,
   onConnectionChange,
+  onAuthRequired,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -30,8 +32,17 @@ export function useChatWidget({
     updateMessage,
     setConnected,
     setTyping,
+    setAuthRequired,
     clearMessages: clearLocalMessages,
   } = useChatStore();
+
+  // Default auth handler that sets the auth state in the store
+  const defaultAuthHandler = useCallback(
+    (event: AuthRequiredEvent) => {
+      setAuthRequired(event);
+    },
+    [setAuthRequired]
+  );
 
   const {
     isConnected,
@@ -43,16 +54,19 @@ export function useChatWidget({
     disconnect,
     sendMessage: sdkSendMessage,
     clearMessages,
+    sendAuthenticationCompleted,
   } = useA2A(
     auth
       ? {
           auth,
           persistSession: true,
           sessionKey: 'a2a-chat-session',
+          onAuthRequired: onAuthRequired || defaultAuthHandler,
         }
       : {
           persistSession: true,
           sessionKey: 'a2a-chat-session',
+          onAuthRequired: onAuthRequired || defaultAuthHandler,
         }
   );
 
@@ -222,6 +236,15 @@ export function useChatWidget({
     sentMessageContents.current.clear();
   }, [clearMessages, clearLocalMessages]);
 
+  const handleAuthCompleted = useCallback(async () => {
+    try {
+      await sendAuthenticationCompleted();
+      setAuthRequired(null); // Clear auth state after completion
+    } catch (error) {
+      console.error('Failed to send authentication completed:', error);
+    }
+  }, [sendAuthenticationCompleted, setAuthRequired]);
+
   return {
     sendMessage,
     isConnected,
@@ -230,5 +253,7 @@ export function useChatWidget({
     contextId,
     disconnect,
     clearSession,
+    sendAuthenticationCompleted,
+    handleAuthCompleted,
   };
 }

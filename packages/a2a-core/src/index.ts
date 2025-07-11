@@ -18,6 +18,9 @@ export * from './session';
 // Export plugins
 export * from './plugins';
 
+// Export utils
+export * from './utils/popup-window';
+
 // Re-export commonly used items at top level for convenience
 export { A2AClient } from './client/a2a-client';
 export { AgentDiscovery } from './discovery/agent-discovery';

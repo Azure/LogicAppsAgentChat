@@ -28,3 +28,22 @@ export interface HttpClientOptions {
   retries?: number;
   retryDelay?: number;
 }
+
+// Authentication Required Event
+export interface AuthRequiredPart {
+  consentLink: string;
+  status: string;
+  serviceName?: string;
+  serviceIcon?: string;
+  description?: string;
+}
+
+export interface AuthRequiredEvent {
+  taskId: string;
+  contextId: string;
+  authParts: AuthRequiredPart[];
+  messageType: string;
+}
+
+// Authentication Handler
+export type AuthRequiredHandler = (event: AuthRequiredEvent) => Promise<void> | void;

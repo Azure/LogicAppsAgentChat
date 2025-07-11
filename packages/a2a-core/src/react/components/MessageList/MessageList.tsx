@@ -1,20 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { Message } from '../Message';
 import { TypingIndicator } from '../TypingIndicator';
+import { AuthenticationRequired } from '../AuthenticationRequired';
 import { useChatStore } from '../../store/chatStore';
 
 interface MessageListProps {
   welcomeMessage?: string;
   agentName?: string;
   userName?: string;
+  onAuthCompleted?: () => void;
 }
 
 export function MessageList({
   welcomeMessage,
   agentName = 'Agent',
   userName = 'You',
+  onAuthCompleted,
 }: MessageListProps) {
-  const { messages, isTyping } = useChatStore();
+  const { messages, isTyping, authRequired } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(true);
   const lastMessageContent = useRef<string>('');
@@ -63,6 +66,13 @@ export function MessageList({
       {messages.map((message) => (
         <Message key={message.id} message={message} agentName={agentName} userName={userName} />
       ))}
+
+      {authRequired && onAuthCompleted && (
+        <AuthenticationRequired
+          authParts={authRequired.authParts}
+          onAllAuthenticated={onAuthCompleted}
+        />
+      )}
 
       {isTyping && <TypingIndicator agentName={agentName} />}
     </div>

@@ -989,3 +989,236 @@
 .large .logo {
   height: 48px;
 }
+/* Authentication Required Component Styles */
+
+.a2a-auth-required {
+  padding: 20px;
+  background: var(--a2a-surface, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin: 16px 0;
+  animation: a2a-fade-in 0.3s ease-out;
+}
+
+.a2a-auth-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.a2a-auth-icon {
+  color: var(--a2a-primary, #0066cc);
+}
+
+.a2a-auth-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--a2a-text-primary, #1a1a1a);
+}
+
+.a2a-auth-description {
+  margin: 0 0 20px 0;
+  color: var(--a2a-text-secondary, #666666);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Progress Bar */
+.a2a-auth-progress {
+  margin-bottom: 24px;
+}
+
+.a2a-auth-progress-bar {
+  height: 8px;
+  background: var(--a2a-border, #e5e5e5);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.a2a-auth-progress-fill {
+  height: 100%;
+  background: var(--a2a-primary, #0066cc);
+  border-radius: 4px;
+  transition: width 0.3s ease-out;
+}
+
+.a2a-auth-progress-text {
+  font-size: 12px;
+  color: var(--a2a-text-secondary, #666666);
+}
+
+/* Service List */
+.a2a-auth-services {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.a2a-auth-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--a2a-background, #f8f9fa);
+  border-radius: 8px;
+  border: 1px solid var(--a2a-border, #e5e5e5);
+  transition: all 0.2s ease;
+}
+
+.a2a-auth-service:hover {
+  border-color: var(--a2a-primary-light, #4d94ff);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.a2a-auth-service-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.a2a-auth-service-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.a2a-auth-service-icon-placeholder {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--a2a-surface, #ffffff);
+  border-radius: 8px;
+  color: var(--a2a-text-secondary, #666666);
+}
+
+.a2a-auth-service-details {
+  flex: 1;
+}
+
+.a2a-auth-service-details h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--a2a-text-primary, #1a1a1a);
+}
+
+.a2a-auth-service-description {
+  margin: 0;
+  font-size: 12px;
+  color: var(--a2a-text-secondary, #666666);
+}
+
+.a2a-auth-service-error {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: var(--a2a-error, #dc3545);
+}
+
+/* Authentication Button */
+.a2a-auth-service-button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--a2a-primary, #0066cc);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.a2a-auth-service-button:hover:not(:disabled) {
+  background: var(--a2a-primary-dark, #0052a3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.a2a-auth-service-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.a2a-auth-service-button-success {
+  background: var(--a2a-success, #28a745);
+}
+
+.a2a-auth-service-button-success:hover:not(:disabled) {
+  background: var(--a2a-success, #28a745);
+}
+
+.a2a-auth-service-button-loading {
+  background: var(--a2a-primary-light, #4d94ff);
+}
+
+/* Spinner */
+.a2a-auth-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: a2a-spin 0.8s linear infinite;
+}
+
+/* Success Message */
+.a2a-auth-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 16px;
+  background: var(--a2a-success-light, #d4edda);
+  color: var(--a2a-success-dark, #155724);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: a2a-fade-in 0.3s ease-out;
+}
+
+/* Cancel Button */
+.a2a-auth-cancel {
+  display: block;
+  margin: 16px auto 0;
+  padding: 8px 24px;
+  background: transparent;
+  border: 1px solid var(--a2a-border, #e5e5e5);
+  border-radius: 6px;
+  color: var(--a2a-text-secondary, #666666);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.a2a-auth-cancel:hover {
+  background: var(--a2a-background, #f8f9fa);
+  border-color: var(--a2a-text-secondary, #666666);
+}
+
+/* Animations */
+@keyframes a2a-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes a2a-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -23,7 +23,7 @@ export function ChatWindow(props: ChatWindowProps) {
     onConnectionChange,
   } = props;
 
-  const { isConnected, agentName, sendMessage, clearSession } = useChatWidget({
+  const { isConnected, agentName, sendMessage, clearSession, handleAuthCompleted } = useChatWidget({
     agentCard,
     auth,
     onMessage,
@@ -59,7 +59,11 @@ export function ChatWindow(props: ChatWindowProps) {
         </div>
       )}
 
-      <MessageList welcomeMessage={welcomeMessage} userName={agentName || 'Assistant'} />
+      <MessageList
+        welcomeMessage={welcomeMessage}
+        userName={agentName || 'Assistant'}
+        onAuthCompleted={handleAuthCompleted}
+      />
 
       {showFooterLogo && (
         <div className="footer">

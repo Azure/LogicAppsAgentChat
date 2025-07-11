@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Message, Attachment } from '../types';
+import type { AuthRequiredEvent } from '../../client/types';
 
 interface ChatState {
   messages: Message[];
   isConnected: boolean;
   isTyping: boolean;
   pendingUploads: Map<string, Attachment>;
+  authRequired: AuthRequiredEvent | null;
 
   // Actions
   addMessage: (message: Message) => void;
@@ -15,6 +17,7 @@ interface ChatState {
   setMessages: (messages: Message[]) => void;
   setConnected: (connected: boolean) => void;
   setTyping: (typing: boolean) => void;
+  setAuthRequired: (event: AuthRequiredEvent | null) => void;
 
   // File upload actions
   addPendingUpload: (attachment: Attachment) => void;
@@ -31,6 +34,7 @@ export const useChatStore = create<ChatState>()(
     isConnected: false,
     isTyping: false,
     pendingUploads: new Map(),
+    authRequired: null,
 
     addMessage: (message) =>
       set((state) => {
@@ -58,6 +62,8 @@ export const useChatStore = create<ChatState>()(
     setConnected: (connected) => set({ isConnected: connected }),
 
     setTyping: (typing) => set({ isTyping: typing }),
+
+    setAuthRequired: (event) => set({ authRequired: event }),
 
     addPendingUpload: (attachment) =>
       set((state) => {

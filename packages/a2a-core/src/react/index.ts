@@ -28,6 +28,8 @@ export type {
   AuthConfig,
 } from './types';
 
+export type { AuthRequiredEvent, AuthRequiredPart, AuthRequiredHandler } from '../client/types';
+
 // Individual components (for advanced usage)
 export { MessageList } from './components/MessageList';
 export { MessageInput } from './components/MessageInput';
@@ -35,7 +37,11 @@ export { Message as MessageComponent } from './components/Message';
 export { TypingIndicator } from './components/TypingIndicator';
 export { CompanyLogo } from './components/CompanyLogo';
 export { FileUpload } from './components/FileUpload';
+export { AuthenticationRequired } from './components/AuthenticationRequired';
+export type { AuthenticationRequiredProps } from './components/AuthenticationRequired';
 
 // Utilities (for advanced usage)
 export { generateMessageId, createMessage, formatCodeContent } from './utils/messageUtils';
 export { downloadFile, getMimeType } from './utils/downloadUtils';
+export { openPopupWindow } from '../utils/popup-window';
+export type { PopupWindowOptions, PopupWindowResult } from '../utils/popup-window';
