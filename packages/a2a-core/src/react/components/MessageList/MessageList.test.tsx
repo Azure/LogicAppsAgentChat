@@ -5,7 +5,6 @@ import { render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { MessageList } from './MessageList';
 import { useChatStore } from '../../store/chatStore';
-import styles from './MessageList.module.css';
 import type { Message as MessageType } from '../../types';
 
 // Mock dependencies
@@ -256,7 +255,7 @@ describe('MessageList', () => {
     const { container } = render(<MessageList />);
 
     const messageList = container.firstChild as HTMLElement;
-    expect(messageList).toHaveClass(styles.messageList);
+    expect(messageList).toHaveClass('messageList');
     expect(messageList).toHaveClass('chat-scrollbar');
   });
 
@@ -338,7 +337,7 @@ describe('MessageList', () => {
     render(<MessageList welcomeMessage="Welcome!" />);
 
     const welcomeDiv = screen.getByText('Welcome!');
-    expect(welcomeDiv).toHaveClass(styles.welcomeMessage);
+    expect(welcomeDiv).toHaveClass('welcomeMessage');
   });
 
   it('maintains message order', () => {
@@ -396,7 +395,7 @@ describe('MessageList', () => {
     const { container } = render(<MessageList welcomeMessage="" />);
 
     // Empty welcome message should not render
-    const welcomeDiv = container.querySelector(`.${styles.welcomeMessage}`);
+    const welcomeDiv = container.querySelector('.welcomeMessage');
     expect(welcomeDiv).not.toBeInTheDocument();
   });
 

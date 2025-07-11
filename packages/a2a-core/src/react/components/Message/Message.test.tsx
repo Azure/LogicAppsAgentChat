@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Message } from './Message';
 import type { Message as MessageType } from '../../types';
-import styles from './Message.module.css';
 
 // Mock marked modules
 vi.mock('marked', () => ({
@@ -167,10 +166,10 @@ describe('Message', () => {
     const { container } = render(<Message message={baseMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass(styles.messageWrapper);
-    expect(wrapper).toHaveClass(styles.user);
+    expect(wrapper).toHaveClass('messageWrapper');
+    expect(wrapper).toHaveClass('user');
     expect(wrapper).toHaveClass('chat-fade-in');
-    expect(wrapper).not.toHaveClass(styles.assistant);
+    expect(wrapper).not.toHaveClass('assistant');
   });
 
   it('applies correct CSS classes for assistant message', () => {
@@ -182,9 +181,9 @@ describe('Message', () => {
     const { container } = render(<Message message={assistantMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass(styles.messageWrapper);
-    expect(wrapper).toHaveClass(styles.assistant);
-    expect(wrapper).not.toHaveClass(styles.user);
+    expect(wrapper).toHaveClass('messageWrapper');
+    expect(wrapper).toHaveClass('assistant');
+    expect(wrapper).not.toHaveClass('user');
   });
 
   it('renders message tail for assistant messages', () => {
@@ -195,14 +194,14 @@ describe('Message', () => {
 
     const { container } = render(<Message message={assistantMessage} />);
 
-    const tail = container.querySelector(`.${styles.messageTail}`);
+    const tail = container.querySelector('.messageTail');
     expect(tail).toBeInTheDocument();
   });
 
   it('does not render message tail for user messages', () => {
     const { container } = render(<Message message={baseMessage} />);
 
-    const tail = container.querySelector(`.${styles.messageTail}`);
+    const tail = container.querySelector('.messageTail');
     expect(tail).not.toBeInTheDocument();
   });
 
@@ -255,7 +254,7 @@ describe('Message', () => {
   it('does not render attachments section when no attachments', () => {
     const { container } = render(<Message message={baseMessage} />);
 
-    const attachments = container.querySelector(`.${styles.attachments}`);
+    const attachments = container.querySelector('.attachments');
     expect(attachments).not.toBeInTheDocument();
   });
 
@@ -269,9 +268,9 @@ describe('Message', () => {
     const { container } = render(<Message message={artifactMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass(styles.artifact);
+    expect(wrapper).toHaveClass('artifact');
 
-    const content = container.querySelector(`.${styles.artifactContent}`);
+    const content = container.querySelector('.artifactContent');
     expect(content).toBeInTheDocument();
   });
 
@@ -358,7 +357,7 @@ describe('Message', () => {
     const { container } = render(<Message message={assistantMessage} />);
 
     // Check that content is rendered through dangerouslySetInnerHTML
-    const markdownContent = container.querySelector(`.${styles.markdownContent}`);
+    const markdownContent = container.querySelector('.markdownContent');
     expect(markdownContent).toBeInTheDocument();
     expect(markdownContent?.innerHTML).toContain('<p>');
   });
@@ -371,18 +370,18 @@ describe('Message', () => {
 
     const { container } = render(<Message message={messageWithEmptyAttachments} />);
 
-    const attachments = container.querySelector(`.${styles.attachments}`);
+    const attachments = container.querySelector('.attachments');
     expect(attachments).not.toBeInTheDocument();
   });
 
   it('renders all message structure elements', () => {
     const { container } = render(<Message message={baseMessage} />);
 
-    expect(container.querySelector(`.${styles.messageContainer}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.senderName}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.messageBubble}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.message}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.metadata}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.time}`)).toBeInTheDocument();
+    expect(container.querySelector('.messageContainer')).toBeInTheDocument();
+    expect(container.querySelector('.senderName')).toBeInTheDocument();
+    expect(container.querySelector('.messageBubble')).toBeInTheDocument();
+    expect(container.querySelector('.message')).toBeInTheDocument();
+    expect(container.querySelector('.metadata')).toBeInTheDocument();
+    expect(container.querySelector('.time')).toBeInTheDocument();
   });
 });

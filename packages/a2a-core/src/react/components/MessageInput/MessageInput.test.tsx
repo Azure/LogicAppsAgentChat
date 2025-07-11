@@ -5,7 +5,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MessageInput } from './MessageInput';
 import { useChatStore } from '../../store/chatStore';
-import styles from './MessageInput.module.css';
 
 // Mock dependencies
 vi.mock('../../store/chatStore');
@@ -370,10 +369,10 @@ describe('MessageInput', () => {
   it('applies correct CSS classes', () => {
     const { container } = render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    expect(container.querySelector(`.${styles.inputContainer}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.inputWrapper}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.textarea}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.sendButton}`)).toBeInTheDocument();
+    expect(container.querySelector('.inputContainer')).toBeInTheDocument();
+    expect(container.querySelector('.inputWrapper')).toBeInTheDocument();
+    expect(container.querySelector('.textarea')).toBeInTheDocument();
+    expect(container.querySelector('.sendButton')).toBeInTheDocument();
   });
 
   it('renders SVG icon in send button', () => {

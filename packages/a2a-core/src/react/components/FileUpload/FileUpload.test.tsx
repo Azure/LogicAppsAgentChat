@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FileUpload } from './FileUpload';
-import styles from './FileUpload.module.css';
 
 // Mock alert
 global.alert = vi.fn();
@@ -34,7 +33,7 @@ describe('FileUpload', () => {
     const input = screen.getByRole('button').parentElement?.querySelector('input[type="file"]');
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute('multiple');
-    expect(input).toHaveClass(styles.hiddenInput);
+    expect(input).toHaveClass('hiddenInput');
   });
 
   it('triggers file input click when button is clicked', async () => {

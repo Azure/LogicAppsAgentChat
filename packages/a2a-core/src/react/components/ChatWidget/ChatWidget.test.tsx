@@ -185,11 +185,16 @@ describe('ChatWidget', () => {
   });
 
   it('should handle rapid mount/unmount cycles', async () => {
-    const { unmount, rerender } = render(<ChatWidget agentCard="test-agent" />);
+    const { unmount } = render(<ChatWidget agentCard="test-agent" />);
 
-    // Quick unmount and remount
+    // Verify initial render
+    expect(screen.getByTestId('chat-window')).toBeInTheDocument();
+
+    // Unmount
     unmount();
-    rerender(<ChatWidget agentCard="test-agent-2" />);
+
+    // Re-render with new component instance
+    render(<ChatWidget agentCard="test-agent-2" />);
 
     // Should still work correctly
     expect(screen.getByTestId('chat-window')).toBeInTheDocument();

@@ -2,7 +2,6 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CompanyLogo } from './CompanyLogo';
-import styles from './CompanyLogo.module.css';
 import type { ChatTheme } from '../../types';
 
 describe('CompanyLogo', () => {
@@ -33,8 +32,8 @@ describe('CompanyLogo', () => {
     expect(logo).toHaveAttribute('src', 'https://example.com/logo.png');
 
     const container = logo.closest('div');
-    expect(container).toHaveClass(styles.logoContainer);
-    expect(container).toHaveClass(styles.medium);
+    expect(container).toHaveClass('logoContainer');
+    expect(container).toHaveClass('medium');
   });
 
   it('renders logo with small size', () => {
@@ -47,9 +46,9 @@ describe('CompanyLogo', () => {
 
     const logo = screen.getByAltText('Company Logo');
     const container = logo.closest('div');
-    expect(container).toHaveClass(styles.logoContainer);
-    expect(container).toHaveClass(styles.small);
-    expect(container).not.toHaveClass(styles.medium);
+    expect(container).toHaveClass('logoContainer');
+    expect(container).toHaveClass('small');
+    expect(container).not.toHaveClass('medium');
   });
 
   it('renders logo with large size', () => {
@@ -62,9 +61,9 @@ describe('CompanyLogo', () => {
 
     const logo = screen.getByAltText('Company Logo');
     const container = logo.closest('div');
-    expect(container).toHaveClass(styles.logoContainer);
-    expect(container).toHaveClass(styles.large);
-    expect(container).not.toHaveClass(styles.medium);
+    expect(container).toHaveClass('logoContainer');
+    expect(container).toHaveClass('large');
+    expect(container).not.toHaveClass('medium');
   });
 
   it('applies custom className prop', () => {
@@ -77,8 +76,8 @@ describe('CompanyLogo', () => {
 
     const logo = screen.getByAltText('Company Logo');
     const container = logo.closest('div');
-    expect(container).toHaveClass(styles.logoContainer);
-    expect(container).toHaveClass(styles.medium);
+    expect(container).toHaveClass('logoContainer');
+    expect(container).toHaveClass('medium');
     expect(container).toHaveClass('custom-class');
   });
 
@@ -93,7 +92,7 @@ describe('CompanyLogo', () => {
 
     const logo = screen.getByAltText('Company Logo');
     expect(logo).toHaveAttribute('src', logoUrl);
-    expect(logo).toHaveClass(styles.logo);
+    expect(logo).toHaveClass('logo');
   });
 
   it('handles undefined logoSize gracefully', () => {
@@ -106,7 +105,7 @@ describe('CompanyLogo', () => {
 
     const logo = screen.getByAltText('Company Logo');
     const container = logo.closest('div');
-    expect(container).toHaveClass(styles.medium);
+    expect(container).toHaveClass('medium');
   });
 
   it('handles logo position in branding', () => {

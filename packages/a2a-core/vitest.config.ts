@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
   test: {
@@ -16,6 +17,17 @@ export default defineConfig({
         branches: 70,
         statements: 70,
       },
+    },
+  },
+  resolve: {
+    alias: {
+      '\\.(css|less|scss|sass)$': resolve(__dirname, './src/react/test/css-modules-mock.js'),
+    },
+  },
+  css: {
+    modules: {
+      // Return class names as-is without hashing, matching tsup config
+      generateScopedName: '[local]',
     },
   },
 });
