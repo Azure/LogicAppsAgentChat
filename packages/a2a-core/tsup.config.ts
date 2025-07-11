@@ -33,7 +33,6 @@ export default defineConfig({
         name: 'css-module-plugin',
         setup(build) {
           // Create a map to store CSS module class names
-          const cssModuleMap = new Map<string, Record<string, string>>();
 
           build.onLoad({ filter: /\.module\.css$/ }, async (args) => {
             const css = readFileSync(args.path, 'utf8');
