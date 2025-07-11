@@ -2,8 +2,10 @@ import React from 'react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Message } from './Message';
 import type { Message as MessageType } from '../../types';
+import { downloadFile } from '../../utils/downloadUtils';
 
 // Mock marked modules
 vi.mock('marked', () => ({
@@ -15,6 +17,12 @@ vi.mock('marked', () => ({
 
 vi.mock('marked-highlight', () => ({
   markedHighlight: vi.fn(() => ({})),
+}));
+
+// Mock download utils
+vi.mock('../../utils/downloadUtils', () => ({
+  downloadFile: vi.fn(),
+  getMimeType: vi.fn((filename: string) => 'text/plain'),
 }));
 
 // Mock Prism and its components
@@ -118,6 +126,10 @@ global.Intl.DateTimeFormat = vi.fn(() => ({
 })) as any;
 
 describe('Message', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const baseMessage: MessageType = {
     id: '1',
     content: 'Test message',
@@ -383,5 +395,258 @@ describe('Message', () => {
     expect(container.querySelector('.message')).toBeInTheDocument();
     expect(container.querySelector('.metadata')).toBeInTheDocument();
     expect(container.querySelector('.time')).toBeInTheDocument();
+  });
+
+  it('renders code artifact with syntax highlighting', async () => {
+    const user = userEvent.setup();
+    const codeMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Here is your code',
+      metadata: {
+        isArtifact: true,
+        isCodeFile: true,
+        rawContent: 'console.log("Hello World");',
+        artifactName: 'test.js',
+      },
+    };
+
+    render(<Message message={codeMessage} />);
+
+    // Need to click view to see the code
+    const viewButton = screen.getByLabelText('Show content');
+    await user.click(viewButton);
+
+    const codeBlock = screen.getByText('console.log("Hello World");');
+    expect(codeBlock).toBeInTheDocument();
+    expect(codeBlock.closest('pre')).toHaveClass('codeBlock');
+  });
+
+  it('renders artifact without syntax highlighting for unknown language', async () => {
+    const user = userEvent.setup();
+    const codeMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Here is your file',
+      metadata: {
+        isArtifact: true,
+        isCodeFile: true,
+        rawContent: 'Some content',
+        artifactName: 'test.unknown',
+      },
+    };
+
+    render(<Message message={codeMessage} />);
+
+    // Need to click view to see the content
+    const viewButton = screen.getByLabelText('Show content');
+    await user.click(viewButton);
+
+    const codeBlock = screen.getByText('Some content');
+    expect(codeBlock).toBeInTheDocument();
+  });
+
+  it('handles syntax highlighting errors gracefully', async () => {
+    const user = userEvent.setup();
+    // Mock console.error to verify it's called
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock Prism to throw an error
+    const { default: Prism } = await import('prismjs');
+    const originalHighlight = Prism.highlight;
+    Prism.highlight = vi.fn(() => {
+      throw new Error('Highlight error');
+    });
+
+    const codeMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Code with error',
+      metadata: {
+        isArtifact: true,
+        isCodeFile: true,
+        rawContent: 'const test = 1;',
+        artifactName: 'test.js',
+      },
+    };
+
+    render(<Message message={codeMessage} />);
+
+    // Need to click view to see the content
+    const viewButton = screen.getByLabelText('Show content');
+    await user.click(viewButton);
+
+    // Should still render the code without highlighting
+    expect(screen.getByText('const test = 1;')).toBeInTheDocument();
+    expect(consoleSpy).toHaveBeenCalledWith('Prism highlight error:', expect.any(Error));
+
+    // Restore
+    Prism.highlight = originalHighlight;
+    consoleSpy.mockRestore();
+  });
+
+  it('handles artifact download', async () => {
+    const user = userEvent.setup();
+
+    const artifactMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Here is your file',
+      metadata: {
+        isArtifact: true,
+        rawContent: 'File content',
+        artifactName: 'test.txt',
+      },
+    };
+
+    render(<Message message={artifactMessage} />);
+
+    const downloadButton = screen.getByLabelText('Download test.txt');
+    await user.click(downloadButton);
+
+    // Verify downloadFile was called
+    expect(vi.mocked(downloadFile)).toHaveBeenCalledWith('File content', 'test.txt', 'text/plain');
+  });
+
+  it('handles grouped artifacts download', async () => {
+    const user = userEvent.setup();
+
+    const groupedMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Multiple files',
+      metadata: {
+        isArtifact: true,
+        isGroupedArtifact: true,
+        artifacts: [
+          { name: 'file1.txt', rawContent: 'Content 1' },
+          { name: 'file2.txt', rawContent: 'Content 2' },
+        ],
+      },
+    };
+
+    render(<Message message={groupedMessage} />);
+
+    const downloadButton = screen.getByLabelText('Download all files');
+    await user.click(downloadButton);
+
+    // Wait for setTimeout delays
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Verify both files were downloaded
+    expect(vi.mocked(downloadFile)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(downloadFile)).toHaveBeenCalledWith('Content 1', 'file1.txt', 'text/plain');
+    expect(vi.mocked(downloadFile)).toHaveBeenCalledWith('Content 2', 'file2.txt', 'text/plain');
+  });
+
+  it('toggles content visibility for artifact messages', async () => {
+    const user = userEvent.setup();
+
+    const artifactMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Long content that can be collapsed',
+      metadata: {
+        isArtifact: true,
+        rawContent: 'Very long content...',
+        artifactName: 'large.txt',
+      },
+    };
+
+    render(<Message message={artifactMessage} />);
+
+    // Initially hidden for artifacts
+    let artifactContent = screen.queryByText('Very long content...');
+    expect(artifactContent).not.toBeInTheDocument();
+
+    // Click to show
+    const toggleButton = screen.getByLabelText('Show content');
+    await user.click(toggleButton);
+
+    // Should show content
+    artifactContent = screen.getByText('Very long content...');
+    expect(artifactContent).toBeInTheDocument();
+
+    // Button text should change
+    expect(screen.getByLabelText('Hide content')).toBeInTheDocument();
+  });
+
+  it('renders multiple artifacts with details', () => {
+    const multiArtifactMessage: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Generated files',
+      metadata: {
+        isArtifact: true,
+        isGroupedArtifact: true,
+        artifacts: [
+          { name: 'index.html', rawContent: '<html></html>' },
+          { name: 'style.css', rawContent: 'body {}' },
+          { name: 'script.js', rawContent: 'console.log();' },
+        ],
+      },
+    };
+
+    render(<Message message={multiArtifactMessage} />);
+
+    expect(screen.getByText('index.html')).toBeInTheDocument();
+    expect(screen.getByText('style.css')).toBeInTheDocument();
+    expect(screen.getByText('script.js')).toBeInTheDocument();
+    expect(screen.getByText('3 files generated')).toBeInTheDocument();
+  });
+
+  it('renders artifact with file name', () => {
+    const titledArtifact: MessageType = {
+      ...baseMessage,
+      sender: 'assistant',
+      content: 'Code snippet',
+      metadata: {
+        isArtifact: true,
+        rawContent: 'const x = 1;',
+        artifactName: 'example.js',
+      },
+    };
+
+    render(<Message message={titledArtifact} />);
+
+    expect(screen.getByText('example.js')).toBeInTheDocument();
+  });
+
+  it('correctly identifies language from various file extensions', async () => {
+    const user = userEvent.setup();
+    const extensions = [
+      { file: 'test.py', lang: 'python' },
+      { file: 'test.tsx', lang: 'typescript' },
+      { file: 'test.cpp', lang: 'cpp' },
+      { file: 'test.yml', lang: 'yaml' },
+    ];
+
+    for (const { file, lang } of extensions) {
+      const message: MessageType = {
+        ...baseMessage,
+        sender: 'assistant',
+        metadata: {
+          isArtifact: true,
+          isCodeFile: true,
+          rawContent: 'code',
+          artifactName: file,
+        },
+      };
+
+      const { container, unmount } = render(<Message message={message} />);
+
+      // Need to click view to see the content
+      const viewButton = screen.getByLabelText('Show content');
+      await user.click(viewButton);
+
+      const codeElement = container.querySelector(`code.language-${lang}`);
+
+      // The element should exist if Prism supports the language
+      if ((window as any).Prism.languages[lang]) {
+        expect(codeElement).toBeInTheDocument();
+      }
+
+      unmount();
+    }
   });
 });
