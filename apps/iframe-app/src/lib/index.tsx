@@ -1,11 +1,19 @@
 import { createRoot } from 'react-dom/client';
-import { ChatWindow } from '../components/ChatWindow';
-import type { ChatWidgetProps } from '../types';
+import {
+  ChatWidget,
+  type ChatWidgetProps,
+  type ChatTheme,
+  type Message,
+  type Attachment,
+  type AuthConfig,
+  type AgentCard,
+} from '@microsoft/a2achat-core/react';
+import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
-export { ChatWindow };
-export type { ChatWidgetProps, ChatTheme, Message, Attachment } from '../types';
-export type { AuthConfig, AgentCard } from 'a2a-browser-sdk';
+// Re-export everything from the core library
+export { ChatWidget };
+export type { ChatWidgetProps, ChatTheme, Message, Attachment, AuthConfig, AgentCard };
 
 // For convenience, export a function to mount the widget
 export function mountChatWidget(
@@ -19,7 +27,7 @@ export function mountChatWidget(
   }
 
   const root = createRoot(element);
-  root.render(<ChatWindow {...props} />);
+  root.render(<ChatWidget {...props} />);
 
   // Return unmount function
   return () => {

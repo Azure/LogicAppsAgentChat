@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useA2A } from './use-a2a';
@@ -272,5 +273,236 @@ describe('useA2A', () => {
     });
 
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('should persist messages to localStorage when persistSession is enabled', async () => {
+    const sessionKey = 'test-session';
+    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+
+    // Setup localStorage mock
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    // Mock the stream response
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'task-persist',
+          state: 'completed',
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Response to persist' }],
+            },
+          ],
+          artifacts: [],
+        };
+      },
+    };
+
+    // Connect and send message
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+      await result.current.sendMessage('Test message');
+    });
+
+    // Verify localStorage was called with messages
+    expect(setItemSpy).toHaveBeenCalledWith(`a2a-messages-${sessionKey}`, expect.any(String));
+
+    // Verify messages were stored
+    const storedMessages = JSON.parse(localStorage.getItem(`a2a-messages-${sessionKey}`) || '[]');
+    expect(storedMessages).toHaveLength(2);
+    expect(storedMessages[0].content).toBe('Test message');
+    expect(storedMessages[1].content).toBe('Response to persist');
+
+    setItemSpy.mockRestore();
+    localStorage.clear();
+  });
+
+  it('should restore messages from localStorage on mount', async () => {
+    const sessionKey = 'test-session';
+    const storedMessages = [
+      {
+        id: 'stored-1',
+        role: 'user',
+        content: 'Previous message',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: 'stored-2',
+        role: 'assistant',
+        content: 'Previous response',
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
+    // Setup localStorage with existing messages
+    localStorage.setItem(`a2a-messages-${sessionKey}`, JSON.stringify(storedMessages));
+
+    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+
+    // Connect to load messages from localStorage
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+    });
+
+    // Messages should be restored
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[0].content).toBe('Previous message');
+    expect(result.current.messages[1].content).toBe('Previous response');
+
+    // Clean up
+    localStorage.clear();
+  });
+
+  it('should clear localStorage when clearMessages is called', async () => {
+    const sessionKey = 'test-session';
+    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+
+    // Setup some data
+    localStorage.setItem(`a2a-messages-${sessionKey}`, JSON.stringify([{ test: 'message' }]));
+    localStorage.setItem(`a2a-context-${sessionKey}`, 'context-id');
+
+    // Connect first
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+    });
+
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
+
+    // Clear messages
+    act(() => {
+      result.current.clearMessages();
+    });
+
+    // Verify localStorage was cleared
+    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-messages-${sessionKey}`);
+    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-context-${sessionKey}`);
+    expect(result.current.messages).toHaveLength(0);
+
+    removeItemSpy.mockRestore();
+    localStorage.clear();
+  });
+
+  it('should handle streaming updates with state transitions', async () => {
+    // Mock streaming response that transitions states
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'task-stream',
+          state: 'running',
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Processing...' }],
+            },
+          ],
+          artifacts: [],
+        };
+        yield {
+          id: 'task-stream',
+          state: 'completed',
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Processing... Done!' }],
+            },
+          ],
+          artifacts: [],
+        };
+      },
+    };
+
+    const { result } = renderHook(() => useA2A());
+
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+      await result.current.sendMessage('Process this');
+    });
+
+    // Verify the message was updated and streaming state changed
+    const assistantMessage = result.current.messages.find((m) => m.role === 'assistant');
+    expect(assistantMessage?.content).toBe('Processing... Done!');
+    expect(assistantMessage?.isStreaming).toBe(false);
+  });
+
+  it('should handle multiple artifacts correctly', async () => {
+    // Mock stream with multiple artifacts
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'task-artifacts',
+          state: 'completed',
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Created multiple files' }],
+            },
+          ],
+          artifacts: [
+            {
+              artifactId: 'file1.js',
+              name: 'file1.js',
+              parts: [{ kind: 'text', text: 'console.log("file1");' }],
+            },
+            {
+              artifactId: 'file2.js',
+              name: 'file2.js',
+              parts: [{ kind: 'text', text: 'console.log("file2");' }],
+            },
+          ],
+        };
+      },
+    };
+
+    const { result } = renderHook(() => useA2A());
+
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+      await result.current.sendMessage('Create files');
+    });
+
+    // Should have user message + assistant message + 2 artifact messages
+    expect(result.current.messages).toHaveLength(4);
+
+    const artifactMessage1 = result.current.messages[2];
+    const artifactMessage2 = result.current.messages[3];
+    expect(artifactMessage1.content).toContain('file1.js');
+    expect(artifactMessage2.content).toContain('file2.js');
+    expect(artifactMessage1.metadata?.artifacts).toHaveLength(1);
+    expect(artifactMessage2.metadata?.artifacts).toHaveLength(1);
+  });
+
+  it('should persist context ID to localStorage', async () => {
+    const sessionKey = 'test-context';
+    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+
+    localStorage.setItem(`a2a-context-${sessionKey}`, 'stored-context-id');
+
+    // Mock stream response
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'task-context',
+          state: 'completed',
+          messages: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Using context' }],
+            },
+          ],
+          artifacts: [],
+        };
+      },
+    };
+
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+      await result.current.sendMessage('Test with context');
+    });
+
+    // Context should be persisted
+    expect(localStorage.getItem(`a2a-context-${sessionKey}`)).toBeTruthy();
+
+    localStorage.clear();
   });
 });

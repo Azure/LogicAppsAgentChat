@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
-import { mountChatWidget, ChatWindow } from '.';
-import type { ChatWidgetProps } from '../types';
+import { mountChatWidget, ChatWidget } from '.';
+import type { ChatWidgetProps } from '@microsoft/a2achat-core/react';
 
 // Mock dependencies
 vi.mock('react-dom/client');
-vi.mock('../components/ChatWindow', () => ({
-  ChatWindow: vi.fn(() => null),
+vi.mock('@microsoft/a2achat-core/react', () => ({
+  ChatWidget: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));
 
@@ -34,9 +34,9 @@ describe('lib/index', () => {
   });
 
   describe('exports', () => {
-    it('exports ChatWindow component', () => {
-      expect(ChatWindow).toBeDefined();
-      expect(typeof ChatWindow).toBe('function');
+    it('exports ChatWidget component', () => {
+      expect(ChatWidget).toBeDefined();
+      expect(typeof ChatWidget).toBe('function');
     });
 
     it('exports mountChatWidget function', () => {
@@ -44,7 +44,7 @@ describe('lib/index', () => {
       expect(typeof mountChatWidget).toBe('function');
     });
 
-    it('re-exports types from types module', () => {
+    it('re-exports types from core library', () => {
       // The types are exported but we can't directly test them
       // This test just ensures the module loads without errors
       expect(true).toBe(true);
@@ -65,7 +65,7 @@ describe('lib/index', () => {
       expect(mockCreateRoot).toHaveBeenCalledWith(container);
       expect(mockRoot.render).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: ChatWindow,
+          type: ChatWidget,
           props: defaultProps,
         })
       );

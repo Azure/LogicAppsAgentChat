@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 
 // Mock dependencies
 vi.mock('react-dom/client');
-vi.mock('../components/ChatWindow', () => ({
-  ChatWindow: vi.fn(() => null),
+vi.mock('@microsoft/a2achat-core/react', () => ({
+  ChatWidget: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));
 

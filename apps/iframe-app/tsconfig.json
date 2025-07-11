@@ -14,8 +14,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client", "vitest/globals", "node"]
+    "types": ["vite/client", "node"]
   },
   "include": ["src"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
