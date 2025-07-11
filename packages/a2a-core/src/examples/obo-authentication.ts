@@ -1,44 +1,54 @@
-import { A2AClient } from '../client/a2a-client';
-import { openPopupWindow } from '../utils/popup-window';
-import type { AuthRequiredEvent, AuthRequiredHandler } from '../client/types';
-import type { AgentCard } from '../types';
-
 /**
  * Example implementation of On-Behalf-Of (OBO) authentication flow
  * This demonstrates how to handle authentication requests during A2A streaming
  */
 
+// Example imports you would use:
+// import { A2AClient } from '@microsoft/a2achat-core';
+// import { openPopupWindow } from '@microsoft/a2achat-core';
+// import type { AuthRequiredEvent, AuthRequiredHandler } from '@microsoft/a2achat-core';
+// import type { AgentCard } from '@microsoft/a2achat-core';
+
 // Create an auth handler that opens the consent link in a popup
+// Example handler shown for documentation purposes
+/*
 const handleAuthRequired: AuthRequiredHandler = async (event: AuthRequiredEvent) => {
   console.log('Authentication required for task:', event.taskId);
-  console.log('Opening consent URL in popup:', event.consentLink);
+  
+  // Handle multiple auth parts
+  for (const authPart of event.authParts) {
+    console.log('Opening consent URL in popup:', authPart.consentLink);
 
-  try {
-    // Open the consent link in a popup window
-    const result = await openPopupWindow(event.consentLink, 'a2a-auth-consent', {
-      width: 800,
-      height: 600,
-    });
+    try {
+      // Open the consent link in a popup window
+      const result = await openPopupWindow(authPart.consentLink, 'a2a-auth-consent', {
+        width: 800,
+        height: 600,
+      });
 
-    if (result.closed) {
-      console.log('Authentication popup closed');
+      if (result.closed) {
+        console.log('Authentication popup closed');
 
-      if (result.error) {
-        console.error('Authentication error:', result.error);
-        throw result.error;
+        if (result.error) {
+          console.error('Authentication error:', result.error);
+          throw result.error;
+        }
+
+        // The popup was closed successfully - authentication should be complete
+        console.log('Authentication completed successfully');
       }
-
-      // The popup was closed successfully - authentication should be complete
-      console.log('Authentication completed successfully');
+    } catch (error) {
+      console.error('Failed to handle authentication:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Failed to handle authentication:', error);
-    throw error;
   }
 };
+*/
 
 // Example usage in a React component
 export function ExampleOBOComponent() {
+  // This is just an example showing how to use the auth handler
+  /*
   const handleConnect = async (agentCard: AgentCard) => {
     // Create client with auth handler
     const client = new A2AClient({
@@ -80,27 +90,37 @@ export function ExampleOBOComponent() {
       console.error('Streaming error:', error);
     }
   };
+  */
 
   return null; // This is just an example, not a real component
 }
 
 // Example usage with React hooks
 import { useA2A } from '../react/use-a2a';
+import { openPopupWindow } from '../utils/popup-window';
+import { A2AClient } from '../client/a2a-client';
 
 export function ExampleWithHooks() {
   // Using the useA2A hook with auth handler
-  const { connect, sendMessage, sendAuthenticationCompleted, contextId } = useA2A({
+  const { sendAuthenticationCompleted } = useA2A({
     onAuthRequired: async (event) => {
       console.log('Auth required in React hook:', event);
 
       try {
-        // Open popup
-        const result = await openPopupWindow(event.consentLink);
+        // Handle multiple auth parts
+        for (const authPart of event.authParts) {
+          // Open popup
+          const result = await openPopupWindow(authPart.consentLink);
 
-        if (result.closed && !result.error) {
-          // Authentication completed - send the completion message
-          await sendAuthenticationCompleted();
+          if (result.closed && !result.error) {
+            console.log(`Authentication completed for ${authPart.serviceName}`);
+          } else {
+            throw new Error(`Authentication failed for ${authPart.serviceName}`);
+          }
         }
+
+        // After all auth parts are completed, send the completion message
+        await sendAuthenticationCompleted();
       } catch (error) {
         console.error('Auth handler error:', error);
       }

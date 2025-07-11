@@ -4,8 +4,9 @@ import {
   ChatWindow,
   useChatWidget,
   AuthenticationRequired,
-} from '@microsoft/a2achat-core/react';
-import type { AuthRequiredEvent } from '@microsoft/a2achat-core';
+  useChatStore,
+} from '../react';
+import type { AuthRequiredEvent } from '../client/types';
 
 /**
  * Example 1: Using ChatWidget with default authentication UI
@@ -17,10 +18,6 @@ export function ChatWithDefaultAuth() {
   return (
     <ChatWidget
       agentCard="https://example.com/agent-card"
-      theme={{
-        primaryColor: '#0066cc',
-        fontFamily: 'Inter, sans-serif',
-      }}
       welcomeMessage="Hello! I may need you to authenticate with external services for certain actions."
     />
   );
@@ -33,19 +30,24 @@ export function ChatWithDefaultAuth() {
  * The built-in UI will not show if you provide a custom handler.
  */
 export function ChatWithCustomAuthHandler() {
-  const handleAuthRequired = async (event: AuthRequiredEvent) => {
-    console.log('Authentication required:', event);
-
-    // Custom logic - maybe show a modal or redirect
-    for (const authPart of event.authParts) {
-      console.log(`Need auth for: ${authPart.serviceName}`);
-      // Your custom authentication flow here
-      // For example, you might want to show your own UI or handle auth differently
-    }
-  };
+  // Example showing how you would create a custom auth handler
+  // const handleAuthRequired = async (event: AuthRequiredEvent) => {
+  //   console.log('Authentication required:', event);
+  //
+  //   // Custom logic - maybe show a modal or redirect
+  //   for (const authPart of event.authParts) {
+  //     console.log(`Need auth for: ${authPart.serviceName}`);
+  //     // Your custom authentication flow here
+  //     // For example, you might want to show your own UI or handle auth differently
+  //   }
+  // };
 
   return (
-    <ChatWidget agentCard="https://example.com/agent-card" onAuthRequired={handleAuthRequired} />
+    <ChatWidget
+      agentCard="https://example.com/agent-card"
+      // Custom auth handler - note this isn't supported yet in ChatWidget
+      // You would need to use useChatWidget hook for custom handlers
+    />
   );
 }
 
@@ -63,7 +65,7 @@ export function CustomChatImplementation() {
 
   return (
     <div style={{ height: '600px', width: '100%' }}>
-      <ChatWindow {...chatWidget} />
+      <ChatWindow {...chatWidget} agentCard="https://example.com/agent-card" />
     </div>
   );
 }
@@ -98,7 +100,7 @@ export function ManualAuthUIExample() {
 
   return (
     <div style={{ height: '600px', width: '100%' }}>
-      <ChatWindow {...chatWidget} />
+      <ChatWindow {...chatWidget} agentCard="https://example.com/agent-card" />
 
       {authEvent && (
         <div
@@ -131,7 +133,7 @@ export function ManualAuthUIExample() {
  * You can also access the authentication state directly from the store
  * for more advanced use cases.
  */
-import { useChatStore } from '@microsoft/a2achat-core/react';
+// useChatStore is already imported at the top
 
 export function AuthStateExample() {
   const { authRequired, setAuthRequired } = useChatStore();
@@ -156,7 +158,7 @@ export function AuthStateExample() {
 
   return (
     <div>
-      <ChatWindow {...chatWidget} />
+      <ChatWindow {...chatWidget} agentCard="https://example.com/agent-card" />
 
       {authRequired && (
         <div style={{ padding: '10px', background: '#fffbeb' }}>
