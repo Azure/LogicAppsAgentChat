@@ -22,23 +22,20 @@ export function ChatWindow(props: ChatWindowProps) {
     onMessage,
     onConnectionChange,
     userName,
+    sessionKey,
   } = props;
 
-  const { isConnected, agentName, sendMessage, clearSession, handleAuthCompleted } = useChatWidget({
-    agentCard,
-    auth,
-    onMessage,
-    onConnectionChange,
-  });
+  const { isConnected, agentName, agentDescription, sendMessage, handleAuthCompleted } =
+    useChatWidget({
+      agentCard,
+      auth,
+      onMessage,
+      onConnectionChange,
+      sessionKey,
+    });
 
   const showHeaderLogo = theme?.branding?.logoPosition === 'header';
   const showFooterLogo = theme?.branding?.logoPosition === 'footer';
-
-  const handleClearSession = () => {
-    if (clearSession) {
-      clearSession();
-    }
-  };
 
   return (
     <div className="chatWindow chat-widget-container">
@@ -46,15 +43,9 @@ export function ChatWindow(props: ChatWindowProps) {
         <div className="header">
           {showHeaderLogo && <CompanyLogo branding={theme?.branding} />}
           {isConnected && (
-            <div className="headerActions">
-              <button
-                className="clearButton"
-                onClick={handleClearSession}
-                disabled={!isConnected}
-                title="Start new session"
-              >
-                New Session
-              </button>
+            <div className="agentInfo">
+              <h3 className="agentName">{agentName}</h3>
+              {agentDescription && <p className="agentDescription">{agentDescription}</p>}
             </div>
           )}
         </div>

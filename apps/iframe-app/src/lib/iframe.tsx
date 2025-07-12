@@ -1,11 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect } from 'react';
 import { ChatWidget, type ChatWidgetProps, type ChatTheme } from '@microsoft/a2achat-core/react';
+import { MultiSessionChat } from '../components/MultiSessionChat';
 import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
 // Parse configuration from data attributes or URL parameters
-function parseConfig(): ChatWidgetProps {
+function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
   const params = new URLSearchParams(window.location.search);
   const dataset = document.documentElement.dataset;
   // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
@@ -175,6 +176,9 @@ function parseConfig(): ChatWidgetProps {
     allowedFileTypes: dataset.allowedFileTypes?.split(',').map((t) => t.trim()),
   };
 
+  // Check if multi-session mode is enabled
+  const multiSession = dataset.multiSession === 'true' || params.get('multiSession') === 'true';
+
   // Parse metadata if provided
   const metadataStr = dataset.metadata || params.get('metadata');
   if (metadataStr) {
@@ -185,11 +189,11 @@ function parseConfig(): ChatWidgetProps {
     }
   }
 
-  return props;
+  return { props, multiSession };
 }
 
 // Wrapper component that can receive agent card via postMessage
-function IframeWrapper(props: ChatWidgetProps) {
+function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiSession: boolean }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentCard, setAgentCard] = useState<any>(null);
   const [isWaitingForAgentCard, setIsWaitingForAgentCard] = useState(false);
@@ -255,13 +259,27 @@ function IframeWrapper(props: ChatWidgetProps) {
 
   // If we received an agent card via postMessage, use that instead
   const finalProps = agentCard ? { ...props, agentCard } : props;
+
+  // Use MultiSessionChat if multi-session mode is enabled
+  if (multiSession) {
+    return (
+      <MultiSessionChat
+        config={{
+          apiUrl: finalProps.agentCard,
+          apiKey: '', // API key is not needed for agent card mode
+        }}
+        metadata={finalProps.metadata}
+      />
+    );
+  }
+
   return <ChatWidget {...finalProps} />;
 }
 
 // Initialize the widget
 function init() {
   try {
-    const config = parseConfig();
+    const { props, multiSession } = parseConfig();
 
     const container = document.getElementById('chat-root');
 
@@ -271,7 +289,7 @@ function init() {
 
     const root = createRoot(container);
 
-    root.render(<IframeWrapper {...config} />);
+    root.render(<IframeWrapper props={props} multiSession={multiSession} />);
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
     console.error('Error details:', {

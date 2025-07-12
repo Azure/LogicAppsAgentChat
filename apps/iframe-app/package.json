@@ -8,6 +8,7 @@
     "dev": "vite",
     "preview": "vite preview",
     "test": "echo 'TODO: Run tests'",
+    "test:multi-session": "tsx test-multi-session.ts",
     "lint": "echo 'TODO: Lint code'",
     "type-check": "tsc --noEmit"
   },

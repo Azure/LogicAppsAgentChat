@@ -13,6 +13,7 @@ interface UseChatWidgetProps {
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;
   onAuthRequired?: AuthRequiredHandler;
+  sessionKey?: string;
 }
 
 export function useChatWidget({
@@ -21,6 +22,7 @@ export function useChatWidget({
   onMessage,
   onConnectionChange,
   onAuthRequired,
+  sessionKey,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -60,12 +62,12 @@ export function useChatWidget({
       ? {
           auth,
           persistSession: true,
-          sessionKey: 'a2a-chat-session',
+          sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired: onAuthRequired || defaultAuthHandler,
         }
       : {
           persistSession: true,
-          sessionKey: 'a2a-chat-session',
+          sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired: onAuthRequired || defaultAuthHandler,
         }
   );
@@ -156,6 +158,14 @@ export function useChatWidget({
       sentMessageContents.current.clear();
     }
   }, [isConnected]);
+
+  // Clear messages on mount to ensure clean state for new sessions
+  useEffect(() => {
+    clearLocalMessages();
+    processedMessageIds.current.clear();
+    messageIdMap.current.clear();
+    sentMessageContents.current.clear();
+  }, [clearLocalMessages]);
 
   // Auto-connect when agentCard is provided
   useEffect(() => {
@@ -250,6 +260,7 @@ export function useChatWidget({
     isConnected,
     isTyping: isLoading,
     agentName: connectedAgentCard?.name || 'Agent',
+    agentDescription: connectedAgentCard?.description,
     contextId,
     disconnect,
     clearSession,

@@ -80,4 +80,5 @@ export interface ChatWidgetProps {
   maxFileSize?: number; // in bytes
   allowedFileTypes?: string[];
   userName?: string; // Custom display name for the user, defaults to "You"
+  sessionKey?: string; // Optional session key for multi-session support
 }

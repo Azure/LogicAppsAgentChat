@@ -10,6 +10,17 @@
   --chat-color-error: #d32f2f;
   --chat-color-success: #388e3c;
 
+  /* Multi-session UI specific colors */
+  --chat-bg-secondary: #f3f4f6;
+  --chat-bg-hover: #e5e7eb;
+  --chat-bg-active: #dbeafe;
+  --chat-text-primary: #111827;
+  --chat-text-secondary: #6b7280;
+  --chat-text-tertiary: #9ca3af;
+  --chat-primary: #3b82f6;
+  --chat-primary-hover: #2563eb;
+  --chat-border-color: #e5e7eb;
+
   --chat-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --chat-font-size-small: 0.875rem;
   --chat-font-size-base: 1rem;
@@ -86,4 +97,17 @@
 
 .chat-fade-in {
   animation: chat-fade-in 0.3s ease-out;
+}
+
+/* Dark mode support for multi-session UI */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chat-bg-secondary: #1f2937;
+    --chat-bg-hover: #374151;
+    --chat-bg-active: #1e3a8a;
+    --chat-text-primary: #f9fafb;
+    --chat-text-secondary: #d1d5db;
+    --chat-text-tertiary: #9ca3af;
+    --chat-border-color: #374151;
+  }
 }
