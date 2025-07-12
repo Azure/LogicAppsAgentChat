@@ -54,8 +54,10 @@ describe('ChatWindow', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: true,
       agentName: 'Test Agent',
+      agentDescription: 'Test Agent Description',
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
+      handleAuthCompleted: vi.fn(),
     } as any);
   });
 
@@ -130,9 +132,11 @@ describe('ChatWindow', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: false,
       agentName: '',
+      agentDescription: '',
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
-    });
+      handleAuthCompleted: vi.fn(),
+    } as any);
 
     render(<ChatWindow {...defaultProps} />);
 
@@ -155,9 +159,11 @@ describe('ChatWindow', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: true,
       agentName: 'Agent', // useChatWidget returns 'Agent' as default
+      agentDescription: '',
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
-    });
+      handleAuthCompleted: vi.fn(),
+    } as any);
 
     render(<ChatWindow {...defaultProps} />);
 
@@ -211,38 +217,40 @@ describe('ChatWindow', () => {
     });
   });
 
-  it('should show new session button when connected', () => {
+  it('should show agent name and description when connected', () => {
     render(<ChatWindow {...defaultProps} />);
 
-    expect(screen.getByText('New Session')).toBeInTheDocument();
-    expect(screen.getByTitle('Start new session')).toBeInTheDocument();
+    expect(screen.getByText('Test Agent')).toBeInTheDocument();
+    expect(screen.getByText('Test Agent Description')).toBeInTheDocument();
   });
 
-  it('should call clearSession when new session button is clicked', async () => {
-    const user = userEvent.setup();
-
+  it('should show agent info in header when connected', () => {
     render(<ChatWindow {...defaultProps} />);
 
-    const newSessionButton = screen.getByText('New Session');
-    await user.click(newSessionButton);
+    const agentName = screen.getByText('Test Agent');
+    const agentDescription = screen.getByText('Test Agent Description');
 
-    expect(mockClearSession).toHaveBeenCalledTimes(1);
+    expect(agentName.className).toContain('agentName');
+    expect(agentDescription.className).toContain('agentDescription');
   });
 
-  it('should not show new session button when not connected', () => {
+  it('should not show agent info when not connected', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: false,
       agentName: 'Test Agent',
+      agentDescription: 'Test Agent Description',
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
-    });
+      handleAuthCompleted: vi.fn(),
+    } as any);
 
     render(<ChatWindow {...defaultProps} />);
 
-    expect(screen.queryByText('New Session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Agent Description')).not.toBeInTheDocument();
   });
 
-  it('should show header when connected even without logo', () => {
+  it('should show header with agent info when connected even without logo', () => {
     const props = {
       ...defaultProps,
       theme: {
@@ -254,8 +262,9 @@ describe('ChatWindow', () => {
 
     render(<ChatWindow {...props} />);
 
-    // Should show header because user is connected (for new session button)
-    expect(screen.getByText('New Session')).toBeInTheDocument();
+    // Should show header with agent info because user is connected
+    expect(screen.getByText('Test Agent')).toBeInTheDocument();
+    expect(screen.getByText('Test Agent Description')).toBeInTheDocument();
     // Logo should be in footer
     const logos = screen.getAllByTestId('company-logo');
     expect(logos).toHaveLength(1);
@@ -300,36 +309,38 @@ describe('ChatWindow', () => {
     expect(mockSendMessage).toHaveBeenCalledWith('test message', []);
   });
 
-  it('should disable new session button when not connected', () => {
+  it('should not show header content when not connected', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: false,
       agentName: 'Test Agent',
+      agentDescription: 'Test Agent Description',
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
-    });
+      handleAuthCompleted: vi.fn(),
+    } as any);
 
     render(<ChatWindow {...defaultProps} />);
 
-    // Header should not be visible when not connected
-    expect(screen.queryByText('New Session')).not.toBeInTheDocument();
+    // Header content should not be visible when not connected
+    expect(screen.queryByText('Test Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Agent Description')).not.toBeInTheDocument();
   });
 
-  it('should handle missing clearSession function gracefully', async () => {
-    const user = userEvent.setup();
-
+  it('should handle missing agentDescription gracefully', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: true,
       agentName: 'Test Agent',
+      agentDescription: undefined,
       sendMessage: mockSendMessage,
-      clearSession: undefined,
-    });
+      clearSession: mockClearSession,
+      handleAuthCompleted: vi.fn(),
+    } as any);
 
     render(<ChatWindow {...defaultProps} />);
 
-    const newSessionButton = screen.getByText('New Session');
-
-    // Should not throw error when clicking
-    await expect(user.click(newSessionButton)).resolves.not.toThrow();
+    // Should show agent name but not description when description is missing
+    expect(screen.getByText('Test Agent')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-description')).not.toBeInTheDocument();
   });
 
   it('should apply correct CSS classes', () => {
@@ -337,8 +348,9 @@ describe('ChatWindow', () => {
 
     expect(container.querySelector('.chatWindow')).toBeInTheDocument();
     expect(container.querySelector('.header')).toBeInTheDocument();
-    expect(container.querySelector('.headerActions')).toBeInTheDocument();
-    expect(container.querySelector('.clearButton')).toBeInTheDocument();
+    expect(container.querySelector('.agentInfo')).toBeInTheDocument();
+    expect(container.querySelector('.agentName')).toBeInTheDocument();
+    expect(container.querySelector('.agentDescription')).toBeInTheDocument();
   });
 
   it('should include chat-widget-container class', () => {
