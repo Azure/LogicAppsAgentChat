@@ -8,10 +8,11 @@ import { useChatWidget } from '../../hooks/useChatWidget';
 
 // Mock dependencies
 vi.mock('../MessageList', () => ({
-  MessageList: ({ welcomeMessage, userName, branding }: any) => (
+  MessageList: ({ welcomeMessage, agentName, userName, branding }: any) => (
     <div data-testid="message-list">
       {welcomeMessage && <div>{welcomeMessage}</div>}
-      <div>Agent: {userName}</div>
+      <div>Agent: {agentName}</div>
+      <div>User: {userName}</div>
       {branding && <div>Branding: {JSON.stringify(branding)}</div>}
     </div>
   ),
@@ -153,14 +154,14 @@ describe('ChatWindow', () => {
   it('should use default agent name when not provided', () => {
     vi.mocked(useChatWidget).mockReturnValue({
       isConnected: true,
-      agentName: '',
+      agentName: 'Agent', // useChatWidget returns 'Agent' as default
       sendMessage: mockSendMessage,
       clearSession: mockClearSession,
     });
 
     render(<ChatWindow {...defaultProps} />);
 
-    expect(screen.getByText('Agent: Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Agent: Agent')).toBeInTheDocument();
   });
 
   it('should handle all props correctly', () => {

@@ -61,7 +61,8 @@ export function ChatWindow(props: ChatWindowProps) {
 
       <MessageList
         welcomeMessage={welcomeMessage}
-        userName={agentName || 'Assistant'}
+        agentName={agentName || 'Assistant'}
+        userName="You"
         onAuthCompleted={handleAuthCompleted}
       />
 
