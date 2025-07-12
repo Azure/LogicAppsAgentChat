@@ -7,8 +7,6 @@ export default defineConfig({
     index: 'src/index.ts',
     'chat/index': 'src/chat/index.ts',
     'react/index': 'src/react/index.ts',
-    'vue/index': 'src/vue/index.ts',
-    'svelte/index': 'src/svelte/index.ts',
     'react/styles': 'src/react/styles/index.css',
   },
   format: ['esm'],
@@ -20,7 +18,7 @@ export default defineConfig({
   platform: 'browser',
   splitting: true,
   treeshake: true,
-  external: ['react', 'react-dom', 'vue', 'svelte'],
+  external: ['react', 'react-dom'],
   esbuildOptions(options) {
     // Handle CSS modules as simple objects for now
     options.loader = {

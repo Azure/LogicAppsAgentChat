@@ -79,6 +79,27 @@ describe('ChatWindow - Agent Name Display Fix', () => {
     expect(userNameElement).toHaveTextContent('You');
   });
 
+  it('should pass custom userName to MessageList when provided', () => {
+    mockUseChatWidget.mockReturnValue({
+      isConnected: true,
+      agentName: 'My Custom Agent',
+      sendMessage: vi.fn(),
+      clearSession: vi.fn(),
+      handleAuthCompleted: vi.fn(),
+    });
+
+    const propsWithUserName = {
+      ...defaultProps,
+      userName: 'John Doe',
+    };
+
+    render(<ChatWindow {...propsWithUserName} />);
+
+    // Check that the MessageList received the custom userName
+    const userNameElement = screen.getByTestId('user-name');
+    expect(userNameElement).toHaveTextContent('John Doe');
+  });
+
   it('should use "Agent" as default when agent card has no name', () => {
     // When the agent card has no name, useChatWidget returns 'Agent' as default
     mockUseChatWidget.mockReturnValue({

@@ -79,4 +79,5 @@ export interface ChatWidgetProps {
   allowFileUpload?: boolean;
   maxFileSize?: number; // in bytes
   allowedFileTypes?: string[];
+  userName?: string; // Custom display name for the user, defaults to "You"
 }

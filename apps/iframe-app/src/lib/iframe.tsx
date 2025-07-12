@@ -167,6 +167,7 @@ function parseConfig(): ChatWidgetProps {
     agentCard,
     theme: Object.keys(theme).length > 0 ? theme : undefined,
     userId: dataset.userId || params.get('userId') || undefined,
+    userName: window.LOGGED_IN_USER_NAME || dataset.userName || params.get('userName') || undefined,
     placeholder: dataset.placeholder || params.get('placeholder') || undefined,
     welcomeMessage: dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
     allowFileUpload: dataset.allowFileUpload !== 'false',

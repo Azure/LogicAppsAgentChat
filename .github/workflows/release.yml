@@ -59,7 +59,6 @@ jobs:
           ---
           "@microsoft/a2achat-core": ${{ github.event.inputs.release_type }}
           "@a2achat/iframe-app": ${{ github.event.inputs.release_type }}
-          "@a2achat/demo-app": ${{ github.event.inputs.release_type }}
           ---
           
           Release triggered manually via workflow dispatch

@@ -21,6 +21,7 @@ export function ChatWindow(props: ChatWindowProps) {
     allowedFileTypes,
     onMessage,
     onConnectionChange,
+    userName,
   } = props;
 
   const { isConnected, agentName, sendMessage, clearSession, handleAuthCompleted } = useChatWidget({
@@ -62,7 +63,7 @@ export function ChatWindow(props: ChatWindowProps) {
       <MessageList
         welcomeMessage={welcomeMessage}
         agentName={agentName || 'Assistant'}
-        userName="You"
+        userName={userName || 'You'}
         onAuthCompleted={handleAuthCompleted}
       />
 

@@ -39,8 +39,6 @@
     "chat",
     "widget",
     "react",
-    "vue",
-    "svelte",
     "monorepo",
     "framework-agnostic"
   ],

@@ -22,14 +22,6 @@
     "./react/styles.css": {
       "import": "./dist/react/styles.css",
       "require": "./dist/react/styles.css"
-    },
-    "./vue": {
-      "types": "./dist/vue/index.d.ts",
-      "import": "./dist/vue/index.js"
-    },
-    "./svelte": {
-      "types": "./dist/svelte/index.d.ts",
-      "import": "./dist/svelte/index.js"
     }
   },
   "files": [
@@ -85,18 +77,10 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "svelte": ">=3.0.0",
-    "vue": ">=3.0.0"
+    "react": ">=16.8.0"
   },
   "peerDependenciesMeta": {
     "react": {
-      "optional": true
-    },
-    "vue": {
-      "optional": true
-    },
-    "svelte": {
       "optional": true
     }
   },

@@ -39,7 +39,6 @@ pnpm --filter @microsoft/a2achat-core test
 ```bash
 # Work with specific packages
 pnpm --filter @microsoft/a2achat-core dev
-pnpm --filter @a2achat/demo-app build
 
 # Add dependencies to specific package
 pnpm --filter @microsoft/a2achat-core add package-name
@@ -51,9 +50,8 @@ pnpm --filter @microsoft/a2achat-core add package-name
 
 - **packages/a2a-core**: Core library with all business logic, framework-agnostic
   - Contains A2A client, SSE streaming, React components, and utilities
-  - Exports separate entry points: `/`, `/react`, `/vue`, `/svelte`
-- **packages/a2a-react|vue|svelte**: Framework-specific wrappers (currently skeleton packages)
-- **apps/demo-app**: Interactive demo showing all features
+  - Exports separate entry points: `/`, `/react`
+- **packages/a2a-react**: Framework-specific wrappers (currently skeleton packages)
 - **apps/iframe-app**: Embeddable iframe widget implementation
 
 ### Key Technical Decisions
@@ -91,7 +89,7 @@ pnpm --filter @microsoft/a2achat-core add package-name
 - **tsup** for building the core package with multiple entry points
 - **Vite** for building demo applications
 - CSS is bundled separately and must be imported by consumers
-- React/Vue/Svelte are peer dependencies, not bundled
+- React is a peer dependencies, not bundled
 
 ### State Management
 

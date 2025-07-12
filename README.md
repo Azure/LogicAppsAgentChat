@@ -4,18 +4,15 @@
 [![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
 [![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
 
-A framework-agnostic chat library with wrappers for React, Vue, and Svelte. Built on the A2A Browser SDK for seamless agent integration with real-time streaming support.
+A framework-agnostic chat library with wrappers for React. Built on the A2A Browser SDK for seamless agent integration with real-time streaming support.
 
 ## Structure
 
 ```
 ├── packages/
 │   ├── a2a-core/          # Framework-agnostic core library
-│   ├── a2a-react/         # React wrapper
-│   ├── a2a-vue/           # Vue wrapper
-│   └── a2a-svelte/        # Svelte wrapper
+│   └── a2a-react/         # React wrapper
 ├── apps/
-│   ├── demo-app/          # Demo application
 │   └── iframe-app/        # Iframe application
 ├── turbo.json             # Turbo configuration
 ├── pnpm-workspace.yaml    # PNPM workspace configuration
@@ -32,19 +29,7 @@ Framework-agnostic core library that provides the base chat functionality.
 
 React wrapper around the core library.
 
-### [@a2achat/vue](./packages/a2a-vue)
-
-Vue wrapper around the core library.
-
-### [@a2achat/svelte](./packages/a2a-svelte)
-
-Svelte wrapper around the core library.
-
 ## Applications
-
-### [Demo App](./apps/demo-app)
-
-Interactive demo showcasing all framework wrappers.
 
 ### [Iframe App](./apps/iframe-app)
 

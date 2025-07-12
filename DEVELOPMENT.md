@@ -7,7 +7,6 @@
 pnpm install
 
 # Start apps individually:
-pnpm --filter @a2achat/demo-app dev      # Demo app on :3000
 pnpm --filter @a2achat/iframe-app dev    # Iframe app on :3001
 
 # Or start all packages in dev mode:
@@ -39,7 +38,6 @@ The CI workflows will automatically handle missing lockfiles during the transiti
 
 - Monorepo structure with TurboRepo and PNPM workspaces
 - Migrated existing iframe functionality to `apps/iframe-app`
-- Created interactive demo at `apps/demo-app`
 - Skeleton packages for framework-agnostic core and wrappers
 
 🚧 **In Progress:**
@@ -49,17 +47,6 @@ The CI workflows will automatically handle missing lockfiles during the transiti
 - All original functionality maintained
 
 ## Applications
-
-### Demo App (`apps/demo-app`)
-
-Interactive demo showcasing the iframe integration:
-
-- **URL**: http://localhost:3000
-- **Features**:
-  - Live iframe preview (embeds iframe app from :3001)
-  - Theme customization
-  - Embed code generation
-  - Configuration examples
 
 ### Iframe App (`apps/iframe-app`)
 
@@ -79,14 +66,11 @@ The actual chat widget for iframe embedding:
 
 ```
 ├── apps/
-│   ├── demo-app/           # Interactive demo
 │   └── iframe-app/         # Chat widget (migrated from src/)
 │       └── src/            # All original components/hooks/utils
 ├── packages/               # Framework packages (skeleton)
 │   ├── a2a-core/          # Framework-agnostic core
-│   ├── a2a-react/         # React wrapper
-│   ├── a2a-vue/           # Vue wrapper
-│   └── a2a-svelte/        # Svelte wrapper
+│   └── a2a-react/         # React wrapper
 └── src/                   # Original source (can be removed after testing)
 ```
 
@@ -114,7 +98,7 @@ The actual chat widget for iframe embedding:
 
 1. **Test the migrated functionality** - verify all features work
 2. **Implement the core library** - extract common functionality
-3. **Create framework wrappers** - build React/Vue/Svelte packages
+3. **Create framework wrappers** - build React packages
 4. **Set up CI/CD** - automated testing and deployment
 5. **Add proper build configurations** - optimize for production
 
@@ -130,13 +114,10 @@ pnpm run dev                    # All packages
 # Building
 pnpm run build                 # All packages
 pnpm --filter @a2achat/iframe-app build
-pnpm --filter @a2achat/demo-app build
-
 # Type checking
 pnpm run type-check            # All packages
 pnpm --filter @a2achat/iframe-app type-check
 
 # Individual app commands
-pnpm --filter @a2achat/demo-app dev
 pnpm --filter @a2achat/iframe-app dev
 ```
