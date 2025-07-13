@@ -1,6 +1,123 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
+import {
+  Button,
+  Card,
+  Text,
+  Caption1,
+  Body1,
+  Input,
+  makeStyles,
+  shorthands,
+  tokens,
+  mergeClasses,
+} from '@fluentui/react-components';
+import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
-import styles from './SessionList.module.css';
+
+const useStyles = makeStyles({
+  sessionList: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  footer: {
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  title: {
+    fontSize: tokens.fontSizeBase600,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    margin: 0,
+  },
+  sessions: {
+    flex: 1,
+    overflowY: 'auto',
+    ...shorthands.padding(tokens.spacingVerticalS),
+  },
+  sessionItem: {
+    marginBottom: tokens.spacingVerticalS,
+    cursor: 'pointer',
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1Hover),
+    },
+  },
+  sessionItemActive: {
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
+    ':hover': {
+      backgroundColor: tokens.colorBrandBackground2Hover,
+      ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
+    },
+  },
+  sessionContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalXS),
+    flex: 1,
+  },
+  sessionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  sessionName: {
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    ...shorthands.overflow('hidden'),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    flex: 1,
+  },
+  lastMessage: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    ...shorthands.overflow('hidden'),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  sessionTime: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+  },
+  sessionActions: {
+    display: 'flex',
+    ...shorthands.gap(tokens.spacingHorizontalXS),
+  },
+  sessionActionsHidden: {
+    opacity: 0,
+    transition: 'opacity 0.2s ease',
+  },
+  sessionItemWrapper: {
+    ':hover .session-actions': {
+      opacity: 1,
+    },
+  },
+  editInput: {
+    width: '100%',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    ...shorthands.padding(tokens.spacingVerticalXXL),
+    textAlign: 'center',
+    ...shorthands.gap(tokens.spacingVerticalM),
+  },
+  emptyStateText: {
+    color: tokens.colorNeutralForeground3,
+  },
+});
 
 interface SessionListProps {
   sessions: SessionMetadata[];
@@ -42,6 +159,8 @@ const SessionItem = memo(
     onKeyDown,
     formatDate,
   }: SessionItemProps) => {
+    const styles = useStyles();
+
     const handleClick = useCallback(() => {
       onSessionClick(session.id);
     }, [onSessionClick, session.id]);
@@ -75,50 +194,64 @@ const SessionItem = memo(
       e.stopPropagation();
     }, []);
 
-    const className = useMemo(
-      () => `${styles.sessionItem} ${isActive ? styles.active : ''}`,
-      [isActive]
-    );
-
     return (
-      <div className={className} onClick={handleClick}>
-        <div className={styles.sessionContent}>
-          {isEditing ? (
-            <input
-              type="text"
-              value={editName}
-              onChange={handleEditChange}
-              onKeyDown={onKeyDown}
-              onBlur={onSaveEdit}
-              onClick={handleEditClick}
-              autoFocus
-              className={styles.editInput}
-            />
-          ) : (
-            <>
-              <div className={styles.sessionName}>{session.name || 'Untitled Chat'}</div>
-              {session.lastMessage && (
-                <div className={styles.lastMessage}>{session.lastMessage}</div>
-              )}
-              <div className={styles.sessionTime}>
-                {formatDate(session.updatedAt || Date.now())}
-              </div>
-            </>
-          )}
-        </div>
-
-        {!isEditing && (
-          <div className={styles.sessionActions}>
-            <button className={styles.actionBtn} onClick={handleStartEdit} title="Rename">
-              ✏️
-            </button>
-            {safeSessions.length > 1 && (
-              <button className={styles.actionBtn} onClick={handleDelete} title="Delete">
-                🗑️
-              </button>
+      <div className={styles.sessionItemWrapper}>
+        <Card
+          className={mergeClasses(styles.sessionItem, isActive && styles.sessionItemActive)}
+          onClick={handleClick}
+          appearance="subtle"
+        >
+          <div className={styles.sessionContent}>
+            {isEditing ? (
+              <Input
+                value={editName}
+                onChange={handleEditChange}
+                onKeyDown={onKeyDown}
+                onBlur={onSaveEdit}
+                onClick={handleEditClick}
+                autoFocus
+                className={styles.editInput}
+                size="small"
+              />
+            ) : (
+              <>
+                <div className={styles.sessionHeader}>
+                  <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
+                  {!isEditing && (
+                    <div
+                      className={mergeClasses(
+                        styles.sessionActions,
+                        styles.sessionActionsHidden,
+                        'session-actions'
+                      )}
+                    >
+                      <Button
+                        appearance="subtle"
+                        icon={<EditRegular />}
+                        size="small"
+                        onClick={handleStartEdit}
+                        title="Rename"
+                      />
+                      <Button
+                        appearance="subtle"
+                        icon={<DeleteRegular />}
+                        size="small"
+                        onClick={handleDelete}
+                        title="Delete"
+                      />
+                    </div>
+                  )}
+                </div>
+                {session.lastMessage && (
+                  <Caption1 className={styles.lastMessage}>{session.lastMessage}</Caption1>
+                )}
+                <Caption1 className={styles.sessionTime}>
+                  {formatDate(session.updatedAt || Date.now())}
+                </Caption1>
+              </>
             )}
           </div>
-        )}
+        </Card>
       </div>
     );
   }
@@ -133,6 +266,7 @@ export const SessionList = memo(
     onRenameSession,
     onDeleteSession,
   }: SessionListProps) => {
+    const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
@@ -191,18 +325,13 @@ export const SessionList = memo(
 
     return (
       <div className={styles.sessionList}>
-        <div className={styles.header}>
-          <h3>Chats</h3>
-          <button className={styles.newSessionBtn} onClick={onNewSession} title="New Chat">
-            +
-          </button>
-        </div>
-
         <div className={styles.sessions}>
           {safeSessions.length === 0 ? (
             <div className={styles.emptyState}>
-              <p>No chats yet</p>
-              <button onClick={onNewSession}>Start a new chat</button>
+              <Body1 className={styles.emptyStateText}>No chats yet</Body1>
+              <Button appearance="primary" onClick={onNewSession}>
+                Start a new chat
+              </Button>
             </div>
           ) : (
             safeSessions.map((session) => (
@@ -223,6 +352,18 @@ export const SessionList = memo(
               />
             ))
           )}
+        </div>
+        <div className={styles.footer}>
+          <Button
+            appearance="primary"
+            icon={<AddRegular fontSize={16} />}
+            onClick={onNewSession}
+            size="medium"
+            title="New Chat"
+            style={{ width: '100%' }}
+          >
+            New Chat
+          </Button>
         </div>
       </div>
     );

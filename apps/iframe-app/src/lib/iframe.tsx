@@ -171,7 +171,7 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
     userName: window.LOGGED_IN_USER_NAME || dataset.userName || params.get('userName') || undefined,
     placeholder: dataset.placeholder || params.get('placeholder') || undefined,
     welcomeMessage: dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
-    allowFileUpload: dataset.allowFileUpload !== 'false',
+    allowFileUpload: dataset.allowFileUpload === 'true' || params.get('allowFileUpload') === 'true',
     maxFileSize: dataset.maxFileSize ? parseInt(dataset.maxFileSize) : undefined,
     allowedFileTypes: dataset.allowedFileTypes?.split(',').map((t) => t.trim()),
   };

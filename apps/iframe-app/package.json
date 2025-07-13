@@ -13,6 +13,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@fluentui/react-components": "^9.66.7",
+    "@fluentui/react-icons": "^2.0.306",
     "@microsoft/a2achat-core": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
