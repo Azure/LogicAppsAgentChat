@@ -48,11 +48,12 @@ pnpm --filter @microsoft/a2achat-core add package-name
 
 ### Monorepo Structure
 
-- **packages/a2a-core**: Core library with all business logic, framework-agnostic
+- **packages/a2a-core**: Core library with all business logic
   - Contains A2A client, SSE streaming, React components, and utilities
-  - Exports separate entry points: `/`, `/react`
-- **packages/a2a-react**: Framework-specific wrappers (currently skeleton packages)
+  - Exports separate entry points: `/`, `/react`, `/chat`
+  - Package name: `@microsoft/a2achat-core`
 - **apps/iframe-app**: Embeddable iframe widget implementation
+- **apps/vue-demo**: Vue.js demo application showing SDK integration
 
 ### Key Technical Decisions
 
@@ -61,7 +62,8 @@ pnpm --filter @microsoft/a2achat-core add package-name
    - Authentication uses the same streaming protocol (not regular HTTP)
 
 2. **Component Architecture**:
-   - React components use CSS Modules with `.module.css` files
+   - React components use Fluent UI v9 components
+   - CSS Modules with `.module.css` files for custom styling
    - State management via Zustand store (`src/react/store/chatStore.ts`)
    - All components are fully typed with TypeScript strict mode
 
@@ -89,7 +91,7 @@ pnpm --filter @microsoft/a2achat-core add package-name
 - **tsup** for building the core package with multiple entry points
 - **Vite** for building demo applications
 - CSS is bundled separately and must be imported by consumers
-- React is a peer dependencies, not bundled
+- React and Fluent UI are peer dependencies, not bundled
 
 ### State Management
 
@@ -130,9 +132,19 @@ Extensible plugin architecture in `src/plugins/`:
 - Global styles go in `src/react/styles/index.css`
 - Support light/dark themes via CSS variables
 
-## Migration Status
+## Recent Changes
 
-The codebase is being migrated from a single package to a monorepo structure. The migration preserves all original functionality in `@microsoft/a2achat-core` while preparing for framework-specific packages.
+### Fluent UI Migration
+
+- Migrated from custom components to Fluent UI v9 components
+- Updated all React components to use Fluent UI design system
+- Maintained CSS Module support for custom styling needs
+
+### Multi-Session Support
+
+- Added support for multiple chat sessions in iframe app
+- Implemented session management utilities
+- Added session list component with session switching
 
 ## Important Context
 

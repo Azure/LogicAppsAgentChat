@@ -144,14 +144,10 @@ describe('useA2A', () => {
           ],
           artifacts: [
             {
-              artifactId: 'file.js',
-              name: 'file.js',
-              parts: [
-                {
-                  kind: 'text',
-                  text: 'console.log("Hello");',
-                },
-              ],
+              id: 'file.js',
+              type: 'code',
+              title: 'file.js',
+              content: 'console.log("Hello");',
             },
           ],
         };
@@ -440,14 +436,16 @@ describe('useA2A', () => {
           ],
           artifacts: [
             {
-              artifactId: 'file1.js',
-              name: 'file1.js',
-              parts: [{ kind: 'text', text: 'console.log("file1");' }],
+              id: 'file1.js',
+              type: 'code',
+              title: 'file1.js',
+              content: 'console.log("file1");',
             },
             {
-              artifactId: 'file2.js',
-              name: 'file2.js',
-              parts: [{ kind: 'text', text: 'console.log("file2");' }],
+              id: 'file2.js',
+              type: 'code',
+              title: 'file2.js',
+              content: 'console.log("file2");',
             },
           ],
         };

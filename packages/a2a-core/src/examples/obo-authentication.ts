@@ -78,12 +78,12 @@ export function ExampleOBOComponent() {
         // After the popup closes, you need to send the authentication completed message
 
         // Check if we have a context ID (this would be set by the streaming response)
-        if ((task as any).contextId) {
+        if ('contextId' in task && task.contextId) {
           // In a real implementation, you would track whether auth was just completed
           // and only send this message once after the popup closes
           // This is just for demonstration purposes
           // Send authentication completed message to resume the stream
-          // await client.sendAuthenticationCompleted((task as any).contextId);
+          // await client.sendAuthenticationCompleted(task.contextId);
         }
       }
     } catch (error) {

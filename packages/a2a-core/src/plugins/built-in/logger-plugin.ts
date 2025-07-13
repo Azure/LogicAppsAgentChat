@@ -1,4 +1,4 @@
-import type { Plugin, PluginContext } from '../types';
+import type { Plugin, PluginContext, PluginHooks } from '../types';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -53,7 +53,7 @@ export class LoggerPlugin implements Plugin {
     return parts.join(' ');
   }
 
-  private log(level: LogLevel, message: string, data?: any): void {
+  private log(level: LogLevel, message: string, data?: unknown): void {
     if (!this.shouldLog(level)) return;
 
     const formattedMessage = this.formatMessage(level, message);
@@ -76,8 +76,8 @@ export class LoggerPlugin implements Plugin {
     }
   }
 
-  hooks = {
-    beforeRequest: async (request: any) => {
+  hooks: PluginHooks = {
+    beforeRequest: async (request) => {
       this.log('debug', 'HTTP Request', {
         method: request.method,
         url: request.url,
@@ -86,7 +86,7 @@ export class LoggerPlugin implements Plugin {
       return request;
     },
 
-    afterResponse: async (response: any) => {
+    afterResponse: async (response) => {
       this.log('debug', 'HTTP Response', {
         status: response.status,
         statusText: response.statusText,
@@ -95,7 +95,7 @@ export class LoggerPlugin implements Plugin {
       return response;
     },
 
-    beforeMessageSend: async (message: any) => {
+    beforeMessageSend: async (message) => {
       this.log('info', 'Sending message', {
         role: message.role,
         contentLength: message.content.length,
@@ -103,7 +103,7 @@ export class LoggerPlugin implements Plugin {
       return message;
     },
 
-    afterMessageReceive: async (message: any) => {
+    afterMessageReceive: async (message) => {
       this.log('info', 'Received message', {
         role: message.role,
         contentLength: message.content.length,
@@ -111,21 +111,28 @@ export class LoggerPlugin implements Plugin {
       return message;
     },
 
-    onTaskCreated: async (task: any) => {
+    onTaskCreated: async (task) => {
       this.log('info', 'Task created', {
         id: task.id,
         state: task.state,
       });
     },
 
-    onTaskCompleted: async (task: any) => {
+    onTaskCompleted: async (task) => {
+      const updatedAtDate = task.updatedAt
+        ? typeof task.updatedAt === 'string'
+          ? new Date(task.updatedAt)
+          : task.updatedAt
+        : new Date();
+      const createdAtDate =
+        typeof task.createdAt === 'string' ? new Date(task.createdAt) : task.createdAt;
       this.log('info', 'Task completed', {
         id: task.id,
-        duration: `${task.updatedAt.getTime() - task.createdAt.getTime()}ms`,
+        duration: `${updatedAtDate.getTime() - createdAtDate.getTime()}ms`,
       });
     },
 
-    onTaskFailed: async (task: any) => {
+    onTaskFailed: async (task) => {
       this.log('error', 'Task failed', {
         id: task.id,
         error: task.error,

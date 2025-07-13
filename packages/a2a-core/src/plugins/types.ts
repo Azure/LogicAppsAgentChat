@@ -1,6 +1,7 @@
 import type { A2AClient } from '../client/a2a-client';
 import type { SessionManager } from '../session/session-manager';
-import type { Message } from '../types';
+import type { Message, Task } from '../types';
+import type { RequestConfig } from '../client/types';
 
 export type PluginContext = {
   client: A2AClient;
@@ -10,17 +11,19 @@ export type PluginContext = {
 
 export type PluginHooks = {
   // HTTP hooks
-  beforeRequest?: (request: any) => any | Promise<any>;
-  afterResponse?: (response: any) => any | Promise<any>;
+  beforeRequest?: (
+    request: RequestConfig & { url: string }
+  ) => (RequestConfig & { url: string }) | Promise<RequestConfig & { url: string }>;
+  afterResponse?: (response: Response) => Response | Promise<Response>;
 
   // Message hooks
   beforeMessageSend?: (message: Message) => Message | Promise<Message>;
   afterMessageReceive?: (message: Message) => Message | Promise<Message>;
 
   // Task hooks
-  onTaskCreated?: (task: any) => void | Promise<void>;
-  onTaskCompleted?: (task: any) => void | Promise<void>;
-  onTaskFailed?: (task: any) => void | Promise<void>;
+  onTaskCreated?: (task: Task) => void | Promise<void>;
+  onTaskCompleted?: (task: Task) => void | Promise<void>;
+  onTaskFailed?: (task: Task) => void | Promise<void>;
 
   // Error handling
   onError?: (error: Error) => void | Promise<void>;

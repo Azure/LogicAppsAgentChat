@@ -1,6 +1,27 @@
 import { EventEmitter } from 'eventemitter3';
 import type { SessionData, SessionOptions, SessionEventMap } from './types';
 
+/**
+ * Manages chat session state including context IDs, conversation history, and metadata.
+ * Supports automatic persistence to browser storage and session expiration.
+ *
+ * @example
+ * ```typescript
+ * const sessionManager = new SessionManager({
+ *   sessionId: 'my-session',
+ *   storage: 'local',
+ *   autoSave: true,
+ *   ttl: 3600000 // 1 hour
+ * });
+ *
+ * sessionManager.setContextId('context-123');
+ * sessionManager.addMessage({ role: 'user', content: 'Hello' });
+ *
+ * sessionManager.on('session:change', (event) => {
+ *   console.log('Session updated:', event);
+ * });
+ * ```
+ */
 export class SessionManager extends EventEmitter<SessionEventMap> {
   private session: SessionData;
   private options: Required<SessionOptions>;
@@ -100,7 +121,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     if (typeof setImmediate !== 'undefined') {
       this.saveDebounceTimer = setImmediate(() => {
         this.persistSession();
-      }) as any;
+      }) as unknown as NodeJS.Timeout;
     } else {
       Promise.resolve().then(() => {
         this.persistSession();

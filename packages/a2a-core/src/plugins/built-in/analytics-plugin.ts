@@ -1,4 +1,4 @@
-import type { Plugin, PluginContext } from '../types';
+import type { Plugin, PluginContext, PluginHooks } from '../types';
 
 export interface AnalyticsConfig {
   trackingId?: string;
@@ -93,38 +93,40 @@ export class AnalyticsPlugin implements Plugin {
     }, 30000); // Flush every 30 seconds
   }
 
-  hooks = {
-    beforeMessageSend: async (message: any) => {
+  hooks: PluginHooks = {
+    beforeMessageSend: async (message) => {
       this.track('message.send', {
         role: message.role,
-        contentTypes: message.content.map((c: any) => c.type),
+        contentTypes: message.content.map((c) => c.type),
       });
       return message;
     },
 
-    afterMessageReceive: async (message: any) => {
+    afterMessageReceive: async (message) => {
       this.track('message.receive', {
         role: message.role,
-        contentTypes: message.content.map((c: any) => c.type),
+        contentTypes: message.content.map((c) => c.type),
       });
       return message;
     },
 
-    onTaskCreated: async (task: any) => {
+    onTaskCreated: async (task) => {
       this.track('task.created', {
         taskId: task.id,
         state: task.state,
       });
     },
 
-    onTaskCompleted: async (task: any) => {
+    onTaskCompleted: async (task) => {
       this.track('task.completed', {
         taskId: task.id,
-        duration: task.updatedAt.getTime() - task.createdAt.getTime(),
+        duration: task.updatedAt
+          ? new Date(task.updatedAt).getTime() - new Date(task.createdAt).getTime()
+          : 0,
       });
     },
 
-    onTaskFailed: async (task: any) => {
+    onTaskFailed: async (task) => {
       this.track('task.failed', {
         taskId: task.id,
         error: task.error?.message,

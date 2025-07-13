@@ -1,22 +1,124 @@
 import { HttpClient } from './http-client';
 import { MessageSchema, MessageSendRequestSchema, TaskSchema } from '../types/schemas';
-import type { AgentCard, AgentCapabilities, Task, MessageSendRequest, TaskState } from '../types';
+import type {
+  AgentCard,
+  AgentCapabilities,
+  Task,
+  MessageSendRequest,
+  TaskState,
+  Artifact,
+  Message,
+} from '../types';
 import type { AuthConfig, HttpClientOptions, AuthRequiredHandler, AuthRequiredPart } from './types';
 import { SSEClient } from '../streaming/sse-client';
 import type { SSEMessage } from '../streaming/types';
 
+// JSON-RPC types
+interface JsonRpcResponse<T = unknown> {
+  jsonrpc: '2.0';
+  result?: T;
+  error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+  id: number | string;
+  contextId?: string;
+}
+
+// Extended Task type with contextId for internal use
+interface TaskWithContext extends Task {
+  contextId?: string;
+}
+
+// A2A protocol message part types
+interface A2AMessagePart {
+  kind: 'text' | 'data' | 'file';
+  text?: string;
+  data?: unknown;
+  mimeType?: string;
+  filename?: string;
+}
+
+// A2A protocol status message
+interface A2AStatusMessage {
+  parts: A2AMessagePart[];
+  role?: string;
+}
+
+// A2A protocol response result
+interface A2AResult {
+  kind?: string;
+  id?: string;
+  state?: TaskState;
+  createdAt?: string;
+  updatedAt?: string;
+  messages?: unknown[];
+  artifacts?: unknown[];
+  contextId?: string;
+  taskId?: string;
+  status?: {
+    message?: A2AStatusMessage;
+    state?: TaskState | 'submitted';
+    timestamp?: string;
+  };
+  artifact?: {
+    parts?: A2AMessagePart[];
+    id?: string;
+    type?: string;
+    title?: string;
+    content?: string;
+    append?: boolean;
+    metadata?: Record<string, unknown>;
+  };
+  final?: boolean;
+  lastChunk?: boolean;
+}
+
+/**
+ * Configuration options for creating an A2A client
+ */
 export interface A2AClientConfig {
+  /** The agent card describing the A2A agent's capabilities and endpoints */
   agentCard: AgentCard;
+  /** Optional authentication configuration */
   auth?: AuthConfig;
+  /** Optional HTTP client configuration for advanced use cases */
   httpOptions?: HttpClientOptions;
+  /** Optional handler for authentication required events during streaming */
   onAuthRequired?: AuthRequiredHandler;
 }
 
+/**
+ * Options for waiting for task completion
+ */
 export interface WaitForCompletionOptions {
+  /** Polling interval in milliseconds (default: 1000) */
   pollingInterval?: number;
+  /** Maximum time to wait in milliseconds (default: 300000 - 5 minutes) */
   timeout?: number;
 }
 
+/**
+ * Client for interacting with A2A (Agent-to-Agent) protocol agents.
+ * Provides methods for sending messages, managing tasks, and handling streaming responses.
+ *
+ * @example
+ * ```typescript
+ * const client = new A2AClient({
+ *   agentCard: myAgentCard,
+ *   auth: { type: 'bearer', token: 'my-token' },
+ *   onAuthRequired: async (event) => {
+ *     // Handle authentication requirements
+ *   }
+ * });
+ *
+ * // Send a message and stream the response
+ * for await (const task of client.message.stream({ message: { role: 'user', content: [{ type: 'text', content: 'Hello' }] } })) {
+ *   // Task update available here
+ * }
+ * ```
+ */
 export class A2AClient {
   private readonly agentCard: AgentCard;
   private readonly httpClient: HttpClient;
@@ -46,7 +148,7 @@ export class A2AClient {
   }
 
   hasCapability(capabilityName: keyof AgentCapabilities): boolean {
-    const capabilities = this.agentCard.capabilities as any;
+    const capabilities = this.agentCard.capabilities;
     return !!capabilities[capabilityName];
   }
 
@@ -80,11 +182,14 @@ export class A2AClient {
               data: part.data,
               filename: part.filename,
             };
-          } else {
+          } else if (part.type === 'structured') {
             return {
               kind: 'data',
-              data: (part as any).data,
+              data: part.data,
             };
+          } else {
+            // This should never happen due to discriminated union
+            throw new Error(`Unknown part type: ${(part as { type: string }).type}`);
           }
         }),
         // Include contextId directly in message if available
@@ -103,7 +208,10 @@ export class A2AClient {
       };
 
       // Send request to root path using JSON-RPC
-      const jsonRpcResponse = await this.httpClient.post<any>('/', jsonRpcRequest);
+      const jsonRpcResponse = await this.httpClient.post<JsonRpcResponse<Task>>(
+        '/',
+        jsonRpcRequest
+      );
 
       // Extract result from JSON-RPC response
       if (jsonRpcResponse.error) {
@@ -148,7 +256,7 @@ export class A2AClient {
           let errorOccurred: Error | null = null;
 
           // Accumulator state for the current task
-          let currentTask: Task | null = null;
+          let currentTask: TaskWithContext | null = null;
 
           return {
             next: async (): Promise<IteratorResult<Task>> => {
@@ -172,11 +280,14 @@ export class A2AClient {
                           data: part.data,
                           filename: part.filename,
                         };
-                      } else {
+                      } else if (part.type === 'structured') {
                         return {
                           kind: 'data',
-                          data: (part as any).data,
+                          data: part.data,
                         };
+                      } else {
+                        // This should never happen due to discriminated union
+                        throw new Error(`Unknown part type: ${(part as { type: string }).type}`);
                       }
                     }),
                     // Include contextId directly in message if available
@@ -223,18 +334,16 @@ export class A2AClient {
                     withCredentials: this.auth.type !== 'none',
                   });
 
-                  // Store SSE client for testing - store on the client instance
+                  // SSE client is now created and will be used for streaming
+                  // Store reference for testing purposes
                   (clientInstance as any).sseClient = sseClient;
 
                   // Set up persistent message handlers
                   const messageHandler = (message: SSEMessage) => {
                     try {
                       // Parse JSON-RPC response from SSE data
-                      const jsonRpcData = message.data as any;
-                      console.log(
-                        'DEBUG: Raw SSE message data:',
-                        JSON.stringify(jsonRpcData, null, 2)
-                      );
+                      const jsonRpcData = message.data as JsonRpcResponse;
+                      // SSE message received with JSON-RPC data
 
                       // Check if it's a JSON-RPC error
                       if (jsonRpcData.error) {
@@ -249,7 +358,7 @@ export class A2AClient {
                       }
 
                       // Extract the result which should be a task or status update
-                      const result = jsonRpcData.result || jsonRpcData;
+                      const result = (jsonRpcData.result || jsonRpcData) as A2AResult;
 
                       // Handle different A2A response types
                       // Check if this is a legacy format (direct task data without 'kind' field)
@@ -258,44 +367,46 @@ export class A2AClient {
                         if (!currentTask || currentTask.id !== result.id) {
                           // New task or task ID changed - create new task state
                           currentTask = {
-                            id: result.id,
-                            state: result.state,
+                            id: result.id!,
+                            state: result.state!,
                             createdAt: result.createdAt || new Date().toISOString(),
-                            messages: result.messages || [],
-                            artifacts: result.artifacts || [],
+                            messages: (result.messages || []) as Message[],
+                            artifacts: (result.artifacts || []) as Artifact[],
                             // Include contextId from server response if available
                             ...(result.contextId ? { contextId: result.contextId } : {}),
                             ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
                           };
-                        } else {
+                        } else if (currentTask) {
                           // Update existing task
-                          currentTask.state = result.state;
+                          currentTask.state = result.state!;
                           currentTask.updatedAt = result.updatedAt || new Date().toISOString();
                           if (result.messages) {
-                            currentTask.messages = result.messages;
+                            currentTask.messages = result.messages as Message[];
                           }
                           if (result.artifacts) {
-                            currentTask.artifacts = result.artifacts;
+                            currentTask.artifacts = result.artifacts as Artifact[];
                           }
                           // Update contextId if provided
                           if (result.contextId) {
-                            (currentTask as any).contextId = result.contextId;
+                            currentTask.contextId = result.contextId;
                           }
                           if (jsonRpcData.contextId) {
-                            (currentTask as any).contextId = jsonRpcData.contextId;
+                            currentTask.contextId = jsonRpcData.contextId;
                           }
                         }
 
                         // Queue the task update
-                        messageQueue.push({
-                          ...currentTask,
-                          messages: [...currentTask.messages],
-                          artifacts: currentTask.artifacts ? [...currentTask.artifacts] : undefined,
-                          // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
-                            : {}),
-                        });
+                        if (currentTask) {
+                          messageQueue.push({
+                            ...currentTask,
+                            messages: [...currentTask.messages],
+                            artifacts: currentTask.artifacts
+                              ? [...currentTask.artifacts]
+                              : undefined,
+                            // Pass through contextId to the consumer
+                            ...(currentTask.contextId ? { contextId: currentTask.contextId } : {}),
+                          } as Task);
+                        }
 
                         // Check if completed
                         if (result.state === 'completed' || result.state === 'failed') {
@@ -307,7 +418,7 @@ export class A2AClient {
                       } else if (result.kind === 'task') {
                         // Initial task response - create the base task
                         currentTask = {
-                          id: result.id,
+                          id: result.id!,
                           state: result.status?.state === 'submitted' ? 'pending' : 'running',
                           createdAt: result.status?.timestamp || new Date().toISOString(),
                           messages: [],
@@ -317,23 +428,23 @@ export class A2AClient {
                           ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
                         };
                         // Queue the initial task with a clean copy
-                        messageQueue.push({
-                          id: currentTask.id,
-                          state: currentTask.state,
-                          createdAt: currentTask.createdAt,
-                          messages: [],
-                          artifacts: [],
-                          // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
-                            : {}),
-                        });
+                        if (currentTask) {
+                          messageQueue.push({
+                            id: currentTask.id,
+                            state: currentTask.state,
+                            createdAt: currentTask.createdAt,
+                            messages: [],
+                            artifacts: [],
+                            // Pass through contextId to the consumer
+                            ...(currentTask.contextId ? { contextId: currentTask.contextId } : {}),
+                          } as Task);
+                        }
                       } else if (result.kind === 'status-update') {
                         // Status update - accumulate messages
                         if (!currentTask) {
                           // Create task if we don't have one yet
                           currentTask = {
-                            id: result.taskId || result.id,
+                            id: result.taskId || result.id || `task-${Date.now()}`,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
@@ -345,49 +456,51 @@ export class A2AClient {
                         }
 
                         // Update task state
-                        currentTask.state =
-                          result.status?.state === 'completed'
-                            ? 'completed'
-                            : result.status?.state === 'failed'
-                              ? 'failed'
-                              : 'running';
-                        currentTask.updatedAt =
-                          result.status?.timestamp || new Date().toISOString();
+                        if (currentTask) {
+                          currentTask.state =
+                            result.status?.state === 'completed'
+                              ? 'completed'
+                              : result.status?.state === 'failed'
+                                ? 'failed'
+                                : 'running';
+                          currentTask.updatedAt =
+                            result.status?.timestamp || new Date().toISOString();
 
-                        // Update contextId if provided
-                        if (result.contextId) {
-                          (currentTask as any).contextId = result.contextId;
-                        }
-                        if (jsonRpcData.contextId) {
-                          (currentTask as any).contextId = jsonRpcData.contextId;
-                        }
-
-                        // Add new message if present
-                        const statusMessage = result.status?.message;
-                        if (statusMessage && statusMessage.parts) {
-                          // Convert A2A message format to our format
-                          const content = statusMessage.parts
-                            .filter((p: any) => p.kind === 'text')
-                            .map((p: any) => ({ type: 'text', content: p.text }));
-
-                          if (content.length > 0) {
-                            currentTask.messages.push({
-                              role: statusMessage.role === 'agent' ? 'assistant' : 'user',
-                              content,
-                            });
+                          // Update contextId if provided
+                          if (result.contextId) {
+                            currentTask.contextId = result.contextId;
                           }
-                        }
+                          if (jsonRpcData.contextId) {
+                            currentTask.contextId = jsonRpcData.contextId;
+                          }
 
-                        // Queue a snapshot of the current task state
-                        messageQueue.push({
-                          ...currentTask,
-                          messages: [...currentTask.messages],
-                          artifacts: currentTask.artifacts ? [...currentTask.artifacts] : undefined,
-                          // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
-                            : {}),
-                        });
+                          // Add new message if present
+                          const statusMessage = result.status?.message;
+                          if (statusMessage && statusMessage.parts) {
+                            // Convert A2A message format to our format
+                            const content = statusMessage.parts
+                              .filter((p) => p.kind === 'text')
+                              .map((p) => ({ type: 'text' as const, content: p.text || '' }));
+
+                            if (content.length > 0) {
+                              currentTask.messages.push({
+                                role: statusMessage.role === 'agent' ? 'assistant' : 'user',
+                                content,
+                              } as Message);
+                            }
+                          }
+
+                          // Queue a snapshot of the current task state
+                          messageQueue.push({
+                            ...currentTask,
+                            messages: [...currentTask.messages],
+                            artifacts: currentTask.artifacts
+                              ? [...currentTask.artifacts]
+                              : undefined,
+                            // Pass through contextId to the consumer
+                            ...(currentTask.contextId ? { contextId: currentTask.contextId } : {}),
+                          } as Task);
+                        }
 
                         // Check if this is the final update
                         if (result.final) {
@@ -415,17 +528,20 @@ export class A2AClient {
                         // Handle streaming text content from artifacts
                         if (result.artifact && result.artifact.parts) {
                           const textParts = result.artifact.parts
-                            .filter((part: any) => part.kind === 'Text' || part.kind === 'text')
-                            .map((part: any) => part.text || '')
+                            .filter((part) => part.kind === 'text')
+                            .map((part) => part.text || '')
                             .join('');
 
-                          if (!result.append) {
+                          if (!result.artifact?.append) {
                             // Start new message - this is the first chunk
                             const newMessage = {
                               role: 'assistant' as const,
                               content: [{ type: 'text' as const, content: textParts }],
                             };
-                            currentTask.messages = [...(currentTask.messages || []), newMessage];
+                            currentTask.messages = [
+                              ...(currentTask.messages || []),
+                              newMessage as Message,
+                            ];
                           } else {
                             // Append to existing message - this is a continuation
                             if (currentTask.messages && currentTask.messages.length > 0) {
@@ -464,13 +580,19 @@ export class A2AClient {
                             messages: [...(currentTask.messages || [])],
                             artifacts: currentTask.artifacts ? [...currentTask.artifacts] : [],
                             // Pass through contextId to the consumer
-                            ...((currentTask as any).contextId
-                              ? { contextId: (currentTask as any).contextId }
-                              : {}),
+                            ...(currentTask.contextId ? { contextId: currentTask.contextId } : {}),
                           });
                         } else if (result.artifact) {
                           // Handle complete artifacts (not streaming parts)
-                          const artifact = result.artifact;
+                          const artifact: Artifact = {
+                            id: result.artifact.id || `artifact-${Date.now()}`,
+                            type: result.artifact.type || 'unknown',
+                            title: result.artifact.title || 'Untitled',
+                            content: result.artifact.content || '',
+                            ...(result.artifact.metadata
+                              ? { metadata: result.artifact.metadata }
+                              : {}),
+                          };
 
                           // Check if this artifact already exists (avoid duplicates)
                           const existingArtifactIndex = currentTask.artifacts?.findIndex(
@@ -498,14 +620,11 @@ export class A2AClient {
                         }
                       } else if (result.kind === 'auth-required') {
                         // Handle authentication required status
-                        console.log(
-                          'DEBUG: Auth required event received:',
-                          JSON.stringify(result, null, 2)
-                        );
+                        // Auth required event received
 
                         if (!currentTask) {
                           currentTask = {
-                            id: result.taskId || result.id,
+                            id: result.taskId || result.id || `task-${Date.now()}`,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
@@ -521,8 +640,15 @@ export class A2AClient {
 
                           // Collect all auth parts
                           for (const part of authMessage.parts) {
-                            if (part.kind === 'Data' || part.kind === 'data') {
-                              const authData = part.data;
+                            if (part.kind === 'data') {
+                              const authData = part.data as {
+                                messageType?: string;
+                                consentLink?: { link: string };
+                                status?: string;
+                                serviceName?: string;
+                                serviceIcon?: string;
+                                description?: string;
+                              };
                               if (
                                 authData?.messageType === 'InTaskAuthRequired' &&
                                 authData?.consentLink
@@ -541,8 +667,8 @@ export class A2AClient {
                           // If we have auth parts, trigger the handler
                           if (authParts.length > 0 && clientInstance.onAuthRequired) {
                             const authEvent = {
-                              taskId: result.taskId || currentTask.id,
-                              contextId: result.contextId || (currentTask as any).contextId || '',
+                              taskId: result.taskId || currentTask?.id || '',
+                              contextId: result.contextId || currentTask?.contextId || '',
                               authParts,
                               messageType: 'InTaskAuthRequired',
                             };
@@ -550,10 +676,10 @@ export class A2AClient {
                             // Call the auth handler
                             Promise.resolve(clientInstance.onAuthRequired(authEvent))
                               .then(() => {
-                                console.log('DEBUG: Auth handler completed successfully');
+                                // Auth handler completed successfully
                               })
                               .catch((error) => {
-                                console.error('DEBUG: Auth handler failed:', error);
+                                // Auth handler failed
                                 errorOccurred = new Error(
                                   `Authentication failed: ${error.message}`
                                 );
@@ -654,7 +780,7 @@ export class A2AClient {
               if (sseClient) {
                 sseClient.close();
               }
-              return { done: true, value: undefined as any };
+              return { done: true, value: undefined } as IteratorResult<Task>;
             },
             throw: async (error?: Error): Promise<IteratorResult<Task>> => {
               if (sseClient) {
@@ -670,7 +796,7 @@ export class A2AClient {
 
   // Send authentication completed message as a regular user message with data part
   sendAuthenticationCompleted = async (contextId: string): Promise<void> => {
-    console.log('DEBUG: Sending authentication completed message for context:', contextId);
+    // Sending authentication completed message
 
     // Create the auth completed message exactly as expected by the server
     // The contextId must be in the message itself, and we need a "data" part
@@ -698,13 +824,13 @@ export class A2AClient {
       let responseReceived = false;
 
       for await (const task of this.message.stream(messageRequest)) {
-        console.log('DEBUG: Auth completed response:', task);
+        // Auth completed response received
         responseReceived = true;
 
         // We can break after receiving acknowledgment that the message was received
         // The server will continue processing and resume the original task
         if (task.id) {
-          console.log('DEBUG: Authentication completed message acknowledged, task:', task.id);
+          // Authentication completed message acknowledged
           break;
         }
       }
@@ -713,9 +839,9 @@ export class A2AClient {
         throw new Error('No response received for authentication completed message');
       }
 
-      console.log('DEBUG: Authentication completed message sent successfully');
+      // Authentication completed message sent successfully
     } catch (error) {
-      console.error('DEBUG: Failed to send authentication completed:', error);
+      // Failed to send authentication completed
       throw new Error(
         `Failed to send authentication completed: ${error instanceof Error ? error.message : String(error)}`
       );

@@ -7,6 +7,23 @@ import type {
   HttpClientOptions,
 } from './types';
 
+/**
+ * HTTP client for making requests to A2A agents.
+ * Handles authentication, retries, timeouts, and interceptors.
+ *
+ * @example
+ * ```typescript
+ * const httpClient = new HttpClient('https://api.example.com', {
+ *   type: 'bearer',
+ *   token: 'my-token'
+ * });
+ *
+ * const response = await httpClient.request('/endpoint', {
+ *   method: 'POST',
+ *   body: { data: 'value' }
+ * });
+ * ```
+ */
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly auth: AuthConfig | undefined;
@@ -100,7 +117,8 @@ export class HttpClient {
           if (request.body) {
             options.body = request.body;
             // Required for streaming bodies in some environments
-            (options as any).duplex = 'half';
+            // TypeScript doesn't know about the duplex option yet
+            (options as RequestInit & { duplex?: string }).duplex = 'half';
           }
 
           const fetchRequest = new Request(request.url, options);

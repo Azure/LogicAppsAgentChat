@@ -7,7 +7,8 @@
 pnpm install
 
 # Start apps individually:
-pnpm --filter @a2achat/iframe-app dev    # Iframe app on :3001
+pnpm --filter iframe-app dev              # Iframe app
+pnpm --filter vue-demo dev                # Vue demo app
 
 # Or start all packages in dev mode:
 pnpm run dev
@@ -32,19 +33,30 @@ git commit -m "fix: update pnpm-lock.yaml"
 
 The CI workflows will automatically handle missing lockfiles during the transition period.
 
-## Migration Status
+## Project Structure
 
-✅ **Completed:**
+### Packages
 
-- Monorepo structure with TurboRepo and PNPM workspaces
-- Migrated existing iframe functionality to `apps/iframe-app`
-- Skeleton packages for framework-agnostic core and wrappers
+- **@microsoft/a2achat-core** (`packages/a2a-core/`): Core SDK with all functionality
+  - Framework-agnostic core at root export
+  - React components at `/react` export
+  - Chat functionality at `/chat` export
 
-🚧 **In Progress:**
+### Applications
 
-- All existing React components, hooks, and utilities are now in `apps/iframe-app/src`
-- Complete A2A SDK integration preserved
-- All original functionality maintained
+- **iframe-app** (`apps/iframe-app/`): Embeddable iframe widget
+- **vue-demo** (`apps/vue-demo/`): Vue.js demo application
+
+### Key Technologies
+
+- **TypeScript**: Strict mode enabled across all packages
+- **React 18+**: For component library
+- **Fluent UI v9**: Design system for consistent UI
+- **Vite**: Build tool for applications
+- **tsup**: Build tool for library package
+- **Vitest**: Testing framework
+- **pnpm**: Package manager with workspace support
+- **TurboRepo**: Monorepo orchestration
 
 ## Applications
 
@@ -66,12 +78,16 @@ The actual chat widget for iframe embedding:
 
 ```
 ├── apps/
-│   └── iframe-app/         # Chat widget (migrated from src/)
-│       └── src/            # All original components/hooks/utils
-├── packages/               # Framework packages (skeleton)
-│   ├── a2a-core/          # Framework-agnostic core
-│   └── a2a-react/         # React wrapper
-└── src/                   # Original source (can be removed after testing)
+│   ├── iframe-app/        # Embeddable chat widget
+│   └── vue-demo/          # Vue.js demo application
+├── packages/
+│   └── a2a-core/          # Core SDK with all functionality
+│       ├── src/           # Source code
+│       ├── dist/          # Built output
+│       └── tsup.config.ts # Build configuration
+├── docs/                  # Documentation
+├── scripts/               # Utility scripts
+└── turbo.json            # TurboRepo configuration
 ```
 
 ## Usage Examples
@@ -94,13 +110,25 @@ The actual chat widget for iframe embedding:
 - `allowFileUpload`: Enable file uploads (true/false)
 - `expectPostMessage`: Wait for agent card via postMessage (true/false)
 
-## Next Steps
+## Testing
 
-1. **Test the migrated functionality** - verify all features work
-2. **Implement the core library** - extract common functionality
-3. **Create framework wrappers** - build React packages
-4. **Set up CI/CD** - automated testing and deployment
-5. **Add proper build configurations** - optimize for production
+```bash
+# Run tests
+pnpm test                      # All packages
+pnpm test:watch               # Watch mode
+pnpm test:ui                  # Vitest UI
+pnpm test:coverage            # Coverage report
+
+# Test specific package
+pnpm --filter @microsoft/a2achat-core test
+```
+
+### Test Coverage Requirements
+
+- Lines: 70%
+- Functions: 85%
+- Branches: 70%
+- Statements: 70%
 
 ## Development Commands
 
@@ -113,11 +141,15 @@ pnpm run dev                    # All packages
 
 # Building
 pnpm run build                 # All packages
-pnpm --filter @a2achat/iframe-app build
-# Type checking
-pnpm run type-check            # All packages
-pnpm --filter @a2achat/iframe-app type-check
+pnpm --filter @microsoft/a2achat-core build
+pnpm --filter iframe-app build
 
-# Individual app commands
-pnpm --filter @a2achat/iframe-app dev
+# Type checking
+pnpm run typecheck             # All packages
+pnpm --filter @microsoft/a2achat-core typecheck
+
+# Linting & Formatting
+pnpm run lint                  # ESLint
+pnpm run format               # Prettier formatting
+pnpm run format:check         # Check formatting
 ```

@@ -18,6 +18,9 @@ export * from './session';
 // Export plugins
 export * from './plugins';
 
+// Export chat
+export * from './chat';
+
 // Export utils
 export * from './utils/popup-window';
 
@@ -30,6 +33,3 @@ export { SessionManager } from './session/session-manager';
 export { ChatInterface } from './chat/chat-interface';
 export { PluginManager } from './plugins/plugin-manager';
 export { AnalyticsPlugin, LoggerPlugin } from './plugins';
-
-// Export schemas for validation
-export { AgentCardSchema, MessageSchema, TaskSchema, PartSchema } from './types/schemas';

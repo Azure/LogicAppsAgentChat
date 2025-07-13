@@ -1,5 +1,27 @@
 import type { SSEMessage, SSEClientOptions, MessageHandler, ErrorHandler } from './types';
 
+/**
+ * Server-Sent Events (SSE) client for handling streaming responses from A2A agents.
+ * Supports both EventSource API and fetch-based streaming for broader compatibility.
+ * Handles automatic reconnection and error recovery.
+ *
+ * @example
+ * ```typescript
+ * const sseClient = new SSEClient('https://api.example.com/stream', {
+ *   headers: { 'Authorization': 'Bearer token' },
+ *   reconnect: true,
+ *   reconnectDelay: 2000
+ * });
+ *
+ * sseClient.onMessage((message) => {
+ *   console.log('Received:', message);
+ * });
+ *
+ * sseClient.onError((error) => {
+ *   console.error('Error:', error);
+ * });
+ * ```
+ */
 export class SSEClient {
   private eventSource: EventSource | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;

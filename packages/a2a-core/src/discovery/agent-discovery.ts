@@ -1,8 +1,13 @@
 import { AgentCardSchema } from '../types/schemas';
 import type { AgentCard } from '../types';
 
+/**
+ * Options for configuring agent discovery behavior
+ */
 export interface AgentDiscoveryOptions {
+  /** Whether to cache discovered agent cards (default: true) */
   cache?: boolean;
+  /** Time-to-live for cached agent cards in milliseconds (default: 3600000 - 1 hour) */
   cacheTTL?: number;
 }
 
@@ -11,6 +16,22 @@ interface CacheEntry {
   timestamp: number;
 }
 
+/**
+ * Service for discovering and fetching A2A agent cards from URLs.
+ * Includes caching support to reduce network requests.
+ *
+ * @example
+ * ```typescript
+ * const discovery = new AgentDiscovery({
+ *   cache: true,
+ *   cacheTTL: 3600000 // 1 hour
+ * });
+ *
+ * const agentCard = await discovery.discoverAgent('https://example.com/agent-card');
+ * console.log('Agent name:', agentCard.name);
+ * console.log('Agent capabilities:', agentCard.capabilities);
+ * ```
+ */
 export class AgentDiscovery {
   private cache: Map<string, CacheEntry> = new Map();
   private readonly options: Required<AgentDiscoveryOptions>;

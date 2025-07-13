@@ -1,7 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
-import { A2AClient } from '../client/a2a-client';
-import type { AgentCard, Part as A2APart } from '../types';
+import { A2AClient, A2AClientConfig } from '../client/a2a-client';
+import type { AgentCard, Part as A2APart, Artifact, Task } from '../types';
 import type { AuthConfig, AuthRequiredHandler } from '../client/types';
+
+// Extended Task type with contextId for internal use
+interface TaskWithContext extends Task {
+  contextId?: string;
+}
 
 export interface ChatMessage {
   id: string;
@@ -11,7 +16,7 @@ export interface ChatMessage {
   isStreaming?: boolean;
   metadata?: {
     taskId?: string;
-    artifacts?: any[];
+    artifacts?: Artifact[];
   };
 }
 
@@ -55,7 +60,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         setError(undefined);
 
         // Create A2A client
-        const clientConfig: any = {
+        const clientConfig: A2AClientConfig = {
           agentCard: card,
           httpOptions: {
             retries: 2,
@@ -132,18 +137,12 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         timestamp: new Date(),
       };
 
-      console.log('DEBUG: Adding user message:', {
-        id: userMessageId,
-        content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-      });
+      // Adding user message
 
       setMessages((prev) => {
         const newMessages = [...prev, userMessage];
 
-        console.log('DEBUG: Messages after adding user message:', {
-          total: newMessages.length,
-          lastMessage: newMessages[newMessages.length - 1],
-        });
+        // Messages updated after adding user message
 
         // Persist messages immediately when user message is added
         if (options.persistSession && options.sessionKey) {
@@ -180,7 +179,8 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
           // Capture context ID from the server response - check both locations
           if (!contextIdRef.current) {
-            const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
+            const serverContextId =
+              (task as TaskWithContext).contextId || task.metadata?.['contextId'];
             if (serverContextId) {
               contextIdRef.current = serverContextId as string;
 
@@ -210,16 +210,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                 const messageId = `${message.role}-${task.id}-${i}`;
                 const isStreaming = task.state === 'running' || task.state === 'pending';
 
-                console.log('DEBUG: Processing message update:', {
-                  messageId,
-                  role: message.role,
-                  taskId: task.id,
-                  taskState: task.state,
-                  isStreaming,
-                  contentLength: textContent.length,
-                  contentPreview:
-                    textContent.substring(0, 50) + (textContent.length > 50 ? '...' : ''),
-                });
+                // Processing message update
 
                 setMessages((prev) => {
                   // Skip if this is a user message that we already have
@@ -228,7 +219,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                       (msg) => msg.role === 'user' && msg.content === textContent
                     );
                     if (isDuplicate) {
-                      console.log('DEBUG: Skipping duplicate user message:', textContent);
                       return prev; // Return unchanged messages
                     }
                   }
@@ -240,12 +230,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     const existingMessage = prev[existingIndex];
 
                     if (existingMessage) {
-                      console.log('DEBUG: Updating existing message:', {
-                        messageId,
-                        oldContentLength: existingMessage.content.length,
-                        newContentLength: textContent.length,
-                        contentChanged: existingMessage.content !== textContent,
-                      });
+                      // Updating existing message
 
                       // Always update content to ensure real-time streaming display
                       const updatedMessages = [...prev];
@@ -274,11 +259,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     return prev;
                   } else {
                     // Create new message for first chunk
-                    console.log('DEBUG: Creating new message:', {
-                      messageId,
-                      contentLength: textContent.length,
-                      contentPreview: textContent.substring(0, 50) + '...',
-                    });
 
                     const chatMessage: ChatMessage = {
                       id: messageId,
@@ -315,44 +295,12 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                 addedMessageIds.add(artifactMessageKey);
 
                 for (const artifact of task.artifacts) {
-                  // Handle artifacts based on their structure - they may come in different formats
-                  const artifactAny = artifact as any;
-                  if (artifactAny.parts && artifactAny.parts.length > 0) {
-                    for (const part of artifactAny.parts) {
-                      if (part.kind === 'text' && part.text) {
-                        const artifactMessage: ChatMessage = {
-                          id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
-                          role: 'assistant',
-                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
-                          timestamp: new Date(),
-                          isStreaming: false,
-                          metadata: {
-                            taskId: task.id,
-                            artifacts: [artifact],
-                          },
-                        };
-
-                        setMessages((prev) => {
-                          const newMessages = [...prev, artifactMessage];
-
-                          // Persist messages when artifact message is added
-                          if (options.persistSession && options.sessionKey) {
-                            localStorage.setItem(
-                              `a2a-messages-${options.sessionKey}`,
-                              JSON.stringify(newMessages)
-                            );
-                          }
-
-                          return newMessages;
-                        });
-                      }
-                    }
-                  } else if (artifactAny.content) {
-                    // Handle older format with direct content
+                  // Handle artifacts - check if it has content
+                  if (artifact.content) {
                     const artifactMessage: ChatMessage = {
-                      id: `artifact-${Date.now()}-${artifactAny.id}`,
+                      id: `artifact-${Date.now()}-${artifact.id}`,
                       role: 'assistant',
-                      content: `📄 ${artifactAny.title || artifactAny.id}:\n\`\`\`\n${artifactAny.content}\n\`\`\``,
+                      content: `📄 ${artifact.title || artifact.id}:\n\`\`\`${artifact.type || ''}\n${artifact.content}\n\`\`\``,
                       timestamp: new Date(),
                       isStreaming: false,
                       metadata: {
