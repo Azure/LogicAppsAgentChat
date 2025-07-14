@@ -4,16 +4,16 @@
 [![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
 [![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
 
-A TypeScript SDK for building chat interfaces that connect to A2A (Agent-to-Agent) protocol agents. Built with real-time streaming support and modern React components using Fluent UI.
+A framework-agnostic chat library with wrappers for React. Built on the A2A Browser SDK for seamless agent integration with real-time streaming support.
 
 ## Structure
 
 ```
 ├── packages/
-│   └── a2a-core/          # Core library with all functionality
+│   ├── a2a-core/          # Framework-agnostic core library
+│   └── a2a-react/         # React wrapper
 ├── apps/
-│   ├── iframe-app/        # Embeddable iframe widget
-│   └── vue-demo/          # Vue.js demo application
+│   └── iframe-app/        # Iframe application
 ├── turbo.json             # Turbo configuration
 ├── pnpm-workspace.yaml    # PNPM workspace configuration
 └── package.json           # Root package.json
@@ -21,23 +21,19 @@ A TypeScript SDK for building chat interfaces that connect to A2A (Agent-to-Agen
 
 ## Packages
 
-### [@microsoft/a2achat-core](./packages/a2a-core)
+### [@a2achat/core](./packages/a2a-core)
 
-The main library that provides:
+Framework-agnostic core library that provides the base chat functionality.
 
-- Framework-agnostic core functionality (`@microsoft/a2achat-core`)
-- React components and hooks (`@microsoft/a2achat-core/react`)
-- Styles (`@microsoft/a2achat-core/react/styles.css`)
+### [@a2achat/react](./packages/a2a-react)
+
+React wrapper around the core library.
 
 ## Applications
 
 ### [Iframe App](./apps/iframe-app)
 
-Standalone iframe application for embedding the chat widget in any website.
-
-### [Vue Demo](./apps/vue-demo)
-
-Demo application showing how to integrate the SDK with Vue.js.
+Standalone iframe application for embedding.
 
 ## Development
 
@@ -78,17 +74,13 @@ pnpm run format:check
 
 ```bash
 # Build a specific package
-pnpm --filter @microsoft/a2achat-core build
+pnpm --filter @a2achat/core build
 
 # Run tests for a specific package
-pnpm --filter @microsoft/a2achat-core test
+pnpm --filter @a2achat/react test
 
 # Add a dependency to a package
-pnpm --filter @microsoft/a2achat-core add some-package
-
-# Run commands in apps
-pnpm --filter iframe-app dev
-pnpm --filter vue-demo dev
+pnpm --filter @a2achat/core add some-package
 ```
 
 ## Deployment
@@ -137,17 +129,20 @@ pnpm release
 - Improved error messages and debugging
 - Better monorepo workspace management
 
+## Previous Library (@microsoft/a2achat)
+
+This monorepo is migrated from the previous single-package library. The original functionality has been preserved and will be gradually migrated to the new structure.
+
 ## Features
 
-- 🚀 **Optimized bundle size**: Minimal footprint with tree-shaking support
+- 🚀 **Small bundle size**: ~45KB limit with React as peer dependency
 - 📦 **Dual distribution**: NPM package + iframe embed
 - 🎨 **Fully customizable**: CSS variables for runtime theming
-- 🎭 **Modern UI**: Built with Fluent UI components for consistent design
 - 📝 **Markdown support**: Rich text formatting with syntax highlighting
 - 📎 **File uploads**: Built-in file attachment support with progress tracking
 - 🏢 **Company branding**: Add your logo to the chat interface
 - ⚛️ **React 18+ compatible**: Works seamlessly with modern React applications
-- 🤖 **A2A Protocol**: Full support for A2A agent communication
+- 🤖 **A2A Browser SDK**: Built on the official A2A Browser SDK
 - 🔐 **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth
 - 🌊 **Real-time Streaming**: Server-Sent Events for real-time agent responses
 - 🔍 **Agent Discovery**: Automatic agent card resolution from domain names
@@ -159,13 +154,13 @@ pnpm release
 
 ```bash
 # Using npm
-npm install @microsoft/a2achat-core
+npm install @microsoft/a2achat
 
 # Using pnpm
-pnpm add @microsoft/a2achat-core
+pnpm add @microsoft/a2achat
 
 # Using yarn
-yarn add @microsoft/a2achat-core
+yarn add @microsoft/a2achat
 ```
 
 ## Usage
@@ -174,8 +169,8 @@ yarn add @microsoft/a2achat-core
 
 ```tsx
 import React from 'react';
-import { ChatWindow } from '@microsoft/a2achat-core/react';
-import '@microsoft/a2achat-core/react/styles.css';
+import { ChatWindow } from '@microsoft/a2achat';
+import '@microsoft/a2achat/styles.css';
 
 function App() {
   return (
@@ -211,8 +206,7 @@ function App() {
 #### With Different Authentication Methods
 
 ```tsx
-import { ChatWindow } from '@microsoft/a2achat-core/react';
-import type { AuthConfig } from '@microsoft/a2achat-core';
+import { ChatWindow, AuthConfig } from '@microsoft/a2achat';
 
 // Bearer token authentication
 const bearerAuth: AuthConfig = {
@@ -257,8 +251,8 @@ function App() {
 
 ```tsx
 import React from 'react';
-import { ChatWindow } from '@microsoft/a2achat-core/react';
-import type { AgentCard } from '@microsoft/a2achat-core';
+import { ChatWindow } from '@microsoft/a2achat';
+import type { AgentCard } from '@microsoft/a2achat';
 
 const agentCard: AgentCard = {
   name: 'My Assistant',
@@ -491,9 +485,9 @@ interface ChatTheme {
 | `onMessage`          | `(message: Message) => void`   | Message callback                             |
 | `onConnectionChange` | `(connected: boolean) => void` | Connection status callback                   |
 
-## A2A Protocol Integration
+## A2A Browser SDK Integration
 
-This library provides a complete implementation of the A2A (Agent-to-Agent) protocol, offering:
+This library is built on the official [A2A Browser SDK](https://www.npmjs.com/package/a2a-browser-sdk), providing:
 
 - **Agent Discovery**: Automatic agent card resolution from domain names
 - **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth methods
@@ -531,7 +525,7 @@ This library provides a complete implementation of the A2A (Agent-to-Agent) prot
 
 ### Authentication Methods
 
-The library supports multiple authentication methods:
+The library supports all A2A Browser SDK authentication methods:
 
 ```tsx
 // Bearer token
@@ -566,7 +560,13 @@ const customAuth = {
 
 ## Bundle Size
 
-The library is optimized for minimal bundle size with tree-shaking support. React and Fluent UI components are peer dependencies to avoid duplication in your bundle.
+The library is optimized for small bundle size:
+
+- **Library**: ~45KB (gzipped, excluding React)
+- **Styles**: ~5KB (gzipped)
+- **Total**: ~50KB with all features enabled
+
+Bundle size is monitored in CI to prevent regression.
 
 ## Browser Support
 
@@ -603,7 +603,7 @@ pnpm run test:watch
 - Tests must pass with 100% success rate
 - Test coverage thresholds:
   - Lines: 70%
-  - Functions: 85%
+  - Functions: 95%
   - Branches: 70%
   - Statements: 70%
 - New features should include comprehensive tests

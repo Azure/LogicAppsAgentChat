@@ -105,7 +105,7 @@ describe('A2AClient - Stream', () => {
     expect(promise).toBeDefined();
   });
 
-  it('should stream task updates', { timeout: 10000 }, async () => {
+  it('should stream task updates', async () => {
     const request = {
       message: {
         role: 'user' as const,
@@ -184,7 +184,7 @@ describe('A2AClient - Stream', () => {
     expect(updates[2].messages).toHaveLength(2);
   });
 
-  it('should handle streaming errors', { timeout: 10000 }, async () => {
+  it('should handle streaming errors', async () => {
     const request = {
       message: {
         role: 'user' as const,
@@ -228,7 +228,7 @@ describe('A2AClient - Stream', () => {
     await expect(errorPromise).rejects.toThrow('Connection lost');
   });
 
-  it('should support authentication in streaming', { timeout: 10000 }, async () => {
+  it('should support authentication in streaming', async () => {
     const authenticatedClient = new A2AClient({
       agentCard: mockAgentCard,
       auth: {
@@ -303,7 +303,7 @@ describe('A2AClient - Stream', () => {
     expect(stream).toBeDefined();
   });
 
-  it('should close SSE connection when iteration stops', { timeout: 10000 }, async () => {
+  it('should close SSE connection when iteration stops', async () => {
     const request = {
       message: {
         role: 'user' as const,
@@ -344,7 +344,7 @@ describe('A2AClient - Stream', () => {
     expect(sseClient?.closed).toBe(true);
   });
 
-  it('should handle incremental message updates', { timeout: 10000 }, async () => {
+  it('should handle incremental message updates', async () => {
     const request = {
       message: {
         role: 'user' as const,

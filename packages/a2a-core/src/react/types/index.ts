@@ -15,7 +15,7 @@ export interface Message {
   sender: MessageRole;
   timestamp: Date;
   status?: MessageStatus;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   attachments?: Attachment[];
 }
 
@@ -73,7 +73,7 @@ export interface ChatWidgetProps {
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;
   userId?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   placeholder?: string;
   welcomeMessage?: string;
   allowFileUpload?: boolean;

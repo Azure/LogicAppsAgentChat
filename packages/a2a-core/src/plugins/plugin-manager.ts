@@ -6,31 +6,6 @@ import type {
   PluginRegistrationOptions,
 } from './types';
 
-/**
- * Manages plugins for extending A2A chat functionality.
- * Supports lifecycle hooks, dependencies, and dynamic enable/disable.
- *
- * @example
- * ```typescript
- * const pluginManager = new PluginManager({
- *   client: myA2AClient,
- *   session: mySessionManager
- * });
- *
- * // Register a custom analytics plugin
- * pluginManager.register({
- *   name: 'my-analytics',
- *   version: '1.0.0',
- *   hooks: {
- *     onMessageSent: async (message) => {
- *       analytics.track('message_sent', { content: message });
- *     }
- *   }
- * });
- *
- * pluginManager.enable('my-analytics');
- * ```
- */
 export class PluginManager {
   private plugins = new Map<string, Plugin>();
   private enabledPlugins = new Set<string>();
@@ -126,7 +101,7 @@ export class PluginManager {
     return this.enabledPlugins.has(pluginName);
   }
 
-  async executeHook<K extends keyof PluginHooks, T = unknown>(hookName: K, data: T): Promise<T> {
+  async executeHook<K extends keyof PluginHooks>(hookName: K, data: any): Promise<any> {
     let result = data;
 
     // Execute hooks from all enabled plugins
@@ -137,7 +112,7 @@ export class PluginManager {
       if (!hook) continue;
 
       try {
-        result = await (hook as unknown as (data: T) => Promise<T> | T)(result);
+        result = await hook(result);
       } catch (error) {
         console.error(`Error in plugin ${pluginName} hook ${hookName}:`, error);
         // Continue with other plugins

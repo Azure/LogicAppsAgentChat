@@ -64,176 +64,172 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
     client = new A2AClient({ agentCard: mockAgentCard });
   });
 
-  it(
-    'should accumulate messages across status updates instead of replacing them',
-    { timeout: 10000 },
-    async () => {
-      const request = {
-        message: {
-          role: 'user' as const,
-          content: [{ type: 'text' as const, content: 'Generate a hello world program' }],
+  it('should accumulate messages across status updates instead of replacing them', async () => {
+    const request = {
+      message: {
+        role: 'user' as const,
+        content: [{ type: 'text' as const, content: 'Generate a hello world program' }],
+      },
+    };
+
+    const updates: Task[] = [];
+    const stream = client.message.stream(request);
+    const iterator = stream[Symbol.asyncIterator]();
+
+    // 1. Initial task creation - start iteration first
+    const task1Promise = iterator.next();
+
+    // Wait for SSE setup
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const sseClient = (client as any).sseClient;
+
+    sseClient?.simulateMessage({
+      event: 'message',
+      data: {
+        result: {
+          kind: 'task',
+          id: 'task-123',
+          status: {
+            state: 'submitted',
+            timestamp: new Date().toISOString(),
+          },
         },
-      };
+      },
+    });
+    const task1 = await task1Promise;
+    updates.push(task1.value);
 
-      const updates: Task[] = [];
-      const stream = client.message.stream(request);
-      const iterator = stream[Symbol.asyncIterator]();
+    // Small delay to ensure proper ordering
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // 1. Initial task creation - start iteration first
-      const task1Promise = iterator.next();
-
-      // Wait for SSE setup
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      const sseClient = (client as any).sseClient;
-
-      sseClient?.simulateMessage({
-        event: 'message',
-        data: {
-          result: {
-            kind: 'task',
-            id: 'task-123',
-            status: {
-              state: 'submitted',
-              timestamp: new Date().toISOString(),
+    // 2. First status update with a message
+    const task2Promise = iterator.next();
+    sseClient?.simulateMessage({
+      event: 'message',
+      data: {
+        result: {
+          kind: 'status-update',
+          taskId: 'task-123',
+          status: {
+            state: 'running',
+            timestamp: new Date().toISOString(),
+            message: {
+              role: 'agent',
+              parts: [{ kind: 'text', text: 'Generating code...' }],
             },
           },
         },
-      });
-      const task1 = await task1Promise;
-      updates.push(task1.value);
+      },
+    });
+    const task2 = await task2Promise;
+    updates.push(task2.value);
 
-      // Small delay to ensure proper ordering
-      await new Promise((resolve) => setTimeout(resolve, 10));
+    // 3. Artifact update
+    sseClient?.simulateMessage({
+      event: 'message',
+      data: {
+        result: {
+          kind: 'artifact-update',
+          taskId: 'task-123',
+          artifact: {
+            id: 'artifact-1',
+            type: 'code',
+            title: 'Program.cs',
+            content: 'Console.WriteLine("Hello, World!");',
+          },
+        },
+      },
+    });
+    // Note: artifact updates should be accumulated but not trigger a new task update
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // 2. First status update with a message
-      const task2Promise = iterator.next();
-      sseClient?.simulateMessage({
-        event: 'message',
-        data: {
-          result: {
-            kind: 'status-update',
-            taskId: 'task-123',
-            status: {
-              state: 'running',
-              timestamp: new Date().toISOString(),
-              message: {
-                role: 'agent',
-                parts: [{ kind: 'text', text: 'Generating code...' }],
-              },
+    // 4. Second status update with another message
+    const task4Promise = iterator.next();
+    sseClient?.simulateMessage({
+      event: 'message',
+      data: {
+        result: {
+          kind: 'status-update',
+          taskId: 'task-123',
+          status: {
+            state: 'running',
+            timestamp: new Date().toISOString(),
+            message: {
+              role: 'agent',
+              parts: [{ kind: 'text', text: 'Generated files: Program.cs' }],
             },
           },
         },
-      });
-      const task2 = await task2Promise;
-      updates.push(task2.value);
+      },
+    });
+    const task4 = await task4Promise;
+    updates.push(task4.value);
 
-      // 3. Artifact update
-      sseClient?.simulateMessage({
-        event: 'message',
-        data: {
-          result: {
-            kind: 'artifact-update',
-            taskId: 'task-123',
-            artifact: {
-              id: 'artifact-1',
-              type: 'code',
-              title: 'Program.cs',
-              content: 'Console.WriteLine("Hello, World!");',
-            },
+    // 5. Final status update
+    const task5Promise = iterator.next();
+    sseClient?.simulateMessage({
+      event: 'message',
+      data: {
+        result: {
+          kind: 'status-update',
+          taskId: 'task-123',
+          status: {
+            state: 'completed',
+            timestamp: new Date().toISOString(),
           },
+          final: true,
         },
-      });
-      // Note: artifact updates should be accumulated but not trigger a new task update
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      },
+    });
+    const task5 = await task5Promise;
+    updates.push(task5.value);
 
-      // 4. Second status update with another message
-      const task4Promise = iterator.next();
-      sseClient?.simulateMessage({
-        event: 'message',
-        data: {
-          result: {
-            kind: 'status-update',
-            taskId: 'task-123',
-            status: {
-              state: 'running',
-              timestamp: new Date().toISOString(),
-              message: {
-                role: 'agent',
-                parts: [{ kind: 'text', text: 'Generated files: Program.cs' }],
-              },
-            },
-          },
-        },
-      });
-      const task4 = await task4Promise;
-      updates.push(task4.value);
+    // Verify accumulation
+    expect(updates).toHaveLength(4); // task creation + 3 status updates (artifact update doesn't emit)
 
-      // 5. Final status update
-      const task5Promise = iterator.next();
-      sseClient?.simulateMessage({
-        event: 'message',
-        data: {
-          result: {
-            kind: 'status-update',
-            taskId: 'task-123',
-            status: {
-              state: 'completed',
-              timestamp: new Date().toISOString(),
-            },
-            final: true,
-          },
-        },
-      });
-      const task5 = await task5Promise;
-      updates.push(task5.value);
+    // Check first update (task creation)
+    expect(updates[0].id).toBe('task-123');
+    expect(updates[0].state).toBe('pending');
+    expect(updates[0].messages).toHaveLength(0);
 
-      // Verify accumulation
-      expect(updates).toHaveLength(4); // task creation + 3 status updates (artifact update doesn't emit)
+    // Check second update (first status with message)
+    expect(updates[1].id).toBe('task-123');
+    expect(updates[1].state).toBe('running');
+    expect(updates[1].messages).toHaveLength(1);
+    expect(updates[1].messages[0].content[0]).toEqual({
+      type: 'text',
+      content: 'Generating code...',
+    });
 
-      // Check first update (task creation)
-      expect(updates[0].id).toBe('task-123');
-      expect(updates[0].state).toBe('pending');
-      expect(updates[0].messages).toHaveLength(0);
+    // Check third update (after artifact, second status with message)
+    expect(updates[2].id).toBe('task-123');
+    expect(updates[2].state).toBe('running');
+    expect(updates[2].messages).toHaveLength(2); // Should have BOTH messages
+    expect(updates[2].messages[0].content[0]).toEqual({
+      type: 'text',
+      content: 'Generating code...',
+    });
+    expect(updates[2].messages[1].content[0]).toEqual({
+      type: 'text',
+      content: 'Generated files: Program.cs',
+    });
+    expect(updates[2].artifacts).toBeDefined();
+    expect(updates[2].artifacts).toHaveLength(1);
+    expect(updates[2].artifacts![0]).toEqual({
+      id: 'artifact-1',
+      type: 'code',
+      title: 'Program.cs',
+      content: 'Console.WriteLine("Hello, World!");',
+    });
 
-      // Check second update (first status with message)
-      expect(updates[1].id).toBe('task-123');
-      expect(updates[1].state).toBe('running');
-      expect(updates[1].messages).toHaveLength(1);
-      expect(updates[1].messages[0].content[0]).toEqual({
-        type: 'text',
-        content: 'Generating code...',
-      });
+    // Check final update
+    expect(updates[3].id).toBe('task-123');
+    expect(updates[3].state).toBe('completed');
+    expect(updates[3].messages).toHaveLength(2); // Should still have both messages
+    expect(updates[3].artifacts).toHaveLength(1); // Should still have the artifact
+  });
 
-      // Check third update (after artifact, second status with message)
-      expect(updates[2].id).toBe('task-123');
-      expect(updates[2].state).toBe('running');
-      expect(updates[2].messages).toHaveLength(2); // Should have BOTH messages
-      expect(updates[2].messages[0].content[0]).toEqual({
-        type: 'text',
-        content: 'Generating code...',
-      });
-      expect(updates[2].messages[1].content[0]).toEqual({
-        type: 'text',
-        content: 'Generated files: Program.cs',
-      });
-      expect(updates[2].artifacts).toBeDefined();
-      expect(updates[2].artifacts).toHaveLength(1);
-      expect(updates[2].artifacts![0]).toEqual({
-        id: 'artifact-1',
-        type: 'code',
-        title: 'Program.cs',
-        content: 'Console.WriteLine("Hello, World!");',
-      });
-
-      // Check final update
-      expect(updates[3].id).toBe('task-123');
-      expect(updates[3].state).toBe('completed');
-      expect(updates[3].messages).toHaveLength(2); // Should still have both messages
-      expect(updates[3].artifacts).toHaveLength(1); // Should still have the artifact
-    }
-  );
-
-  it('should handle multiple artifacts properly', { timeout: 10000 }, async () => {
+  it('should handle multiple artifacts properly', async () => {
     const request = {
       message: {
         role: 'user' as const,

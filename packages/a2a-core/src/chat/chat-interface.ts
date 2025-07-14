@@ -10,50 +10,16 @@ import type {
   ConversationExport,
 } from './types';
 
-/**
- * Configuration options for the ChatInterface
- */
 export interface ChatInterfaceConfig {
-  /** A2A client instance for communication with the agent */
   client: A2AClient;
-  /** Optional session manager for persisting conversation state */
   session?: SessionManager;
-  /** Unique identifier for the conversation */
   conversationId?: string;
-  /** Whether to persist messages to session storage (default: true) */
   persistMessages?: boolean;
-  /** Additional context to include with messages */
   context?: Record<string, unknown>;
-  /** Whether to enable streaming responses (default: true) */
   streamingEnabled?: boolean;
-  /** Maximum number of messages to keep in history (default: 100) */
   maxHistorySize?: number;
 }
 
-/**
- * High-level chat interface for managing conversations with A2A agents.
- * Handles message history, streaming responses, and session management.
- *
- * @example
- * ```typescript
- * const chat = new ChatInterface({
- *   client: myA2AClient,
- *   session: mySessionManager,
- *   conversationId: 'chat-123',
- *   streamingEnabled: true
- * });
- *
- * chat.on('message', (message) => {
- *   console.log('New message:', message);
- * });
- *
- * chat.on('stream:update', (update) => {
- *   console.log('Streaming update:', update);
- * });
- *
- * await chat.sendMessage('Hello, agent!');
- * ```
- */
 export class ChatInterface extends EventEmitter<ChatEventMap> {
   private client: A2AClient;
   private session: SessionManager | undefined;

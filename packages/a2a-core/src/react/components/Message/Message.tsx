@@ -291,19 +291,16 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
   const senderName = isUser ? userName : agentName;
   const isArtifact = message.metadata?.isArtifact;
   const isGroupedArtifact = message.metadata?.isGroupedArtifact;
-  const artifactName =
-    typeof message.metadata?.artifactName === 'string' ? message.metadata.artifactName : undefined;
+  const artifactName = message.metadata?.artifactName;
   const [showContent, setShowContent] = useState(!isArtifact && !isGroupedArtifact);
   const [selectedArtifactIndex, setSelectedArtifactIndex] = useState<number | null>(null);
 
   const handleDownload = (index?: number) => {
     if (isArtifact && artifactName) {
       const mimeType = getMimeType(artifactName);
-      let contentToDownload: string = '';
+      let contentToDownload = message.metadata?.rawContent;
 
-      if (message.metadata?.rawContent && typeof message.metadata.rawContent === 'string') {
-        contentToDownload = message.metadata.rawContent;
-      } else {
+      if (!contentToDownload) {
         const codeBlockMatch = message.content.match(/```[\w]*\n([\s\S]*?)\n```/);
         if (codeBlockMatch) {
           contentToDownload = codeBlockMatch[1];
@@ -312,11 +309,10 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
         }
       }
 
-      downloadFile(contentToDownload, artifactName || 'download', mimeType);
+      downloadFile(contentToDownload, artifactName, mimeType);
     } else if (isGroupedArtifact && typeof index === 'number') {
-      const artifacts = message.metadata?.artifacts;
-      if (Array.isArray(artifacts) && artifacts[index]) {
-        const artifact = artifacts[index] as { name: string; rawContent: string };
+      const artifact = message.metadata?.artifacts?.[index];
+      if (artifact) {
         const mimeType = getMimeType(artifact.name);
         downloadFile(artifact.rawContent, artifact.name, mimeType);
       }
@@ -324,13 +320,9 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
   };
 
   const handleDownloadAll = () => {
-    if (
-      isGroupedArtifact &&
-      message.metadata?.artifacts &&
-      Array.isArray(message.metadata.artifacts)
-    ) {
-      (message.metadata.artifacts as Array<{ name: string; rawContent: string }>).forEach(
-        (artifact, index) => {
+    if (isGroupedArtifact && message.metadata?.artifacts) {
+      message.metadata.artifacts.forEach(
+        (artifact: { name: string; rawContent: string }, index: number) => {
           setTimeout(() => {
             const mimeType = getMimeType(artifact.name);
             downloadFile(artifact.rawContent, artifact.name, mimeType);
@@ -349,11 +341,7 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
       return <div className={styles.textContent}>{message.content}</div>;
     }
 
-    if (
-      isArtifact &&
-      message.metadata?.rawContent &&
-      typeof message.metadata.rawContent === 'string'
-    ) {
+    if (isArtifact && message.metadata?.rawContent) {
       const language = getLanguageFromFilename(artifactName || '');
       if (message.metadata?.isCodeFile && language && Prism.languages[language]) {
         try {
@@ -451,10 +439,7 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
                   <div className={styles.artifactInfo}>
                     <FolderRegular />
                     <Text weight="semibold">
-                      {Array.isArray(message.metadata.artifacts)
-                        ? message.metadata.artifacts.length
-                        : 0}{' '}
-                      files generated
+                      {message.metadata.artifacts.length} files generated
                     </Text>
                   </div>
                   <Button
@@ -466,67 +451,52 @@ function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: Me
                   </Button>
                 </div>
                 <div className={styles.artifactList}>
-                  {Array.isArray(message.metadata.artifacts) &&
-                    message.metadata.artifacts.map((artifact: unknown, index: number) => {
-                      const typedArtifact = artifact as {
-                        name: string;
-                        rawContent: string;
-                        isCodeFile?: boolean;
-                      };
-                      return (
-                        <div key={index} className={styles.artifactItem}>
-                          <div className={styles.artifactInfo}>
-                            <DocumentRegular />
-                            <Text>{typedArtifact.name}</Text>
-                          </div>
-                          <div className={styles.artifactActions}>
-                            <Tooltip
-                              content={`Download ${typedArtifact.name}`}
-                              relationship="label"
-                            >
-                              <Button
-                                appearance="subtle"
-                                icon={<ArrowDownloadRegular />}
-                                onClick={() => handleDownload(index)}
-                              />
-                            </Tooltip>
-                            <Tooltip
-                              content={
-                                selectedArtifactIndex === index ? 'Hide content' : 'View content'
-                              }
-                              relationship="label"
-                            >
-                              <Button
-                                appearance="subtle"
-                                icon={
-                                  selectedArtifactIndex === index ? (
-                                    <EyeOffRegular />
-                                  ) : (
-                                    <EyeRegular />
-                                  )
-                                }
-                                onClick={() =>
-                                  setSelectedArtifactIndex(
-                                    selectedArtifactIndex === index ? null : index
-                                  )
-                                }
-                              />
-                            </Tooltip>
-                          </div>
+                  {message.metadata.artifacts.map(
+                    (
+                      artifact: { name: string; rawContent: string; isCodeFile?: boolean },
+                      index: number
+                    ) => (
+                      <div key={index} className={styles.artifactItem}>
+                        <div className={styles.artifactInfo}>
+                          <DocumentRegular />
+                          <Text>{artifact.name}</Text>
                         </div>
-                      );
-                    })}
+                        <div className={styles.artifactActions}>
+                          <Tooltip content={`Download ${artifact.name}`} relationship="label">
+                            <Button
+                              appearance="subtle"
+                              icon={<ArrowDownloadRegular />}
+                              onClick={() => handleDownload(index)}
+                            />
+                          </Tooltip>
+                          <Tooltip
+                            content={
+                              selectedArtifactIndex === index ? 'Hide content' : 'View content'
+                            }
+                            relationship="label"
+                          >
+                            <Button
+                              appearance="subtle"
+                              icon={
+                                selectedArtifactIndex === index ? <EyeOffRegular /> : <EyeRegular />
+                              }
+                              onClick={() =>
+                                setSelectedArtifactIndex(
+                                  selectedArtifactIndex === index ? null : index
+                                )
+                              }
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
+                    )
+                  )}
                 </div>
                 {selectedArtifactIndex !== null &&
-                  Array.isArray(message.metadata.artifacts) &&
                   message.metadata.artifacts[selectedArtifactIndex] && (
                     <div className={styles.artifactContent}>
                       {(() => {
-                        const artifact = message.metadata.artifacts[selectedArtifactIndex] as {
-                          name: string;
-                          rawContent: string;
-                          isCodeFile?: boolean;
-                        };
+                        const artifact = message.metadata.artifacts[selectedArtifactIndex];
                         const language = getLanguageFromFilename(artifact.name);
                         if (artifact.isCodeFile && language && Prism.languages[language]) {
                           try {

@@ -85,7 +85,7 @@ describe('ChatWindow', () => {
 
     const logos = screen.getAllByTestId('company-logo');
     expect(logos).toHaveLength(1);
-    // Logo should be present with the correct URL
+    expect(logos[0].parentElement?.className).toContain('header');
     expect(logos[0]).toHaveTextContent('Logo logo.png');
   });
 
@@ -104,8 +104,7 @@ describe('ChatWindow', () => {
 
     const logos = screen.getAllByTestId('company-logo');
     expect(logos).toHaveLength(1);
-    // Logo should be present
-    expect(logos[0]).toHaveTextContent('Logo logo.png');
+    expect(logos[0].parentElement?.className).toContain('footer');
   });
 
   it('should not show logo when not configured', () => {
@@ -231,9 +230,8 @@ describe('ChatWindow', () => {
     const agentName = screen.getByText('Test Agent');
     const agentDescription = screen.getByText('Test Agent Description');
 
-    // Just verify the elements are present
-    expect(agentName).toBeInTheDocument();
-    expect(agentDescription).toBeInTheDocument();
+    expect(agentName.className).toContain('agentName');
+    expect(agentDescription.className).toContain('agentDescription');
   });
 
   it('should not show agent info when not connected', () => {
@@ -267,9 +265,10 @@ describe('ChatWindow', () => {
     // Should show header with agent info because user is connected
     expect(screen.getByText('Test Agent')).toBeInTheDocument();
     expect(screen.getByText('Test Agent Description')).toBeInTheDocument();
-    // Logo should be present (we can't check its position due to dynamic classes)
-    const logos = screen.queryAllByTestId('company-logo');
-    expect(logos.length).toBeLessThanOrEqual(1);
+    // Logo should be in footer
+    const logos = screen.getAllByTestId('company-logo');
+    expect(logos).toHaveLength(1);
+    expect(logos[0].parentElement?.className).toContain('footer');
   });
 
   it('should apply theme styles to container', () => {
@@ -281,10 +280,11 @@ describe('ChatWindow', () => {
       },
     };
 
-    render(<ChatWindow {...props} />);
+    const { container } = render(<ChatWindow {...props} />);
+    const chatWindow = container.querySelector('.chatWindow');
 
-    // Just verify the component renders without errors with theme
-    expect(screen.getByTestId('message-list')).toBeInTheDocument();
+    // Theme is passed to child components, not applied as inline styles
+    expect(chatWindow).toBeInTheDocument();
   });
 
   it('should pass correct userName to MessageList', () => {
@@ -344,21 +344,20 @@ describe('ChatWindow', () => {
   });
 
   it('should apply correct CSS classes', () => {
-    render(<ChatWindow {...defaultProps} />);
+    const { container } = render(<ChatWindow {...defaultProps} />);
 
-    // Just verify the component structure is present
-    expect(screen.getByTestId('message-list')).toBeInTheDocument();
-    expect(screen.getByTestId('message-input')).toBeInTheDocument();
-    expect(screen.getByText('Test Agent')).toBeInTheDocument();
-    expect(screen.getByText('Test Agent Description')).toBeInTheDocument();
+    expect(container.querySelector('.chatWindow')).toBeInTheDocument();
+    expect(container.querySelector('.header')).toBeInTheDocument();
+    expect(container.querySelector('.agentInfo')).toBeInTheDocument();
+    expect(container.querySelector('.agentName')).toBeInTheDocument();
+    expect(container.querySelector('.agentDescription')).toBeInTheDocument();
   });
 
   it('should include chat-widget-container class', () => {
     const { container } = render(<ChatWindow {...defaultProps} />);
 
-    // Check that the root element exists
-    const rootElement = container.firstChild;
-    expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toBeInstanceOf(HTMLElement);
+    const chatWindow = container.querySelector('.chat-widget-container');
+    expect(chatWindow).toBeInTheDocument();
+    expect(chatWindow).toHaveClass('chatWindow');
   });
 });

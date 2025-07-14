@@ -174,22 +174,17 @@ describe('Message', () => {
     expect(screen.getByText('AI Assistant')).toBeInTheDocument();
   });
 
-  it('applies correct styling for user message', () => {
+  it('applies correct CSS classes for user message', () => {
     const { container } = render(<Message message={baseMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    // Check that it's the wrapper div
-    expect(wrapper.tagName).toBe('DIV');
-    // Check that it has classes applied (Fluent UI generates dynamic class names)
-    expect(wrapper.className).toBeTruthy();
-    // Check that the message container structure is correct
-    const messageContainer = wrapper.querySelector('div > div');
-    expect(messageContainer).toBeInTheDocument();
-    // Verify sender name is correct
-    expect(screen.getByText('You')).toBeInTheDocument();
+    expect(wrapper).toHaveClass('messageWrapper');
+    expect(wrapper).toHaveClass('user');
+    expect(wrapper).toHaveClass('chat-fade-in');
+    expect(wrapper).not.toHaveClass('assistant');
   });
 
-  it('applies correct styling for assistant message', () => {
+  it('applies correct CSS classes for assistant message', () => {
     const assistantMessage: MessageType = {
       ...baseMessage,
       sender: 'assistant',
@@ -198,15 +193,9 @@ describe('Message', () => {
     const { container } = render(<Message message={assistantMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    // Check that it's the wrapper div
-    expect(wrapper.tagName).toBe('DIV');
-    // Check that it has classes applied (Fluent UI generates dynamic class names)
-    expect(wrapper.className).toBeTruthy();
-    // Check that the message container structure is correct
-    const messageContainer = wrapper.querySelector('div > div');
-    expect(messageContainer).toBeInTheDocument();
-    // Verify sender name is correct
-    expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(wrapper).toHaveClass('messageWrapper');
+    expect(wrapper).toHaveClass('assistant');
+    expect(wrapper).not.toHaveClass('user');
   });
 
   it('renders message tail for assistant messages', () => {
@@ -215,17 +204,17 @@ describe('Message', () => {
       sender: 'assistant',
     };
 
-    render(<Message message={assistantMessage} />);
+    const { container } = render(<Message message={assistantMessage} />);
 
-    // Assistant messages should show agent name
-    expect(screen.getByText('Agent')).toBeInTheDocument();
+    const tail = container.querySelector('.messageTail');
+    expect(tail).toBeInTheDocument();
   });
 
   it('does not render message tail for user messages', () => {
-    render(<Message message={baseMessage} />);
+    const { container } = render(<Message message={baseMessage} />);
 
-    // User messages should show user name
-    expect(screen.getByText('You')).toBeInTheDocument();
+    const tail = container.querySelector('.messageTail');
+    expect(tail).not.toBeInTheDocument();
   });
 
   it('renders error status', () => {
@@ -275,34 +264,26 @@ describe('Message', () => {
   });
 
   it('does not render attachments section when no attachments', () => {
-    render(<Message message={baseMessage} />);
+    const { container } = render(<Message message={baseMessage} />);
 
-    // Should not find any attachment-related text
-    expect(screen.queryByText(/MB|KB|Bytes/)).not.toBeInTheDocument();
+    const attachments = container.querySelector('.attachments');
+    expect(attachments).not.toBeInTheDocument();
   });
 
   it('renders artifact content with special styling', () => {
     const artifactMessage: MessageType = {
       ...baseMessage,
       sender: 'assistant',
-      metadata: {
-        isArtifact: true,
-        artifactName: 'test.txt',
-        rawContent: 'Test message',
-      },
+      metadata: { isArtifact: true },
     };
 
-    render(<Message message={artifactMessage} />);
+    const { container } = render(<Message message={artifactMessage} />);
 
-    // Should show the artifact card with filename
-    expect(screen.getByText('test.txt')).toBeInTheDocument();
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass('artifact');
 
-    // The content should initially be hidden
-    expect(screen.queryByText('Test message')).not.toBeInTheDocument();
-
-    // Should have download and view buttons
-    expect(screen.getByText('Download')).toBeInTheDocument();
-    expect(screen.getByText('View')).toBeInTheDocument();
+    const content = container.querySelector('.artifactContent');
+    expect(content).toBeInTheDocument();
   });
 
   it('parses markdown content for assistant messages', async () => {
@@ -385,12 +366,12 @@ describe('Message', () => {
       content: '<script>alert("XSS")</script>Normal text',
     };
 
-    render(<Message message={assistantMessage} />);
+    const { container } = render(<Message message={assistantMessage} />);
 
-    // The content should be parsed by marked and rendered
-    // We can't check the exact HTML due to Fluent UI structure, but we can verify
-    // that the script tag is not executed by checking that alert was not called
-    expect(screen.getByText('Agent')).toBeInTheDocument();
+    // Check that content is rendered through dangerouslySetInnerHTML
+    const markdownContent = container.querySelector('.markdownContent');
+    expect(markdownContent).toBeInTheDocument();
+    expect(markdownContent?.innerHTML).toContain('<p>');
   });
 
   it('handles empty attachments array', () => {
@@ -399,19 +380,21 @@ describe('Message', () => {
       attachments: [],
     };
 
-    render(<Message message={messageWithEmptyAttachments} />);
+    const { container } = render(<Message message={messageWithEmptyAttachments} />);
 
-    // Should not find any attachment-related text
-    expect(screen.queryByText(/MB|KB|Bytes/)).not.toBeInTheDocument();
+    const attachments = container.querySelector('.attachments');
+    expect(attachments).not.toBeInTheDocument();
   });
 
   it('renders all message structure elements', () => {
-    render(<Message message={baseMessage} />);
+    const { container } = render(<Message message={baseMessage} />);
 
-    // Check that all key elements are present
-    expect(screen.getByText('You')).toBeInTheDocument(); // sender name
-    expect(screen.getByText('Test message')).toBeInTheDocument(); // message content
-    expect(screen.getByText('2:30 PM')).toBeInTheDocument(); // time
+    expect(container.querySelector('.messageContainer')).toBeInTheDocument();
+    expect(container.querySelector('.senderName')).toBeInTheDocument();
+    expect(container.querySelector('.messageBubble')).toBeInTheDocument();
+    expect(container.querySelector('.message')).toBeInTheDocument();
+    expect(container.querySelector('.metadata')).toBeInTheDocument();
+    expect(container.querySelector('.time')).toBeInTheDocument();
   });
 
   it('renders code artifact with syntax highlighting', async () => {
@@ -431,13 +414,12 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the code
-    const viewButton = screen.getByText('View');
+    const viewButton = screen.getByLabelText('Show content');
     await user.click(viewButton);
 
     const codeBlock = screen.getByText('console.log("Hello World");');
     expect(codeBlock).toBeInTheDocument();
-    // Verify it's in a pre/code block structure
-    expect(codeBlock.closest('pre')).toBeInTheDocument();
+    expect(codeBlock.closest('pre')).toHaveClass('codeBlock');
   });
 
   it('renders artifact without syntax highlighting for unknown language', async () => {
@@ -457,7 +439,7 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the content
-    const viewButton = screen.getByText('View');
+    const viewButton = screen.getByLabelText('Show content');
     await user.click(viewButton);
 
     const codeBlock = screen.getByText('Some content');
@@ -491,7 +473,7 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the content
-    const viewButton = screen.getByText('View');
+    const viewButton = screen.getByLabelText('Show content');
     await user.click(viewButton);
 
     // Should still render the code without highlighting
@@ -519,7 +501,7 @@ describe('Message', () => {
 
     render(<Message message={artifactMessage} />);
 
-    const downloadButton = screen.getByText('Download');
+    const downloadButton = screen.getByLabelText('Download test.txt');
     await user.click(downloadButton);
 
     // Verify downloadFile was called
@@ -545,7 +527,7 @@ describe('Message', () => {
 
     render(<Message message={groupedMessage} />);
 
-    const downloadButton = screen.getByText('Download All');
+    const downloadButton = screen.getByLabelText('Download all files');
     await user.click(downloadButton);
 
     // Wait for setTimeout delays
@@ -578,15 +560,15 @@ describe('Message', () => {
     expect(artifactContent).not.toBeInTheDocument();
 
     // Click to show
-    const toggleButton = screen.getByText('View');
+    const toggleButton = screen.getByLabelText('Show content');
     await user.click(toggleButton);
 
     // Should show content
     artifactContent = screen.getByText('Very long content...');
     expect(artifactContent).toBeInTheDocument();
 
-    // Button text should change to Hide
-    expect(screen.getByText('Hide')).toBeInTheDocument();
+    // Button text should change
+    expect(screen.getByLabelText('Hide content')).toBeInTheDocument();
   });
 
   it('renders multiple artifacts with details', () => {
@@ -654,12 +636,15 @@ describe('Message', () => {
       const { container, unmount } = render(<Message message={message} />);
 
       // Need to click view to see the content
-      const viewButton = screen.getByText('View');
+      const viewButton = screen.getByLabelText('Show content');
       await user.click(viewButton);
 
-      // After viewing, the code should be visible
-      const codeText = screen.getByText('code');
-      expect(codeText).toBeInTheDocument();
+      const codeElement = container.querySelector(`code.language-${lang}`);
+
+      // The element should exist if Prism supports the language
+      if ((window as any).Prism.languages[lang]) {
+        expect(codeElement).toBeInTheDocument();
+      }
 
       unmount();
     }

@@ -1,13 +1,29 @@
+import React from 'react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { MessageInput } from './MessageInput';
 import { useChatStore } from '../../store/chatStore';
 
 // Mock dependencies
 vi.mock('../../store/chatStore');
+vi.mock('../FileUpload', () => ({
+  FileUpload: ({ onFileSelect, disabled }: any) => (
+    <button
+      data-testid="file-upload"
+      onClick={() => {
+        const files = [new File(['test'], 'test.txt', { type: 'text/plain' })];
+        const dataTransfer = new DataTransfer();
+        files.forEach((file) => dataTransfer.items.add(file));
+        onFileSelect(dataTransfer.files);
+      }}
+      disabled={disabled}
+    >
+      Upload
+    </button>
+  ),
+}));
 
 describe('MessageInput', () => {
   const mockOnSendMessage = vi.fn();
@@ -18,21 +34,10 @@ describe('MessageInput', () => {
     mockUseChatStore.mockReturnValue({
       isConnected: true,
       messages: [],
-      isTyping: false,
-      pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
       setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
   });
 
@@ -40,8 +45,8 @@ describe('MessageInput', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
-    // Only send button should be visible by default (no file upload)
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '' })).toBeInTheDocument(); // Send button has no text
   });
 
   it('uses custom placeholder', () => {
@@ -112,14 +117,14 @@ describe('MessageInput', () => {
   it('disables send button when message is empty', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getByRole('button');
+    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
     expect(sendButton).toBeDisabled();
   });
 
   it('enables send button when message has content', async () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getByRole('button');
+    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
     const textarea = screen.getByPlaceholderText('Type a message...');
 
     await userEvent.type(textarea, 'Hello');
@@ -131,55 +136,35 @@ describe('MessageInput', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} disabled />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeDisabled();
-    expect(screen.getByRole('button')).toBeDisabled(); // Send button
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(screen.getAllByRole('button')[1]).toBeDisabled(); // Send button
   });
 
   it('disables all inputs when not connected', () => {
     mockUseChatStore.mockReturnValue({
       isConnected: false,
       messages: [],
-      isTyping: false,
-      pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
       setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeDisabled();
-    expect(screen.getByRole('button')).toBeDisabled(); // Send button
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(screen.getAllByRole('button')[1]).toBeDisabled(); // Send button
   });
 
   it('shows connection status when not connected', () => {
     mockUseChatStore.mockReturnValue({
       isConnected: false,
       messages: [],
-      isTyping: false,
-      pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
       setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
@@ -193,26 +178,92 @@ describe('MessageInput', () => {
     expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
   });
 
-  it('handles file selection when file upload is enabled', async () => {
-    // This test is skipped because the Fluent UI Button doesn't properly trigger file input in tests
-    // The functionality works in the real app but testing file inputs with Fluent UI is problematic
+  it('handles file selection', async () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    expect(screen.getByText('test.txt')).toBeInTheDocument();
   });
 
-  it.skip('sends message with attachments', async () => {
-    // Skipped due to file input testing issues with Fluent UI
+  it('sends message with attachments', async () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    const textarea = screen.getByPlaceholderText('Type a message...');
+    await userEvent.type(textarea, 'Here is a file');
+    await userEvent.keyboard('{Enter}');
+
+    expect(mockOnSendMessage).toHaveBeenCalledWith('Here is a file', [
+      expect.objectContaining({
+        name: 'test.txt',
+        size: 4,
+        type: 'text/plain',
+        status: 'uploading',
+      }),
+    ]);
   });
 
-  it.skip('sends attachments without message text', async () => {
-    // Skipped due to file input testing issues with Fluent UI
+  it('sends attachments without message text', async () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(mockOnSendMessage).toHaveBeenCalledWith('', [
+      expect.objectContaining({
+        name: 'test.txt',
+        size: 4,
+        type: 'text/plain',
+        status: 'uploading',
+      }),
+    ]);
   });
 
-  it.skip('removes attachments', async () => {
-    // Skipped due to file input testing issues with Fluent UI
+  it('removes attachments', async () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    expect(screen.getByText('test.txt')).toBeInTheDocument();
+
+    const removeButton = screen.getByText('×');
+    await userEvent.click(removeButton);
+
+    expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
   });
 
   it.skip('clears attachments after sending', async () => {
     // Skipping this test as the component state is not updating in the test environment
     // The component logic does clear attachments but the test doesn't reflect the state change
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    expect(screen.getByText('test.txt')).toBeInTheDocument();
+
+    // Add some text to enable send button
+    const textarea = screen.getByPlaceholderText('Type a message...');
+    await userEvent.type(textarea, 'Message with attachment');
+
+    const sendButton = screen.getAllByRole('button')[1];
+    await userEvent.click(sendButton);
+
+    expect(mockOnSendMessage).toHaveBeenCalledWith(
+      'Message with attachment',
+      expect.arrayContaining([expect.objectContaining({ name: 'test.txt' })])
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
+    });
   });
 
   it('auto-resizes textarea', async () => {
@@ -262,46 +313,76 @@ describe('MessageInput', () => {
   it('hides file upload when not allowed', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} allowFileUpload={false} />);
 
-    expect(document.getElementById('file-upload')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('file-upload')).not.toBeInTheDocument();
   });
 
   it('passes file upload props correctly', () => {
+    const FileUpload = vi.fn(() => null);
+    vi.doMock('../FileUpload', () => ({ FileUpload }));
+
     render(
       <MessageInput
         onSendMessage={mockOnSendMessage}
-        allowFileUpload
+        maxFileSize={5000000}
         allowedFileTypes={['.pdf', '.doc']}
       />
     );
 
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    expect(fileInput).toBeInTheDocument();
-    expect(fileInput.getAttribute('accept')).toBe('.pdf,.doc');
+    waitFor(() => {
+      expect(FileUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxFileSize: 5000000,
+          allowedFileTypes: ['.pdf', '.doc'],
+          disabled: false,
+        }),
+        expect.anything()
+      );
+    });
   });
 
-  it.skip('enables send button when only attachments are present', async () => {
-    // Skipped due to file input testing issues with Fluent UI
-  });
-
-  it.skip('generates unique IDs for attachments', async () => {
-    // Skipped due to file input testing issues with Fluent UI
-  });
-
-  it('renders form structure correctly', () => {
-    const { container } = render(<MessageInput onSendMessage={mockOnSendMessage} />);
-
-    // Fluent UI generates dynamic classes, so we check for the form structure instead
-    expect(container.querySelector('form')).toBeInTheDocument();
-    expect(container.querySelector('textarea')).toBeInTheDocument();
-    expect(container.querySelector('button')).toBeInTheDocument();
-  });
-
-  it('renders icon in send button', () => {
+  it('enables send button when only attachments are present', async () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getByRole('button');
+    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
+    expect(sendButton).toBeDisabled();
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+
+    expect(sendButton).not.toBeDisabled();
+  });
+
+  it('generates unique IDs for attachments', async () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const fileUploadButton = screen.getByTestId('file-upload');
+    await userEvent.click(fileUploadButton);
+    await userEvent.keyboard('{Enter}');
+
+    const attachment = mockOnSendMessage.mock.calls[0][1][0];
+    // Expect GUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+    expect(attachment.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
+  });
+
+  it('applies correct CSS classes', () => {
+    const { container } = render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    expect(container.querySelector('.inputContainer')).toBeInTheDocument();
+    expect(container.querySelector('.inputWrapper')).toBeInTheDocument();
+    expect(container.querySelector('.textarea')).toBeInTheDocument();
+    expect(container.querySelector('.sendButton')).toBeInTheDocument();
+  });
+
+  it('renders SVG icon in send button', () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
     const svg = sendButton.querySelector('svg');
 
     expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute('width', '20');
+    expect(svg).toHaveAttribute('height', '20');
   });
 });

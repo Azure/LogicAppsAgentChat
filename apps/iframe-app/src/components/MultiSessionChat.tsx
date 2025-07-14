@@ -54,9 +54,6 @@ const useStyles = makeStyles({
     height: '100vh',
     color: tokens.colorPaletteRedForeground1,
   },
-  sidebarOpen: {
-    transform: 'translateX(0)',
-  },
   '@media (max-width: 768px)': {
     sidebar: {
       position: 'absolute',
@@ -67,6 +64,9 @@ const useStyles = makeStyles({
       transform: 'translateX(-100%)',
       transition: 'transform 0.3s ease',
       boxShadow: tokens.shadow16,
+    },
+    sidebarOpen: {
+      transform: 'translateX(0)',
     },
     chatArea: {
       width: '100%',
@@ -91,7 +91,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   const [agentCard, setAgentCard] = useState<AgentCard | undefined>();
   const [isLoadingAgent, setIsLoadingAgent] = useState(true);
   const [agentError, setAgentError] = useState<Error | undefined>();
-  const [isMobileSidebarOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const {
     sessions,

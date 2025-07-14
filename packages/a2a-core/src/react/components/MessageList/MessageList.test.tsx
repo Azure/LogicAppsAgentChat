@@ -1,7 +1,8 @@
+import React from 'react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
+import * as React from 'react';
 import { MessageList } from './MessageList';
 import { useChatStore } from '../../store/chatStore';
 import type { Message as MessageType } from '../../types';
@@ -21,11 +22,6 @@ vi.mock('../Message', () => ({
 vi.mock('../TypingIndicator', () => ({
   TypingIndicator: ({ agentName }: any) => (
     <div data-testid="typing-indicator">{agentName} is typing...</div>
-  ),
-}));
-vi.mock('../AuthenticationRequired', () => ({
-  AuthenticationRequired: ({ authParts, onAllAuthenticated }: any) => (
-    <div data-testid="auth-required">Authentication Required</div>
   ),
 }));
 
@@ -55,7 +51,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -66,8 +61,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
   });
 
@@ -90,7 +83,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -101,8 +93,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList welcomeMessage="Welcome to the chat!" />);
@@ -116,7 +106,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -127,8 +116,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList />);
@@ -145,7 +132,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -156,8 +142,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList agentName="Support Bot" />);
@@ -172,7 +156,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -183,8 +166,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList />);
@@ -199,7 +180,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -210,8 +190,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList userName="John" />);
@@ -226,7 +204,6 @@ describe('MessageList', () => {
       isTyping: true,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -237,8 +214,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList />);
@@ -259,7 +234,6 @@ describe('MessageList', () => {
       isTyping: true,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -270,8 +244,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList agentName="AI Assistant" />);
@@ -279,14 +251,12 @@ describe('MessageList', () => {
     expect(screen.getByText('AI Assistant is typing...')).toBeInTheDocument();
   });
 
-  it('renders the message list container', () => {
+  it('applies correct CSS classes', () => {
     const { container } = render(<MessageList />);
 
     const messageList = container.firstChild as HTMLElement;
-    expect(messageList).toBeInTheDocument();
-    // Fluent UI generates dynamic class names, so we can't test for specific class names
-    // Instead, we verify the element exists and has the correct structure
-    expect(messageList.tagName).toBe('DIV');
+    expect(messageList).toHaveClass('messageList');
+    expect(messageList).toHaveClass('chat-scrollbar');
   });
 
   it.skip('scrolls to bottom when messages change', () => {
@@ -309,7 +279,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -320,8 +289,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     rerender(<MessageList />);
@@ -349,7 +316,6 @@ describe('MessageList', () => {
       isTyping: true,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -360,8 +326,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     rerender(<MessageList />);
@@ -369,13 +333,11 @@ describe('MessageList', () => {
     expect(scrollSpy).toHaveBeenCalledWith(800);
   });
 
-  it('renders welcome message', () => {
+  it('renders welcome message with correct CSS class', () => {
     render(<MessageList welcomeMessage="Welcome!" />);
 
     const welcomeDiv = screen.getByText('Welcome!');
-    expect(welcomeDiv).toBeInTheDocument();
-    // Verify it's centered by checking computed styles if needed
-    // But Fluent UI generates dynamic class names
+    expect(welcomeDiv).toHaveClass('welcomeMessage');
   });
 
   it('maintains message order', () => {
@@ -408,7 +370,6 @@ describe('MessageList', () => {
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
-      authRequired: null,
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -419,8 +380,6 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
-      setAuthRequired: vi.fn(),
-      clearAuthRequired: vi.fn(),
     });
 
     render(<MessageList />);
@@ -436,9 +395,8 @@ describe('MessageList', () => {
     const { container } = render(<MessageList welcomeMessage="" />);
 
     // Empty welcome message should not render
-    // Check that container only has the empty message list div
-    const messageList = container.firstChild as HTMLElement;
-    expect(messageList.children.length).toBe(0);
+    const welcomeDiv = container.querySelector('.welcomeMessage');
+    expect(welcomeDiv).not.toBeInTheDocument();
   });
 
   it('renders both messages and typing indicator when both present', () => {

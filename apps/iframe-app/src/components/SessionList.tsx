@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import {
   Button,
   Card,
@@ -134,6 +134,7 @@ interface SessionItemProps {
   isActive: boolean;
   isEditing: boolean;
   editName: string;
+  safeSessions: SessionMetadata[];
   onSessionClick: (sessionId: string) => void;
   onStartEdit: (sessionId: string, currentName: string) => void;
   onDeleteSession: (sessionId: string) => void;
@@ -149,6 +150,7 @@ const SessionItem = memo(
     isActive,
     isEditing,
     editName,
+    safeSessions,
     onSessionClick,
     onStartEdit,
     onDeleteSession,
@@ -339,6 +341,7 @@ export const SessionList = memo(
                 isActive={session.id === activeSessionId}
                 isEditing={editingSessionId === session.id}
                 editName={editName}
+                safeSessions={safeSessions}
                 onSessionClick={onSessionClick}
                 onStartEdit={handleStartEdit}
                 onDeleteSession={onDeleteSession}

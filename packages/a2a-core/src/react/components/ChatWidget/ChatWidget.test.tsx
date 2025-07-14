@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { ChatWidget } from './ChatWidget';
 
 // Mock the ChatWindow component
@@ -15,14 +14,43 @@ vi.mock('../ChatWindow', () => ({
   ),
 }));
 
-// Mock the ThemeProvider component
-vi.mock('../ThemeProvider/ThemeProvider', () => ({
-  ChatThemeProvider: ({ children }: any) => <div className="theme-provider">{children}</div>,
+// Mock useTheme hook
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: (theme: any) => ({
+    ...theme,
+    processed: true,
+  }),
 }));
 
 describe('ChatWidget', () => {
+  let styleElements: HTMLStyleElement[] = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Track style elements added to document
+    styleElements = [];
+    const originalAppendChild = document.head.appendChild.bind(document.head);
+    vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
+      if (node instanceof HTMLStyleElement) {
+        styleElements.push(node);
+      }
+      return originalAppendChild(node);
+    });
+  });
+
+  afterEach(() => {
+    // Clean up any style elements
+    styleElements.forEach((el) => {
+      try {
+        if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      } catch (e) {
+        // Ignore errors if element was already removed
+      }
+    });
+    styleElements = [];
+    vi.restoreAllMocks();
   });
 
   it('should render ChatWindow component', () => {
@@ -36,7 +64,7 @@ describe('ChatWidget', () => {
     expect(screen.getByText('Welcome!')).toBeInTheDocument();
   });
 
-  it('should pass theme to ChatWindow', () => {
+  it('should apply processed theme to ChatWindow', () => {
     const theme = {
       primaryColor: '#007bff',
       fontFamily: 'Arial',
@@ -50,29 +78,49 @@ describe('ChatWidget', () => {
     expect(themeData).toEqual({
       primaryColor: '#007bff',
       fontFamily: 'Arial',
+      processed: true,
     });
   });
 
-  it('should wrap content in theme provider', () => {
+  it('should wrap content in a2a-chat-widget container', () => {
     const { container } = render(<ChatWidget agentCard="test-agent" />);
 
-    const themeProvider = container.querySelector('.theme-provider');
-    expect(themeProvider).toBeInTheDocument();
-    expect(themeProvider?.querySelector('[data-testid="chat-window"]')).toBeInTheDocument();
+    const wrapper = container.querySelector('.a2a-chat-widget');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper?.querySelector('[data-testid="chat-window"]')).toBeInTheDocument();
   });
 
-  it('should convert legacy theme to themeConfig', () => {
-    const theme = {
-      primaryColor: '#007bff',
-    };
+  it('should add global styles on mount', async () => {
+    render(<ChatWidget agentCard="test-agent" />);
 
-    render(<ChatWidget agentCard="test-agent" theme={theme} />);
-
-    // The component should still work with legacy theme
-    expect(screen.getByTestId('chat-window')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(styleElements).toHaveLength(1);
+      const styleContent = styleElements[0].textContent;
+      expect(styleContent).toContain('.a2a-chat-widget');
+      expect(styleContent).toContain('height: 100%');
+      expect(styleContent).toContain('min-height: 400px');
+      expect(styleContent).toContain('font-family: var(--chat-font-family');
+    });
   });
 
-  it('should pass all props to ChatWindow', () => {
+  it('should remove global styles on unmount', async () => {
+    const { unmount } = render(<ChatWidget agentCard="test-agent" />);
+
+    // Verify style was added
+    await waitFor(() => {
+      expect(styleElements).toHaveLength(1);
+    });
+
+    const styleElement = styleElements[0];
+    const removeChildSpy = vi.spyOn(document.head, 'removeChild');
+
+    unmount();
+
+    // Verify style was removed
+    expect(removeChildSpy).toHaveBeenCalledWith(styleElement);
+  });
+
+  it('should pass all props except theme to ChatWindow', () => {
     const props = {
       agentCard: 'https://agent.example.com/agent.json',
       auth: { token: 'test-token' },
@@ -92,8 +140,9 @@ describe('ChatWidget', () => {
 
     const chatWindow = screen.getByTestId('chat-window');
 
-    // Verify theme was passed
+    // Verify theme was processed
     const themeData = JSON.parse(chatWindow.getAttribute('data-theme') || '{}');
+    expect(themeData.processed).toBe(true);
     expect(themeData.primaryColor).toBe('#007bff');
 
     // Verify other props were passed
@@ -105,26 +154,34 @@ describe('ChatWidget', () => {
     render(<ChatWidget agentCard="test-agent" />);
 
     const chatWindow = screen.getByTestId('chat-window');
-    const themeData = chatWindow.getAttribute('data-theme');
+    const themeData = JSON.parse(chatWindow.getAttribute('data-theme') || '{}');
 
-    // Should handle undefined theme gracefully
-    expect(themeData).toBe(null);
+    // Should have processed flag even with undefined theme
+    expect(themeData.processed).toBe(true);
   });
 
-  it('should support new themeConfig prop', () => {
-    const themeConfig = {
-      primaryColor: '#ff0000',
-    };
+  it('should apply box-sizing to all child elements', async () => {
+    render(<ChatWidget agentCard="test-agent" />);
 
-    render(<ChatWidget agentCard="test-agent" themeConfig={themeConfig} />);
-
-    expect(screen.getByTestId('chat-window')).toBeInTheDocument();
+    await waitFor(() => {
+      const styleContent = styleElements[0].textContent;
+      expect(styleContent).toContain('.a2a-chat-widget * {');
+      expect(styleContent).toContain('box-sizing: border-box');
+    });
   });
 
-  it('should support fluentTheme prop', () => {
-    render(<ChatWidget agentCard="test-agent" fluentTheme="dark" />);
+  it('should set proper CSS variables with fallbacks', async () => {
+    render(<ChatWidget agentCard="test-agent" />);
 
-    expect(screen.getByTestId('chat-window')).toBeInTheDocument();
+    await waitFor(() => {
+      const styleContent = styleElements[0].textContent;
+      expect(styleContent).toContain('var(--chat-font-family, -apple-system, BlinkMacSystemFont');
+      expect(styleContent).toContain('var(--chat-font-size, 14px)');
+      expect(styleContent).toContain('var(--chat-line-height, 1.5)');
+      expect(styleContent).toContain('var(--chat-color-text, #1a1a1a)');
+      expect(styleContent).toContain('var(--chat-color-background, #ffffff)');
+      expect(styleContent).toContain('var(--chat-border-radius, 8px)');
+    });
   });
 
   it('should handle rapid mount/unmount cycles', async () => {

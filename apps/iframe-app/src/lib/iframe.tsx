@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect } from 'react';
 import { ChatWidget, type ChatWidgetProps, type ChatTheme } from '@microsoft/a2achat-core/react';
-import type { AgentCard } from '@microsoft/a2achat-core';
 import { MultiSessionChat } from '../components/MultiSessionChat';
 import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
@@ -195,7 +194,8 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
 
 // Wrapper component that can receive agent card via postMessage
 function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiSession: boolean }) {
-  const [agentCard, setAgentCard] = useState<AgentCard | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [agentCard, setAgentCard] = useState<any>(null);
   const [isWaitingForAgentCard, setIsWaitingForAgentCard] = useState(false);
 
   // Check if we should wait for postMessage
@@ -215,7 +215,8 @@ function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiS
 
           // Send acknowledgment
           if (event.source && typeof event.source.postMessage === 'function') {
-            (event.source as Window).postMessage({ type: 'AGENT_CARD_RECEIVED' }, event.origin);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            event.source.postMessage({ type: 'AGENT_CARD_RECEIVED' }, event.origin as any);
           }
         }
       };
@@ -261,13 +262,10 @@ function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiS
 
   // Use MultiSessionChat if multi-session mode is enabled
   if (multiSession) {
-    const agentCardUrl =
-      typeof finalProps.agentCard === 'string' ? finalProps.agentCard : finalProps.agentCard.url;
-
     return (
       <MultiSessionChat
         config={{
-          apiUrl: agentCardUrl,
+          apiUrl: finalProps.agentCard,
           apiKey: '', // API key is not needed for agent card mode
         }}
         metadata={finalProps.metadata}
