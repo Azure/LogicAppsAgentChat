@@ -57,6 +57,7 @@ interface A2AResult {
   artifacts?: unknown[];
   contextId?: string;
   taskId?: string;
+  timestamp?: string;
   status?: {
     message?: A2AStatusMessage;
     state?: TaskState | 'submitted';
@@ -418,9 +419,12 @@ export class A2AClient {
                       } else if (result.kind === 'task') {
                         // Initial task response - create the base task
                         currentTask = {
-                          id: result.id!,
+                          id: result.id || result.taskId || `task-${Date.now()}`,
                           state: result.status?.state === 'submitted' ? 'pending' : 'running',
-                          createdAt: result.status?.timestamp || new Date().toISOString(),
+                          createdAt:
+                            result.status?.timestamp ||
+                            result.timestamp ||
+                            new Date().toISOString(),
                           messages: [],
                           artifacts: [],
                           // Include contextId from server response if available
