@@ -1,5 +1,6 @@
 import React from 'react';
-import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens, Button } from '@fluentui/react-components';
+import { PanelLeftExpandRegular, PanelLeftContractRegular } from '@fluentui/react-icons';
 import { MessageList } from '../MessageList';
 import { MessageInput } from '../MessageInput';
 import { CompanyLogo } from '../CompanyLogo';
@@ -20,6 +21,12 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
     display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalM),
+  },
+  headerContent: {
+    display: 'flex',
+    flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -56,6 +63,8 @@ const useStyles = makeStyles({
 
 export interface ChatWindowProps extends ChatWidgetProps {
   // All props come from ChatWidgetProps
+  onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
 export function ChatWindow(props: ChatWindowProps) {
@@ -73,6 +82,8 @@ export function ChatWindow(props: ChatWindowProps) {
     onConnectionChange,
     userName,
     sessionKey,
+    onToggleSidebar,
+    isSidebarCollapsed,
   } = props;
 
   const { isConnected, agentName, agentDescription, sendMessage, handleAuthCompleted } =
@@ -89,8 +100,22 @@ export function ChatWindow(props: ChatWindowProps) {
 
   return (
     <div className={styles.chatWindow}>
-      {(showHeaderLogo || isConnected) && (
-        <div className={styles.header}>
+      <div className={styles.header}>
+        {onToggleSidebar && (
+          <Button
+            appearance="subtle"
+            icon={
+              isSidebarCollapsed ? (
+                <PanelLeftExpandRegular fontSize={20} />
+              ) : (
+                <PanelLeftContractRegular fontSize={20} />
+              )
+            }
+            onClick={onToggleSidebar}
+            title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          />
+        )}
+        <div className={styles.headerContent}>
           {showHeaderLogo && <CompanyLogo branding={theme?.branding} />}
           {isConnected && (
             <div className={styles.agentInfo}>
@@ -99,13 +124,13 @@ export function ChatWindow(props: ChatWindowProps) {
             </div>
           )}
         </div>
-      )}
+      </div>
 
       <div className={styles.messageListContainer}>
         <MessageList
           welcomeMessage={welcomeMessage}
           agentName={agentName || 'Assistant'}
-          userName={userName || 'You'}
+          userName={userName}
           onAuthCompleted={handleAuthCompleted}
         />
       </div>

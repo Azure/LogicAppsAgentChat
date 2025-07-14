@@ -10,6 +10,7 @@ import {
   shorthands,
   tokens,
   mergeClasses,
+  Tooltip,
 } from '@fluentui/react-components';
 import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
@@ -20,11 +21,29 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     height: '100%',
     backgroundColor: tokens.colorNeutralBackground2,
+    overflow: 'hidden',
+  },
+  header: {
+    height: '60px',
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
+    display: 'flex',
+    alignItems: 'center',
   },
   footer: {
+    display: 'flex',
+    flexDirection: 'column',
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+    paddingTop: `calc(${tokens.spacingVerticalM} + 8px)`,
+    paddingBottom: `calc(${tokens.spacingVerticalM} + 8px)`,
+    backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke1),
-    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  buttonWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalS),
   },
   title: {
     fontSize: tokens.fontSizeBase600,
@@ -45,6 +64,7 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
     transition: 'all 0.2s ease',
+    userSelect: 'none',
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground1Hover,
       ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1Hover),
@@ -165,6 +185,14 @@ const SessionItem = memo(
       onSessionClick(session.id);
     }, [onSessionClick, session.id]);
 
+    const handleDoubleClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onStartEdit(session.id, session.name || 'Untitled Chat');
+      },
+      [onStartEdit, session.id, session.name]
+    );
+
     const handleStartEdit = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -199,6 +227,7 @@ const SessionItem = memo(
         <Card
           className={mergeClasses(styles.sessionItem, isActive && styles.sessionItemActive)}
           onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
           appearance="subtle"
         >
           <div className={styles.sessionContent}>
@@ -216,7 +245,9 @@ const SessionItem = memo(
             ) : (
               <>
                 <div className={styles.sessionHeader}>
-                  <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
+                  <Tooltip content="Double-click to rename" relationship="label">
+                    <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
+                  </Tooltip>
                   {!isEditing && (
                     <div
                       className={mergeClasses(
@@ -325,6 +356,9 @@ export const SessionList = memo(
 
     return (
       <div className={styles.sessionList}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>Chats</h3>
+        </div>
         <div className={styles.sessions}>
           {safeSessions.length === 0 ? (
             <div className={styles.emptyState}>
@@ -354,16 +388,18 @@ export const SessionList = memo(
           )}
         </div>
         <div className={styles.footer}>
-          <Button
-            appearance="primary"
-            icon={<AddRegular fontSize={16} />}
-            onClick={onNewSession}
-            size="medium"
-            title="New Chat"
-            style={{ width: '100%' }}
-          >
-            New Chat
-          </Button>
+          <div className={styles.buttonWrapper}>
+            <Button
+              appearance="primary"
+              icon={<AddRegular fontSize={16} />}
+              onClick={onNewSession}
+              size="medium"
+              title="New Chat"
+              style={{ width: '100%', minHeight: '40px', height: '40px' }}
+            >
+              New Chat
+            </Button>
+          </div>
         </div>
       </div>
     );

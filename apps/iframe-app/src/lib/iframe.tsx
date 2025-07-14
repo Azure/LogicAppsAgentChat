@@ -268,7 +268,7 @@ function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiS
           apiUrl: finalProps.agentCard,
           apiKey: '', // API key is not needed for agent card mode
         }}
-        metadata={finalProps.metadata}
+        {...finalProps}
       />
     );
   }

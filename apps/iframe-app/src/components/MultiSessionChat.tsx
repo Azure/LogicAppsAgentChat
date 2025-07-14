@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { ChatWidget, ChatWidgetProps, ChatThemeProvider } from '@microsoft/a2achat-core/react';
 import { AgentCard } from '@microsoft/a2achat-core';
 import {
@@ -7,6 +7,7 @@ import {
   tokens,
   shorthands,
   Spinner,
+  mergeClasses,
 } from '@fluentui/react-components';
 import { webLightTheme } from '@fluentui/react-components';
 import { useChatSessions } from '../hooks/useChatSessions';
@@ -21,14 +22,38 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   sidebar: {
-    width: '260px',
     height: '100vh',
     flexShrink: 0,
-    transition: 'width 0.3s ease',
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralStroke1),
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
+  },
+  sidebarTransition: {
+    transition: 'width 0.3s ease',
+  },
+  sidebarCollapsed: {
+    width: '0px !important',
+    ...shorthands.borderRight('none'),
+    overflow: 'hidden',
+  },
+  resizeHandle: {
+    position: 'absolute',
+    right: '-3px',
+    top: 0,
+    bottom: 0,
+    width: '6px',
+    cursor: 'col-resize',
+    backgroundColor: 'transparent',
+    transition: 'background-color 0.2s',
+    ':hover': {
+      backgroundColor: tokens.colorBrandBackground,
+    },
+  },
+  resizing: {
+    userSelect: 'none',
+    cursor: 'col-resize',
   },
   chatArea: {
     flex: 1,
@@ -54,29 +79,6 @@ const useStyles = makeStyles({
     height: '100vh',
     color: tokens.colorPaletteRedForeground1,
   },
-  '@media (max-width: 768px)': {
-    sidebar: {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      zIndex: 10,
-      width: '260px',
-      transform: 'translateX(-100%)',
-      transition: 'transform 0.3s ease',
-      boxShadow: tokens.shadow16,
-    },
-    sidebarOpen: {
-      transform: 'translateX(0)',
-    },
-    chatArea: {
-      width: '100%',
-    },
-  },
-  '@media (max-width: 480px)': {
-    sidebar: {
-      width: '200px',
-    },
-  },
 });
 
 interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
@@ -91,7 +93,10 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   const [agentCard, setAgentCard] = useState<AgentCard | undefined>();
   const [isLoadingAgent, setIsLoadingAgent] = useState(true);
   const [agentError, setAgentError] = useState<Error | undefined>();
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const {
     sessions,
@@ -102,6 +107,76 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
     renameSession,
     deleteSession,
   } = useChatSessions();
+
+  // Check screen size and auto-collapse on small screens
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (window.innerWidth < 720) {
+        setIsCollapsed(true);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+
+  // Handle sidebar resizing
+  const startResizing = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      // Cancel any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      // Use requestAnimationFrame for smooth updates
+      animationFrameId = requestAnimationFrame(() => {
+        const newWidth = e.clientX;
+        if (newWidth >= 200 && newWidth <= 400) {
+          setSidebarWidth(newWidth);
+        }
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+    } else {
+      document.body.style.cursor = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isResizing]);
+
+  const toggleSidebar = useCallback(() => {
+    setIsCollapsed(!isCollapsed);
+  }, [isCollapsed]);
 
   // Fetch agent card once on mount
   useEffect(() => {
@@ -192,8 +267,16 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
 
   return (
     <FluentProvider theme={webLightTheme}>
-      <div className={styles.multiSessionContainer}>
-        <div className={`${styles.sidebar} ${isMobileSidebarOpen ? styles.sidebarOpen : ''}`}>
+      <div className={mergeClasses(styles.multiSessionContainer, isResizing && styles.resizing)}>
+        <div
+          ref={sidebarRef}
+          className={mergeClasses(
+            styles.sidebar,
+            !isResizing && styles.sidebarTransition,
+            isCollapsed && styles.sidebarCollapsed
+          )}
+          style={{ width: isCollapsed ? 0 : sidebarWidth }}
+        >
           <SessionList
             sessions={sessions}
             activeSessionId={activeSessionId}
@@ -202,8 +285,8 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
             onRenameSession={renameSession}
             onDeleteSession={deleteSession}
           />
+          {!isCollapsed && <div className={styles.resizeHandle} onMouseDown={startResizing} />}
         </div>
-
         <div className={styles.chatArea}>
           <ChatThemeProvider>
             <ChatWidget
@@ -217,6 +300,8 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
               userName={chatWidgetProps.userName}
               placeholder={chatWidgetProps.placeholder}
               allowFileUpload={false}
+              onToggleSidebar={toggleSidebar}
+              isSidebarCollapsed={isCollapsed}
             />
           </ChatThemeProvider>
         </div>
