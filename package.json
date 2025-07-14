@@ -19,7 +19,10 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:dev": "pnpm --filter @a2achat/docs start",
+    "docs:build": "pnpm --filter @a2achat/docs build",
+    "docs:serve": "pnpm --filter @a2achat/docs serve"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",

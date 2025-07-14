@@ -1,0 +1,80 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 5rem 0;
+  width: 100%;
+  background-color: var(--azure-gray-50);
+}
+
+.featureCol {
+  margin-bottom: 2rem;
+}
+
+.featureCard {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  height: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 1px solid var(--azure-gray-200);
+  text-align: center;
+}
+
+.featureCard:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  border-color: var(--ifm-color-primary);
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  line-height: 1;
+}
+
+.featureTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--azure-gray-900);
+  margin-bottom: 1rem;
+}
+
+.featureDescription {
+  font-size: 1rem;
+  color: var(--azure-gray-700);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .features {
+  background-color: var(--azure-gray-100);
+}
+
+[data-theme='dark'] .featureCard {
+  background: var(--azure-gray-50);
+  border-color: var(--azure-gray-200);
+}
+
+[data-theme='dark'] .featureCard:hover {
+  border-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .featureTitle {
+  color: var(--azure-gray-900);
+}
+
+[data-theme='dark'] .featureDescription {
+  color: var(--azure-gray-700);
+}
+
+@media screen and (max-width: 996px) {
+  .featureCol {
+    margin-bottom: 1.5rem;
+  }
+
+  .featureCard {
+    padding: 1.5rem;
+  }
+}
