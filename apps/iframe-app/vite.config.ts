@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { Plugin } from 'vite';
-import { analyzer } from 'vite-bundle-analyzer';
 
 // Custom plugin to rename index.html to iframe.html
 function renameIndexHtml(): Plugin {
@@ -19,7 +18,7 @@ function renameIndexHtml(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), renameIndexHtml(), analyzer()],
+  plugins: [react(), renameIndexHtml()],
   base: './', // Use relative paths instead of absolute
   build: {
     outDir: 'dist',

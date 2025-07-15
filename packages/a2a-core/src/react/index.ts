@@ -39,8 +39,9 @@ export { Message as MessageComponent } from './components/Message';
 export { TypingIndicator } from './components/TypingIndicator';
 export { CompanyLogo } from './components/CompanyLogo';
 export { FileUpload } from './components/FileUpload';
-export { AuthenticationRequired } from './components/AuthenticationRequired';
-export type { AuthenticationRequiredProps } from './components/AuthenticationRequired';
+// Authentication component
+export { AuthenticationMessage } from './components/Message/AuthenticationMessage';
+export type { AuthenticationMessageProps } from './components/Message/AuthenticationMessage';
 
 // Utilities (for advanced usage)
 export { generateMessageId, createMessage, formatCodeContent } from './utils/messageUtils';

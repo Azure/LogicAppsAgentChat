@@ -85,7 +85,7 @@ const useStyles = makeStyles({
   },
 });
 
-interface AuthenticationMessageProps {
+export interface AuthenticationMessageProps {
   authParts: AuthRequiredPart[];
   status: AuthenticationStatus;
   // Called when all auth parts have been successfully authenticated
@@ -171,8 +171,12 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
     [authStates, onAuthenticate]
   );
 
+  // Check if all auth parts are locally authenticated
+  const allLocallyAuthenticated = authStates.every((state) => state.isAuthenticated);
+  const effectiveStatus = allLocallyAuthenticated ? 'completed' : status;
+
   const getIcon = () => {
-    switch (status) {
+    switch (effectiveStatus) {
       case 'completed':
         return <CheckmarkCircleRegular className={styles.successIcon} />;
       case 'failed':
@@ -183,7 +187,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
   };
 
   const getTitle = () => {
-    switch (status) {
+    switch (effectiveStatus) {
       case 'completed':
         return 'Authentication Completed';
       case 'failed':
@@ -194,7 +198,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
   };
 
   const getTitleStyles = () => {
-    switch (status) {
+    switch (effectiveStatus) {
       case 'completed':
         return { color: tokens.colorPaletteGreenForeground1 };
       case 'failed':
@@ -255,7 +259,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
               </div>
             </div>
 
-            {status === 'pending' && (
+            {effectiveStatus === 'pending' && (
               <Button
                 appearance={authState.isAuthenticated ? 'subtle' : 'primary'}
                 size="small"
@@ -271,7 +275,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
               </Button>
             )}
 
-            {status === 'completed' && (
+            {effectiveStatus === 'completed' && (
               <Badge
                 appearance="tint"
                 icon={
@@ -286,7 +290,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         ))}
       </div>
 
-      {status === 'completed' && (
+      {effectiveStatus === 'completed' && (
         <Badge
           appearance="tint"
           size="large"

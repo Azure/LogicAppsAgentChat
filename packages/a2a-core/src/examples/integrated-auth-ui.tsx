@@ -3,7 +3,7 @@ import {
   ChatWidget,
   ChatWindow,
   useChatWidget,
-  AuthenticationRequired,
+  AuthenticationMessage,
   useChatStore,
 } from '../react';
 import type { AuthRequiredEvent } from '../client/types';
@@ -73,7 +73,7 @@ export function CustomChatImplementation() {
 /**
  * Example 4: Manually handling authentication UI
  *
- * You can also manually render the AuthenticationRequired component
+ * You can also manually render the AuthenticationMessage component
  * when you detect an auth event.
  */
 export function ManualAuthUIExample() {
@@ -116,10 +116,10 @@ export function ManualAuthUIExample() {
             zIndex: 1000,
           }}
         >
-          <AuthenticationRequired
+          <AuthenticationMessage
             authParts={authEvent.authParts}
-            onAllAuthenticated={handleAuthCompleted}
-            onCancel={() => setAuthEvent(null)}
+            status="pending"
+            onAuthenticate={handleAuthCompleted}
           />
         </div>
       )}
@@ -183,7 +183,7 @@ export function AuthStateExample() {
  * The authentication flow:
  * 1. Server sends auth-required message during streaming
  * 2. Default handler sets authRequired in the store
- * 3. MessageList renders AuthenticationRequired component
+ * 3. MessageList renders AuthenticationMessage component
  * 4. User clicks "Sign In" for each service
  * 5. Popup windows open for consent
  * 6. After all services authenticated, onAllAuthenticated is called
