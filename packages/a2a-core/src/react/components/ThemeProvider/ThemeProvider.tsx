@@ -33,5 +33,37 @@ export const ChatThemeProvider: React.FC<ChatThemeProviderProps> = ({
     return theme === 'dark' ? defaultDarkTheme : defaultLightTheme;
   }, [theme, themeConfig, customTheme]);
 
+  // Workaround for Fluent UI Tabster accessibility issues
+  React.useEffect(() => {
+    // Fix tabster dummy elements that have aria-hidden="true" with tabindex="0"
+    const fixTabsterAccessibility = () => {
+      const tabsterDummies = document.querySelectorAll(
+        '[data-tabster-dummy][aria-hidden="true"][tabindex="0"]'
+      );
+      tabsterDummies.forEach((element) => {
+        element.setAttribute('tabindex', '-1');
+      });
+    };
+
+    // Run on mount and whenever DOM changes
+    fixTabsterAccessibility();
+
+    // Use MutationObserver to fix new elements added dynamically
+    const observer = new MutationObserver(() => {
+      fixTabsterAccessibility();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-tabster-dummy'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return <FluentProvider theme={fluentTheme}>{children}</FluentProvider>;
 };

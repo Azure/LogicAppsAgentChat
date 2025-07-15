@@ -153,6 +153,7 @@ export function MessageInput({
                 size="small"
                 className={styles.removeButton}
                 onClick={() => removeAttachment(index)}
+                aria-label={`Remove ${file.name}`}
               />
             </Badge>
           ))}
@@ -167,6 +168,7 @@ export function MessageInput({
               icon={<AttachRegular />}
               disabled={isDisabled}
               onClick={() => document.getElementById('file-upload')?.click()}
+              aria-label="Attach files"
             />
             <input
               id="file-upload"
@@ -197,6 +199,7 @@ export function MessageInput({
           disabled={isDisabled || (!message.trim() && pendingAttachments.length === 0)}
           className={styles.sendButton}
           type="submit"
+          aria-label="Send message"
         />
       </div>
 
