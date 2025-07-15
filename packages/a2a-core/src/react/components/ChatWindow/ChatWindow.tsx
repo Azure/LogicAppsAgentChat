@@ -84,6 +84,7 @@ export function ChatWindow(props: ChatWindowProps) {
     sessionKey,
     onToggleSidebar,
     isSidebarCollapsed,
+    apiKey,
   } = props;
 
   const { isConnected, agentName, agentDescription, sendMessage, handleAuthCompleted } =
@@ -93,6 +94,7 @@ export function ChatWindow(props: ChatWindowProps) {
       onMessage,
       onConnectionChange,
       sessionKey,
+      apiKey,
     });
 
   const showHeaderLogo = theme?.branding?.logoPosition === 'header';

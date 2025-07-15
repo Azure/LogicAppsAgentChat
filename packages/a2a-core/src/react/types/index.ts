@@ -88,4 +88,5 @@ export interface ChatWidgetProps {
   sessionKey?: string; // Optional session key for multi-session support
   onToggleSidebar?: () => void; // Callback for toggling sidebar
   isSidebarCollapsed?: boolean; // Current sidebar state
+  apiKey?: string; // Optional API key for authentication
 }

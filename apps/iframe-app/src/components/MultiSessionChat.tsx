@@ -189,9 +189,14 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
 
         const url = config.apiUrl.endsWith('.json')
           ? config.apiUrl
-          : `${config.apiUrl}/.well-known/ai-agent.json`;
+          : `${config.apiUrl}/.well-known/agent.json`;
 
-        const response = await fetch(url);
+        const headers: HeadersInit = {};
+        if (config.apiKey) {
+          headers['X-API-Key'] = config.apiKey;
+        }
+
+        const response = await fetch(url, { headers });
         if (!response.ok) {
           throw new Error(`Failed to fetch agent card: ${response.statusText}`);
         }
@@ -292,6 +297,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
             <ChatWidget
               key={activeSessionId}
               agentCard={agentCard}
+              apiKey={config.apiKey}
               sessionKey={`a2a-chat-session-${activeSessionId}`}
               metadata={{
                 ...chatWidgetProps.metadata,

@@ -14,6 +14,7 @@ interface UseChatWidgetProps {
   onConnectionChange?: (connected: boolean) => void;
   onAuthRequired?: AuthRequiredHandler;
   sessionKey?: string;
+  apiKey?: string;
 }
 
 export function useChatWidget({
@@ -23,6 +24,7 @@ export function useChatWidget({
   onConnectionChange,
   onAuthRequired,
   sessionKey,
+  apiKey,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -55,11 +57,13 @@ export function useChatWidget({
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired,
+          apiKey,
         }
       : {
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired,
+          apiKey,
         }
   );
 
@@ -182,7 +186,7 @@ export function useChatWidget({
     const connectToAgent = async () => {
       try {
         if (typeof agentCard === 'string') {
-          const discovery = new AgentDiscovery();
+          const discovery = new AgentDiscovery({ apiKey });
           let resolvedAgentCard: AgentCard;
 
           if (agentCard.includes('/.well-known/agent.json') || agentCard.endsWith('.json')) {
@@ -190,7 +194,11 @@ export function useChatWidget({
               resolvedAgentCard = await discovery.fromDirect(agentCard);
             } catch (error) {
               // Fallback: fetch manually
-              const response = await fetch(agentCard);
+              const headers: HeadersInit = {};
+              if (apiKey) {
+                headers['X-API-Key'] = apiKey;
+              }
+              const response = await fetch(agentCard, { headers });
               const rawData = await response.json();
 
               const enhancedAgentCard = {
@@ -222,7 +230,7 @@ export function useChatWidget({
     };
 
     connectToAgent();
-  }, [agentCard, auth, initialized, isConnected, connect]);
+  }, [agentCard, auth, apiKey, initialized, isConnected, connect]);
 
   const sendMessage = useCallback(
     async (content: string): Promise<void> => {

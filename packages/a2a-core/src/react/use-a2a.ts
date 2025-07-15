@@ -24,6 +24,7 @@ export interface UseA2AOptions {
   persistSession?: boolean;
   sessionKey?: string;
   onAuthRequired?: AuthRequiredHandler;
+  apiKey?: string;
 }
 
 export interface UseA2AReturn {
@@ -77,6 +78,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         if (options.auth) {
           clientConfig.auth = options.auth;
+        }
+
+        if (options.apiKey) {
+          clientConfig.apiKey = options.apiKey;
         }
 
         // Create a custom auth handler that adds auth messages to the UI

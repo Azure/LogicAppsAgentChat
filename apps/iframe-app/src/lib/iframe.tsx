@@ -6,11 +6,14 @@ import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
 // Parse configuration from data attributes or URL parameters
-function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
+function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?: string } {
   const params = new URLSearchParams(window.location.search);
   const dataset = document.documentElement.dataset;
   // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
   let agentCard = dataset.agentCard || params.get('agentCard') || params.get('agent');
+
+  // Get API key from query parameter or data attribute
+  const apiKey = params.get('apiKey') || dataset.apiKey;
 
   if (!agentCard) {
     // Transform current URL to agent card URL if we're in an iframe context
@@ -174,6 +177,7 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
     allowFileUpload: dataset.allowFileUpload === 'true' || params.get('allowFileUpload') === 'true',
     maxFileSize: dataset.maxFileSize ? parseInt(dataset.maxFileSize) : undefined,
     allowedFileTypes: dataset.allowedFileTypes?.split(',').map((t) => t.trim()),
+    apiKey: apiKey || undefined,
   };
 
   // Check if multi-session mode is enabled
@@ -189,11 +193,19 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean } {
     }
   }
 
-  return { props, multiSession };
+  return { props, multiSession, apiKey };
 }
 
 // Wrapper component that can receive agent card via postMessage
-function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiSession: boolean }) {
+function IframeWrapper({
+  props,
+  multiSession,
+  apiKey,
+}: {
+  props: ChatWidgetProps;
+  multiSession: boolean;
+  apiKey?: string;
+}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentCard, setAgentCard] = useState<any>(null);
   const [isWaitingForAgentCard, setIsWaitingForAgentCard] = useState(false);
@@ -266,7 +278,7 @@ function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiS
       <MultiSessionChat
         config={{
           apiUrl: finalProps.agentCard,
-          apiKey: '', // API key is not needed for agent card mode
+          apiKey: apiKey || '', // Pass the API key from query params
         }}
         {...finalProps}
       />
@@ -279,7 +291,7 @@ function IframeWrapper({ props, multiSession }: { props: ChatWidgetProps; multiS
 // Initialize the widget
 function init() {
   try {
-    const { props, multiSession } = parseConfig();
+    const { props, multiSession, apiKey } = parseConfig();
 
     const container = document.getElementById('chat-root');
 
@@ -289,7 +301,7 @@ function init() {
 
     const root = createRoot(container);
 
-    root.render(<IframeWrapper props={props} multiSession={multiSession} />);
+    root.render(<IframeWrapper props={props} multiSession={multiSession} apiKey={apiKey} />);
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
     console.error('Error details:', {
