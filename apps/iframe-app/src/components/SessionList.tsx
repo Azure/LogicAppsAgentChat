@@ -246,30 +246,28 @@ const SessionItem = memo(
                   <Tooltip content="Double-click to rename" relationship="label">
                     <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
                   </Tooltip>
-                  {!isEditing && (
-                    <div
-                      className={mergeClasses(
-                        styles.sessionActions,
-                        styles.sessionActionsHidden,
-                        'session-actions'
-                      )}
-                    >
-                      <Button
-                        appearance="subtle"
-                        icon={<EditRegular />}
-                        size="small"
-                        onClick={handleStartEdit}
-                        title="Rename"
-                      />
-                      <Button
-                        appearance="subtle"
-                        icon={<DeleteRegular />}
-                        size="small"
-                        onClick={handleDelete}
-                        title="Delete"
-                      />
-                    </div>
-                  )}
+                  <div
+                    className={mergeClasses(
+                      styles.sessionActions,
+                      styles.sessionActionsHidden,
+                      'session-actions'
+                    )}
+                  >
+                    <Button
+                      appearance="subtle"
+                      icon={<EditRegular />}
+                      size="small"
+                      onClick={handleStartEdit}
+                      title="Rename"
+                    />
+                    <Button
+                      appearance="subtle"
+                      icon={<DeleteRegular />}
+                      size="small"
+                      onClick={handleDelete}
+                      title="Delete"
+                    />
+                  </div>
                 </div>
                 {session.lastMessage && (
                   <Caption1 className={styles.lastMessage}>{session.lastMessage}</Caption1>
