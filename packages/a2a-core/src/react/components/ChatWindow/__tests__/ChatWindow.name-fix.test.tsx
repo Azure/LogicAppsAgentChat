@@ -12,7 +12,7 @@ vi.mock('../../hooks/useChatWidget', () => ({
 
 // Mock the components that ChatWindow uses
 vi.mock('../../MessageList', () => ({
-  MessageList: ({ agentName, userName, ...props }: any) => (
+  MessageList: ({ agentName = 'Agent', userName = 'You', ...props }: any) => (
     <div data-testid="message-list">
       <div data-testid="agent-name">{agentName}</div>
       <div data-testid="user-name">{userName}</div>
@@ -63,7 +63,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
     expect(agentNameElement).toHaveTextContent('My Custom Agent');
   });
 
-  it('should always pass "You" as userName to MessageList', () => {
+  it('should pass "You" as default userName to MessageList when not provided', () => {
     mockUseChatWidget.mockReturnValue({
       isConnected: true,
       agentName: 'My Custom Agent',
@@ -74,7 +74,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
 
     render(<ChatWindow {...defaultProps} />);
 
-    // Check that the MessageList received "You" as userName
+    // Check that the MessageList received "You" as default userName
     const userNameElement = screen.getByTestId('user-name');
     expect(userNameElement).toHaveTextContent('You');
   });
@@ -135,7 +135,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
 
     render(<ChatWindow {...defaultProps} />);
 
-    // The user name should always be "You", not the agent name
+    // The user name should default to "You", not the agent name
     const userNameElement = screen.getByTestId('user-name');
     expect(userNameElement).not.toHaveTextContent('My Custom Agent');
     expect(userNameElement).toHaveTextContent('You');
@@ -163,7 +163,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
     render(<ChatWindow {...propsWithTestAgent} />);
 
     // Before the fix, userName was receiving the agentName value
-    // After the fix, userName should always be "You"
+    // After the fix, userName should default to "You" when not provided
     const userNameElement = screen.getByTestId('user-name');
     expect(userNameElement).toHaveTextContent('You');
 

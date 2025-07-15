@@ -251,12 +251,13 @@ describe('MessageList', () => {
     expect(screen.getByText('AI Assistant is typing...')).toBeInTheDocument();
   });
 
-  it('applies correct CSS classes', () => {
+  it('renders with correct structure', () => {
     const { container } = render(<MessageList />);
 
     const messageList = container.firstChild as HTMLElement;
-    expect(messageList).toHaveClass('messageList');
-    expect(messageList).toHaveClass('chat-scrollbar');
+    // Test that it's rendered as a scrollable container
+    expect(messageList).toBeInTheDocument();
+    expect(getComputedStyle(messageList).overflowY).toBe('auto');
   });
 
   it.skip('scrolls to bottom when messages change', () => {
@@ -333,11 +334,14 @@ describe('MessageList', () => {
     expect(scrollSpy).toHaveBeenCalledWith(800);
   });
 
-  it('renders welcome message with correct CSS class', () => {
+  it('renders welcome message with correct styling', () => {
     render(<MessageList welcomeMessage="Welcome!" />);
 
     const welcomeDiv = screen.getByText('Welcome!');
-    expect(welcomeDiv).toHaveClass('welcomeMessage');
+    expect(welcomeDiv).toBeInTheDocument();
+    // Test computed styles instead of class names
+    const styles = getComputedStyle(welcomeDiv);
+    expect(styles.textAlign).toBe('center');
   });
 
   it('maintains message order', () => {

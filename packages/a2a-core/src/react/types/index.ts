@@ -81,4 +81,6 @@ export interface ChatWidgetProps {
   allowedFileTypes?: string[];
   userName?: string; // Custom display name for the user, defaults to "You"
   sessionKey?: string; // Optional session key for multi-session support
+  onToggleSidebar?: () => void; // Callback for toggling sidebar
+  isSidebarCollapsed?: boolean; // Current sidebar state
 }
