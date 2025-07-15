@@ -1,13 +1,14 @@
 import type { AgentCard } from '../../types';
-import type { AuthConfig } from '../../client/types';
+import type { AuthConfig, AuthRequiredPart } from '../../client/types';
 
 // Re-export types from main module
-export type { AgentCard, AuthConfig };
+export type { AgentCard, AuthConfig, AuthRequiredPart };
 
 // Define and export message roles and statuses
-export type MessageRole = 'user' | 'assistant';
+export type MessageRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'sending' | 'sent' | 'error';
 export type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
+export type AuthenticationStatus = 'pending' | 'completed' | 'failed';
 
 export interface Message {
   id: string;
@@ -17,6 +18,10 @@ export interface Message {
   status?: MessageStatus;
   metadata?: Record<string, any>;
   attachments?: Attachment[];
+  authEvent?: {
+    authParts: AuthRequiredPart[];
+    status: AuthenticationStatus;
+  };
 }
 
 export interface Attachment {

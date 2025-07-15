@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useA2A } from '../use-a2a';
 import { AgentDiscovery } from '../../discovery/agent-discovery';
 import type { AgentCard } from '../../types';
-import type { AuthConfig, AuthRequiredHandler, AuthRequiredEvent } from '../../client/types';
+import type { AuthConfig, AuthRequiredHandler } from '../../client/types';
 import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
@@ -34,17 +34,8 @@ export function useChatWidget({
     updateMessage,
     setConnected,
     setTyping,
-    setAuthRequired,
     clearMessages: clearLocalMessages,
   } = useChatStore();
-
-  // Default auth handler that sets the auth state in the store
-  const defaultAuthHandler = useCallback(
-    (event: AuthRequiredEvent) => {
-      setAuthRequired(event);
-    },
-    [setAuthRequired]
-  );
 
   const {
     isConnected,
@@ -63,12 +54,12 @@ export function useChatWidget({
           auth,
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
-          onAuthRequired: onAuthRequired || defaultAuthHandler,
+          onAuthRequired,
         }
       : {
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
-          onAuthRequired: onAuthRequired || defaultAuthHandler,
+          onAuthRequired,
         }
   );
 
@@ -128,12 +119,19 @@ export function useChatWidget({
         if (isFromUI) {
           sentMessageContents.current.delete(sdkMessage.content);
         }
+      } else if (sdkMessage.role === 'system') {
+        // Always add system messages (including auth messages) to UI
+        shouldAddToUI = true;
       }
 
       if (shouldAddToUI) {
         const internalMessage = createMessage(
           sdkMessage.content,
-          sdkMessage.role === 'user' ? 'user' : 'assistant'
+          sdkMessage.role === 'system'
+            ? 'system'
+            : sdkMessage.role === 'user'
+              ? 'user'
+              : 'assistant'
         );
         internalMessage.metadata = {
           ...internalMessage.metadata,
@@ -141,6 +139,16 @@ export function useChatWidget({
           timestamp: sdkMessage.timestamp,
           isStreaming: sdkMessage.isStreaming,
         };
+
+        // Include authEvent if present
+        if (sdkMessage.authEvent) {
+          internalMessage.authEvent = sdkMessage.authEvent;
+        }
+
+        // Ensure the message has proper timestamp
+        if (sdkMessage.timestamp) {
+          internalMessage.timestamp = sdkMessage.timestamp;
+        }
 
         messageIdMap.current.set(sdkMessage.id, internalMessage.id);
 
@@ -249,11 +257,10 @@ export function useChatWidget({
   const handleAuthCompleted = useCallback(async () => {
     try {
       await sendAuthenticationCompleted();
-      setAuthRequired(null); // Clear auth state after completion
     } catch (error) {
       console.error('Failed to send authentication completed:', error);
     }
-  }, [sendAuthenticationCompleted, setAuthRequired]);
+  }, [sendAuthenticationCompleted]);
 
   return {
     sendMessage,

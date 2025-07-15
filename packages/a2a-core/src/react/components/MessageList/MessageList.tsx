@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Message } from '../Message';
 import { TypingIndicator } from '../TypingIndicator';
-import { AuthenticationRequired } from '../AuthenticationRequired';
 import { useChatStore } from '../../store/chatStore';
 
 const useStyles = makeStyles({
@@ -38,7 +37,7 @@ export function MessageList({
   onAuthCompleted,
 }: MessageListProps) {
   const styles = useStyles();
-  const { messages, isTyping, authRequired } = useChatStore();
+  const { messages, isTyping } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(true);
   const lastMessageContent = useRef<string>('');
@@ -85,15 +84,14 @@ export function MessageList({
       )}
 
       {messages.map((message) => (
-        <Message key={message.id} message={message} agentName={agentName} userName={userName} />
-      ))}
-
-      {authRequired && onAuthCompleted && (
-        <AuthenticationRequired
-          authParts={authRequired.authParts}
-          onAllAuthenticated={onAuthCompleted}
+        <Message
+          key={message.id}
+          message={message}
+          agentName={agentName}
+          userName={userName}
+          onAuthCompleted={onAuthCompleted}
         />
-      )}
+      ))}
 
       {isTyping && <TypingIndicator agentName={agentName} />}
     </div>

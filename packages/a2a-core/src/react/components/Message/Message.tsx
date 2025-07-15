@@ -22,6 +22,7 @@ import {
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import Prism from 'prismjs';
+import { AuthenticationMessage } from './AuthenticationMessage';
 import 'prismjs/themes/prism.css';
 // Import all Prism language components
 import 'prismjs/components/prism-clike';
@@ -283,17 +284,42 @@ interface MessageProps {
   message: MessageType;
   agentName?: string;
   userName?: string;
+  onAuthCompleted?: () => void;
 }
 
-function MessageComponent({ message, agentName = 'Agent', userName = 'You' }: MessageProps) {
+function MessageComponent({
+  message,
+  agentName = 'Agent',
+  userName = 'You',
+  onAuthCompleted,
+}: MessageProps) {
   const styles = useStyles();
   const isUser = message.sender === 'user';
-  const senderName = isUser ? userName : agentName;
+  const isSystem = message.sender === 'system';
+  const senderName = isUser ? userName : isSystem ? 'System' : agentName;
   const isArtifact = message.metadata?.isArtifact;
   const isGroupedArtifact = message.metadata?.isGroupedArtifact;
   const artifactName = message.metadata?.artifactName;
   const [showContent, setShowContent] = useState(!isArtifact && !isGroupedArtifact);
   const [selectedArtifactIndex, setSelectedArtifactIndex] = useState<number | null>(null);
+
+  // If this is an authentication message, render it differently
+  if (message.authEvent) {
+    return (
+      <div className={styles.messageWrapper}>
+        <AuthenticationMessage
+          authParts={message.authEvent.authParts}
+          status={message.authEvent.status}
+          onAuthenticate={() => {
+            // When all services are authenticated, trigger the completion
+            if (onAuthCompleted && message.authEvent?.status === 'pending') {
+              onAuthCompleted();
+            }
+          }}
+        />
+      </div>
+    );
+  }
 
   const handleDownload = (index?: number) => {
     if (isArtifact && artifactName) {

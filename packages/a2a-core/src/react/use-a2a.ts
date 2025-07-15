@@ -5,13 +5,17 @@ import type { AuthConfig, AuthRequiredHandler } from '../client/types';
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
   metadata?: {
     taskId?: string;
     artifacts?: any[];
+  };
+  authEvent?: {
+    authParts: any[];
+    status: 'pending' | 'completed' | 'failed';
   };
 }
 
@@ -30,6 +34,10 @@ export interface UseA2AReturn {
   agentCard: AgentCard | undefined;
   error: Error | undefined;
   contextId: string | undefined;
+  authState: {
+    isRequired: boolean;
+    authEvent?: any;
+  };
 
   // Actions
   connect: (agentCard: AgentCard) => Promise<void>;
@@ -45,9 +53,13 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [agentCard, setAgentCard] = useState<AgentCard>();
   const [error, setError] = useState<Error>();
+  const [authState, setAuthState] = useState<{ isRequired: boolean; authEvent?: any }>({
+    isRequired: false,
+  });
 
   const clientRef = useRef<A2AClient>();
   const contextIdRef = useRef<string | undefined>(undefined);
+  const authMessageIdRef = useRef<string | undefined>(undefined);
 
   const connect = useCallback(
     async (card: AgentCard) => {
@@ -67,9 +79,53 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
           clientConfig.auth = options.auth;
         }
 
-        if (options.onAuthRequired) {
-          clientConfig.onAuthRequired = options.onAuthRequired;
-        }
+        // Create a custom auth handler that adds auth messages to the UI
+        const authHandler: AuthRequiredHandler = async (event) => {
+          // Add authentication message to the UI
+          const authMessageId = `auth-${event.taskId}-${Date.now()}`;
+          authMessageIdRef.current = authMessageId;
+
+          const authMessage: ChatMessage = {
+            id: authMessageId,
+            role: 'system',
+            content: 'Authentication required',
+            timestamp: new Date(),
+            isStreaming: false,
+            authEvent: {
+              authParts: event.authParts,
+              status: 'pending',
+            },
+            metadata: {
+              taskId: event.taskId,
+            },
+          };
+
+          setMessages((prev) => {
+            const newMessages = [...prev, authMessage];
+
+            // Persist messages
+            if (options.persistSession && options.sessionKey) {
+              localStorage.setItem(
+                `a2a-messages-${options.sessionKey}`,
+                JSON.stringify(newMessages)
+              );
+            }
+
+            return newMessages;
+          });
+
+          setAuthState({
+            isRequired: true,
+            authEvent: event,
+          });
+
+          // Call the original handler if provided
+          if (options.onAuthRequired) {
+            return options.onAuthRequired(event);
+          }
+        };
+
+        clientConfig.onAuthRequired = authHandler;
 
         clientRef.current = new A2AClient(clientConfig);
 
@@ -83,7 +139,16 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
           if (savedMessages) {
             try {
-              setMessages(JSON.parse(savedMessages));
+              const parsedMessages = JSON.parse(savedMessages);
+              setMessages(parsedMessages);
+
+              // Find any pending auth messages and update the ref
+              const pendingAuthMessage = parsedMessages.find(
+                (msg: ChatMessage) => msg.authEvent && msg.authEvent.status === 'pending'
+              );
+              if (pendingAuthMessage) {
+                authMessageIdRef.current = pendingAuthMessage.id;
+              }
             } catch (e) {
               console.error('Failed to load saved messages:', e);
             }
@@ -430,11 +495,73 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
     try {
       await clientRef.current.sendAuthenticationCompleted(contextIdRef.current);
+
+      // Update the auth message to completed status
+      if (authMessageIdRef.current) {
+        setMessages((prev) => {
+          const updatedMessages = prev.map((msg) => {
+            if (msg.id === authMessageIdRef.current && msg.authEvent) {
+              return {
+                ...msg,
+                authEvent: {
+                  ...msg.authEvent,
+                  status: 'completed' as const,
+                },
+              };
+            }
+            return msg;
+          });
+
+          // Persist messages
+          if (options.persistSession && options.sessionKey) {
+            localStorage.setItem(
+              `a2a-messages-${options.sessionKey}`,
+              JSON.stringify(updatedMessages)
+            );
+          }
+
+          return updatedMessages;
+        });
+      }
+
+      // Clear auth state
+      setAuthState({
+        isRequired: false,
+      });
     } catch (error) {
       setError(error as Error);
+
+      // Update the auth message to failed status
+      if (authMessageIdRef.current) {
+        setMessages((prev) => {
+          const updatedMessages = prev.map((msg) => {
+            if (msg.id === authMessageIdRef.current && msg.authEvent) {
+              return {
+                ...msg,
+                authEvent: {
+                  ...msg.authEvent,
+                  status: 'failed' as const,
+                },
+              };
+            }
+            return msg;
+          });
+
+          // Persist messages
+          if (options.persistSession && options.sessionKey) {
+            localStorage.setItem(
+              `a2a-messages-${options.sessionKey}`,
+              JSON.stringify(updatedMessages)
+            );
+          }
+
+          return updatedMessages;
+        });
+      }
+
       throw error;
     }
-  }, []);
+  }, [options.persistSession, options.sessionKey]);
 
   return {
     isConnected,
@@ -443,6 +570,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     agentCard,
     error,
     contextId: contextIdRef.current,
+    authState,
     connect,
     disconnect,
     sendMessage,
