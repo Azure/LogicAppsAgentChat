@@ -50,6 +50,18 @@ describe('A2AClient', () => {
 
       expect(client.getAgentCard()).toEqual(mockAgentCard);
     });
+
+    it('should initialize with API key', async () => {
+      const apiKey = 'test-api-key-123';
+      client = new A2AClient({
+        agentCard: mockAgentCard,
+        apiKey,
+      });
+
+      expect(client.getAgentCard()).toEqual(mockAgentCard);
+      // The API key should be stored internally
+      expect((client as any).apiKey).toBe(apiKey);
+    });
   });
 
   describe('message operations', () => {

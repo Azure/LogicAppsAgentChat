@@ -10,6 +10,7 @@ export interface A2AClientConfig {
   auth?: AuthConfig;
   httpOptions?: HttpClientOptions;
   onAuthRequired?: AuthRequiredHandler;
+  apiKey?: string;
 }
 
 export interface WaitForCompletionOptions {
@@ -22,14 +23,21 @@ export class A2AClient {
   private readonly httpClient: HttpClient;
   private readonly auth: AuthConfig;
   private readonly onAuthRequired?: AuthRequiredHandler;
+  private readonly apiKey?: string;
 
   constructor(config: A2AClientConfig) {
     this.agentCard = config.agentCard;
     this.auth = config.auth || { type: 'none' };
     this.onAuthRequired = config.onAuthRequired;
+    this.apiKey = config.apiKey;
 
     // Initialize HTTP client with service endpoint from agent card
-    this.httpClient = new HttpClient(this.agentCard.url, this.auth, config.httpOptions);
+    this.httpClient = new HttpClient(
+      this.agentCard.url,
+      this.auth,
+      config.httpOptions,
+      this.apiKey
+    );
   }
 
   // Agent card and capability methods
@@ -206,6 +214,11 @@ export class A2AClient {
                     'Content-Type': 'application/json',
                     Accept: 'text/event-stream',
                   };
+
+                  // Add API key header if provided
+                  if (this.apiKey) {
+                    headers['X-API-Key'] = this.apiKey;
+                  }
 
                   if (this.auth.type === 'bearer') {
                     headers['Authorization'] = `Bearer ${this.auth.token}`;

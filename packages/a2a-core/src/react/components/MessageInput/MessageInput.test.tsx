@@ -42,11 +42,12 @@ describe('MessageInput', () => {
   });
 
   it('renders input elements correctly', () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    render(<MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '' })).toBeInTheDocument(); // Send button has no text
+    // With allowFileUpload=true, there should be 2 buttons (attach and send)
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(2);
   });
 
   it('uses custom placeholder', () => {
@@ -117,14 +118,16 @@ describe('MessageInput', () => {
   it('disables send button when message is empty', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
+    const buttons = screen.getAllByRole('button');
+    const sendButton = buttons[buttons.length - 1]; // Send button is the last button
     expect(sendButton).toBeDisabled();
   });
 
   it('enables send button when message has content', async () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
+    const buttons = screen.getAllByRole('button');
+    const sendButton = buttons[buttons.length - 1]; // Send button is the last button
     const textarea = screen.getByPlaceholderText('Type a message...');
 
     await userEvent.type(textarea, 'Hello');
@@ -133,11 +136,14 @@ describe('MessageInput', () => {
   });
 
   it('disables all inputs when disabled prop is true', () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} disabled />);
+    render(<MessageInput onSendMessage={mockOnSendMessage} disabled allowFileUpload />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
-    expect(screen.getAllByRole('button')[1]).toBeDisabled(); // Send button
+    // With allowFileUpload=true, there should be 2 buttons (attach and send)
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]).toBeDisabled(); // Attach button
+    expect(buttons[1]).toBeDisabled(); // Send button
   });
 
   it('disables all inputs when not connected', () => {
@@ -150,11 +156,14 @@ describe('MessageInput', () => {
       clearMessages: vi.fn(),
     });
 
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    render(<MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />);
 
     expect(screen.getByPlaceholderText('Type a message...')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
-    expect(screen.getAllByRole('button')[1]).toBeDisabled(); // Send button
+    // With allowFileUpload=true, there should be 2 buttons (attach and send)
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]).toBeDisabled(); // Attach button
+    expect(buttons[1]).toBeDisabled(); // Send button
   });
 
   it('shows connection status when not connected', () => {
@@ -179,23 +188,33 @@ describe('MessageInput', () => {
   });
 
   it('handles file selection', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
     expect(screen.getByText('test.txt')).toBeInTheDocument();
   });
 
   it('sends message with attachments', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
     const textarea = screen.getByPlaceholderText('Type a message...');
-    await userEvent.type(textarea, 'Here is a file');
-    await userEvent.keyboard('{Enter}');
+    await user.type(textarea, 'Here is a file');
+    await user.keyboard('{Enter}');
 
     expect(mockOnSendMessage).toHaveBeenCalledWith('Here is a file', [
       expect.objectContaining({
@@ -208,12 +227,19 @@ describe('MessageInput', () => {
   });
 
   it('sends attachments without message text', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
-    await userEvent.keyboard('{Enter}');
+    // Submit with Enter key
+    const textarea = screen.getByRole('textbox');
+    await user.type(textarea, '{Enter}');
 
     expect(mockOnSendMessage).toHaveBeenCalledWith('', [
       expect.objectContaining({
@@ -226,15 +252,24 @@ describe('MessageInput', () => {
   });
 
   it('removes attachments', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
     expect(screen.getByText('test.txt')).toBeInTheDocument();
 
-    const removeButton = screen.getByText('×');
-    await userEvent.click(removeButton);
+    // Find and click the remove button (it's an icon button inside the badge)
+    const removeButtons = screen.getAllByRole('button');
+    const removeButton = removeButtons.find((btn) => btn.querySelector('svg')); // Find button with icon
+    if (removeButton) {
+      await user.click(removeButton);
+    }
 
     expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
   });
@@ -341,48 +376,71 @@ describe('MessageInput', () => {
   });
 
   it('enables send button when only attachments are present', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
+    const buttons = screen.getAllByRole('button');
+    const sendButton = buttons[buttons.length - 1]; // Send button is the last button
     expect(sendButton).toBeDisabled();
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
     expect(sendButton).not.toBeDisabled();
   });
 
   it('generates unique IDs for attachments', async () => {
-    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+    const user = userEvent.setup();
+    const { container } = render(
+      <MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />
+    );
 
-    const fileUploadButton = screen.getByTestId('file-upload');
-    await userEvent.click(fileUploadButton);
-    await userEvent.keyboard('{Enter}');
+    // Simulate file selection
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+    await user.upload(fileInput, file);
 
-    const attachment = mockOnSendMessage.mock.calls[0][1][0];
+    // Submit the form
+    const buttons = screen.getAllByRole('button');
+    const sendButton = buttons[buttons.length - 1]; // Send button is the last button
+    await user.click(sendButton);
+
+    expect(mockOnSendMessage).toHaveBeenCalled();
+    const attachment = mockOnSendMessage.mock.calls[0][1]?.[0];
     // Expect GUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
     expect(attachment.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     );
   });
 
-  it('applies correct CSS classes', () => {
-    const { container } = render(<MessageInput onSendMessage={mockOnSendMessage} />);
-
-    expect(container.querySelector('.inputContainer')).toBeInTheDocument();
-    expect(container.querySelector('.inputWrapper')).toBeInTheDocument();
-    expect(container.querySelector('.textarea')).toBeInTheDocument();
-    expect(container.querySelector('.sendButton')).toBeInTheDocument();
-  });
-
-  it('renders SVG icon in send button', () => {
+  it('renders input components correctly', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} />);
 
-    const sendButton = screen.getAllByRole('button')[1]; // Second button is send
-    const svg = sendButton.querySelector('svg');
+    // Check for textarea
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toBeInTheDocument();
 
+    // Check for send button (attach button only appears when allowFileUpload is true)
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(1); // Only Send button by default
+  });
+
+  it('renders send button with icon', () => {
+    render(<MessageInput onSendMessage={mockOnSendMessage} />);
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
+
+    // The send button is the last button
+    const sendButton = buttons[buttons.length - 1];
+    expect(sendButton).toBeInTheDocument();
+
+    // Fluent UI icons are rendered as SVG elements
+    const svg = sendButton.querySelector('svg');
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('width', '20');
-    expect(svg).toHaveAttribute('height', '20');
   });
 });

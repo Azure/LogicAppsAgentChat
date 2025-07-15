@@ -31,7 +31,9 @@ describe('AgentDiscovery', () => {
 
       const result = await discovery.fromWellKnownUri('agent.example.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json');
+      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
+        headers: {},
+      });
       expect(result).toEqual(mockAgentCard);
     });
 
@@ -51,7 +53,32 @@ describe('AgentDiscovery', () => {
 
       await discovery.fromWellKnownUri('https://agent.example.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json');
+      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
+        headers: {},
+      });
+    });
+
+    it('should include API key header when provided', async () => {
+      const mockAgentCard = getMockAgentCard({
+        name: 'Test Agent',
+        description: 'A test agent',
+        version: '1.0.0',
+        url: 'https://api.agent.example.com',
+      });
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAgentCard,
+      } as Response);
+
+      discovery = new AgentDiscovery({ apiKey: 'test-api-key-123' });
+      const result = await discovery.fromWellKnownUri('agent.example.com');
+
+      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
+        headers: { 'X-API-Key': 'test-api-key-123' },
+      });
+      expect(result).toEqual(mockAgentCard);
     });
 
     it('should throw error for failed fetch', async () => {
@@ -102,7 +129,9 @@ describe('AgentDiscovery', () => {
 
       const result = await discovery.fromRegistry('https://registry.example.com', 'agent-123');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://registry.example.com/agents/agent-123');
+      expect(mockFetch).toHaveBeenCalledWith('https://registry.example.com/agents/agent-123', {
+        headers: {},
+      });
       expect(result).toEqual(mockAgentCard);
     });
 
@@ -122,7 +151,9 @@ describe('AgentDiscovery', () => {
 
       await discovery.fromRegistry('https://registry.example.com/', 'agent-123');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://registry.example.com/agents/agent-123');
+      expect(mockFetch).toHaveBeenCalledWith('https://registry.example.com/agents/agent-123', {
+        headers: {},
+      });
     });
   });
 
@@ -157,7 +188,9 @@ describe('AgentDiscovery', () => {
 
       const result = await discovery.fromDirect('https://example.com/agent-card.json');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/agent-card.json');
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/agent-card.json', {
+        headers: {},
+      });
       expect(result).toEqual(mockAgentCard);
     });
 

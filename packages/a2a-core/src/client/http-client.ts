@@ -11,12 +11,19 @@ export class HttpClient {
   private readonly baseUrl: string;
   private readonly auth: AuthConfig | undefined;
   private readonly options: Required<HttpClientOptions>;
+  private readonly apiKey?: string;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
 
-  constructor(baseUrl: string, auth?: AuthConfig, options: HttpClientOptions = {}) {
+  constructor(
+    baseUrl: string,
+    auth?: AuthConfig,
+    options: HttpClientOptions = {},
+    apiKey?: string
+  ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.auth = auth;
+    this.apiKey = apiKey;
     this.options = {
       timeout: 30000,
       retries: 3,
@@ -42,6 +49,11 @@ export class HttpClient {
       Accept: 'application/json',
       ...config.headers,
     });
+
+    // Add API key header if provided
+    if (this.apiKey) {
+      headers.set('X-API-Key', this.apiKey);
+    }
 
     // Create request config
     let requestConfig: RequestConfig & { url: string } = {

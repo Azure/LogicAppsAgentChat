@@ -1,37 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Widget</title>
   <style>
-    body, html {
+    body,
+    html {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
     }
+
     #chat-root {
       height: 100%;
       width: 100%;
     }
   </style>
   <script>
-    // This variable will be set by the server if the user is logged in
-    // Server should inject the actual username here, for example:
-    window.LOGGED_IN_USER_NAME = "REPLACEME";
-    
-    // The line below ensures the variable exists (as undefined if not set by server)
+    window.LOGGED_IN_USER_NAME = "REPLACE_ME_WITH_LOGGED_IN_USERNAME";
+
     window.LOGGED_IN_USER_NAME = window.LOGGED_IN_USER_NAME || undefined;
-    
-    // Server implementation example (Python/Jinja2):
-    // {% if user.is_authenticated %}
-    // window.LOGGED_IN_USER_NAME = "{{ user.name | escapejs }}";
-    // {% endif %}
+
   </script>
 </head>
+
 <body>
   <div id="chat-root"></div>
   <script type="module" src="/src/lib/iframe.tsx"></script>
 </body>
+
 </html>

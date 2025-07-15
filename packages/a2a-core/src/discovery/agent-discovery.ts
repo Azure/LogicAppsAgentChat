@@ -4,6 +4,7 @@ import type { AgentCard } from '../types';
 export interface AgentDiscoveryOptions {
   cache?: boolean;
   cacheTTL?: number;
+  apiKey?: string;
 }
 
 interface CacheEntry {
@@ -13,7 +14,7 @@ interface CacheEntry {
 
 export class AgentDiscovery {
   private cache: Map<string, CacheEntry> = new Map();
-  private readonly options: Required<AgentDiscoveryOptions>;
+  private readonly options: AgentDiscoveryOptions;
 
   constructor(options: AgentDiscoveryOptions = {}) {
     this.options = {
@@ -37,7 +38,12 @@ export class AgentDiscovery {
     }
 
     // Fetch agent card
-    const response = await fetch(url);
+    const headers: HeadersInit = {};
+    if (this.options.apiKey) {
+      headers['X-API-Key'] = this.options.apiKey;
+    }
+
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`Failed to fetch agent card: ${response.status} ${response.statusText}`);
     }
@@ -74,7 +80,12 @@ export class AgentDiscovery {
     }
 
     // Fetch from registry
-    const response = await fetch(url);
+    const headers: HeadersInit = {};
+    if (this.options.apiKey) {
+      headers['X-API-Key'] = this.options.apiKey;
+    }
+
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(
         `Failed to fetch agent card from registry: ${response.status} ${response.statusText}`
@@ -112,7 +123,12 @@ export class AgentDiscovery {
         }
       }
 
-      const response = await fetch(url);
+      const headers: HeadersInit = {};
+      if (this.options.apiKey) {
+        headers['X-API-Key'] = this.options.apiKey;
+      }
+
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         throw new Error(`Failed to fetch agent card: ${response.status} ${response.statusText}`);
       }
@@ -157,7 +173,8 @@ export class AgentDiscovery {
 
     // Check if cache is still valid
     const now = Date.now();
-    if (now - entry.timestamp > this.options.cacheTTL) {
+    const cacheTTL = this.options.cacheTTL ?? 3600000; // Default to 1 hour
+    if (now - entry.timestamp > cacheTTL) {
       this.cache.delete(identifier);
       return null;
     }

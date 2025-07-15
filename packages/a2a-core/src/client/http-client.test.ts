@@ -82,6 +82,48 @@ describe('HttpClient', () => {
       expect(request.url).toBe('https://api.test.com/test');
       expect(request.headers.get('X-Custom-Auth')).toBe('custom-value');
     });
+
+    it('should add X-API-Key header when apiKey is provided', async () => {
+      const apiKey = 'standalone-api-key-789';
+      client = new HttpClient('https://api.test.com', undefined, {}, apiKey);
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      } as Response);
+
+      await client.request('/test', { method: 'GET' });
+
+      expect(mockFetch).toHaveBeenCalled();
+      const [request] = mockFetch.mock.calls[0] as [Request];
+      expect(request.url).toBe('https://api.test.com/test');
+      expect(request.headers.get('X-API-Key')).toBe('standalone-api-key-789');
+    });
+
+    it('should use both auth config and standalone API key when both are provided', async () => {
+      const authConfig: AuthConfig = {
+        type: 'bearer',
+        token: 'bearer-token',
+      };
+      const apiKey = 'standalone-api-key';
+
+      client = new HttpClient('https://api.test.com', authConfig, {}, apiKey);
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      } as Response);
+
+      await client.request('/test', { method: 'GET' });
+
+      expect(mockFetch).toHaveBeenCalled();
+      const [request] = mockFetch.mock.calls[0] as [Request];
+      expect(request.url).toBe('https://api.test.com/test');
+      expect(request.headers.get('Authorization')).toBe('Bearer bearer-token');
+      expect(request.headers.get('X-API-Key')).toBe('standalone-api-key');
+    });
   });
 
   describe('request methods', () => {

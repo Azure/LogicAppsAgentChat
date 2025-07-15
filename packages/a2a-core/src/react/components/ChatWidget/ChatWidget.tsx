@@ -1,7 +1,23 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import { ChatWindow } from '../ChatWindow';
-import { useTheme } from '../../hooks/useTheme';
+import { ChatThemeProvider } from '../ThemeProvider/ThemeProvider';
 import type { ChatWidgetProps } from '../../types';
+import type { ThemeConfig } from '../../theme/fluentTheme';
+
+const useStyles = makeStyles({
+  container: {
+    height: '100%',
+    width: '100%',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    overflow: 'hidden',
+    boxShadow: tokens.shadow16,
+  },
+});
 
 /**
  * Main chat widget component that provides a complete chat interface.
@@ -16,9 +32,8 @@ import type { ChatWidgetProps } from '../../types';
  *   return (
  *     <ChatWidget
  *       agentCard="https://agent.example.com/agent.json"
- *       theme={{
+ *       themeConfig={{
  *         primaryColor: '#007bff',
- *         fontFamily: 'Arial, sans-serif'
  *       }}
  *       welcomeMessage="Hello! How can I help you today?"
  *     />
@@ -26,55 +41,37 @@ import type { ChatWidgetProps } from '../../types';
  * }
  * ```
  */
-export function ChatWidget(props: ChatWidgetProps) {
-  const { theme, ...restProps } = props;
+export function ChatWidget(
+  props: ChatWidgetProps & { themeConfig?: ThemeConfig; fluentTheme?: 'light' | 'dark' }
+) {
+  const { theme, themeConfig, fluentTheme = 'light', ...restProps } = props;
+  const styles = useStyles();
 
-  // Apply theme CSS variables
-  const processedTheme = useTheme(theme);
+  // For backward compatibility, convert old theme to themeConfig
+  const fluentThemeConfig: ThemeConfig | undefined = React.useMemo(() => {
+    if (themeConfig) return themeConfig;
+    // Legacy theme support - primaryColor might exist on old theme prop
+    if (theme && 'primaryColor' in theme && typeof theme.primaryColor === 'string') {
+      return {
+        primaryColor: theme.primaryColor,
+      };
+    }
+    return undefined;
+  }, [theme, themeConfig]);
 
-  // Set up global styles for the widget container
-  useEffect(() => {
-    // Add a class to help with scoped styling
-    const style = document.createElement('style');
-    style.setAttribute('data-a2a-chat-widget-styles', 'true');
-    style.textContent = `
-      .a2a-chat-widget {
-        height: 100%;
-        width: 100%;
-        min-height: 400px;
-        position: relative;
-        font-family: var(--chat-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-        font-size: var(--chat-font-size, 14px);
-        line-height: var(--chat-line-height, 1.5);
-        color: var(--chat-color-text, #1a1a1a);
-        background-color: var(--chat-color-background, #ffffff);
-        border-radius: var(--chat-border-radius, 8px);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .a2a-chat-widget * {
-        box-sizing: border-box;
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      // Use try-catch to handle cases where the element might have been removed
-      try {
-        if (style.parentNode === document.head) {
-          document.head.removeChild(style);
-        }
-      } catch (error) {
-        // Ignore errors during cleanup
-      }
-    };
-  }, []);
+  // Check if we're in a multi-session context by looking for the parent container
+  const isMultiSession =
+    typeof window !== 'undefined' && window.location.search.includes('multiSession=true');
 
   return (
-    <div className="a2a-chat-widget">
-      <ChatWindow {...restProps} theme={processedTheme} />
-    </div>
+    <ChatThemeProvider theme={fluentTheme} themeConfig={fluentThemeConfig}>
+      {isMultiSession ? (
+        <ChatWindow {...restProps} theme={theme} />
+      ) : (
+        <div className={styles.container}>
+          <ChatWindow {...restProps} theme={theme} />
+        </div>
+      )}
+    </ChatThemeProvider>
   );
 }

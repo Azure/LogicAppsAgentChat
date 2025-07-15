@@ -1,8 +1,27 @@
 import React, { useEffect, useRef } from 'react';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Message } from '../Message';
 import { TypingIndicator } from '../TypingIndicator';
-import { AuthenticationRequired } from '../AuthenticationRequired';
 import { useChatStore } from '../../store/chatStore';
+
+const useStyles = makeStyles({
+  messageList: {
+    flex: 1,
+    overflowY: 'auto',
+    ...shorthands.padding(tokens.spacingVerticalL),
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalM),
+    height: '100%',
+  },
+  welcomeMessage: {
+    textAlign: 'center',
+    ...shorthands.padding(tokens.spacingVerticalXXL),
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase300,
+    lineHeight: '1.6',
+  },
+});
 
 interface MessageListProps {
   welcomeMessage?: string;
@@ -17,7 +36,8 @@ export function MessageList({
   userName = 'You',
   onAuthCompleted,
 }: MessageListProps) {
-  const { messages, isTyping, authRequired } = useChatStore();
+  const styles = useStyles();
+  const { messages, isTyping } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(true);
   const lastMessageContent = useRef<string>('');
@@ -58,21 +78,20 @@ export function MessageList({
   }, [messages, isTyping]);
 
   return (
-    <div ref={scrollRef} className="messageList chat-scrollbar">
+    <div ref={scrollRef} className={styles.messageList}>
       {messages.length === 0 && welcomeMessage && (
-        <div className="welcomeMessage">{welcomeMessage}</div>
+        <div className={styles.welcomeMessage}>{welcomeMessage}</div>
       )}
 
       {messages.map((message) => (
-        <Message key={message.id} message={message} agentName={agentName} userName={userName} />
-      ))}
-
-      {authRequired && onAuthCompleted && (
-        <AuthenticationRequired
-          authParts={authRequired.authParts}
-          onAllAuthenticated={onAuthCompleted}
+        <Message
+          key={message.id}
+          message={message}
+          agentName={agentName}
+          userName={userName}
+          onAuthCompleted={onAuthCompleted}
         />
-      )}
+      ))}
 
       {isTyping && <TypingIndicator agentName={agentName} />}
     </div>

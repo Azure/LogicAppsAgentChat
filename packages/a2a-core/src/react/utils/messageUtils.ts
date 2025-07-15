@@ -30,7 +30,7 @@ export function generateMessageId(): string {
 
 export function createMessage(
   content: string,
-  sender: 'user' | 'assistant',
+  sender: 'user' | 'assistant' | 'system',
   attachments?: Attachment[]
 ): Message {
   const message: Message = {

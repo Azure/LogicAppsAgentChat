@@ -25,6 +25,11 @@ vi.mock('../../utils/downloadUtils', () => ({
   getMimeType: vi.fn((filename: string) => 'text/plain'),
 }));
 
+// Mock popup window utils
+vi.mock('../../../utils/popup-window', () => ({
+  openPopupWindow: vi.fn(),
+}));
+
 // Mock Prism and its components
 vi.mock('prismjs', () => ({
   default: {
@@ -174,17 +179,16 @@ describe('Message', () => {
     expect(screen.getByText('AI Assistant')).toBeInTheDocument();
   });
 
-  it('applies correct CSS classes for user message', () => {
+  it('renders user message with correct structure', () => {
     const { container } = render(<Message message={baseMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass('messageWrapper');
-    expect(wrapper).toHaveClass('user');
-    expect(wrapper).toHaveClass('chat-fade-in');
-    expect(wrapper).not.toHaveClass('assistant');
+    expect(wrapper).toBeInTheDocument();
+    // User messages should contain "You" as the sender name
+    expect(screen.getByText('You')).toBeInTheDocument();
   });
 
-  it('applies correct CSS classes for assistant message', () => {
+  it('renders assistant message with correct structure', () => {
     const assistantMessage: MessageType = {
       ...baseMessage,
       sender: 'assistant',
@@ -193,28 +197,28 @@ describe('Message', () => {
     const { container } = render(<Message message={assistantMessage} />);
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass('messageWrapper');
-    expect(wrapper).toHaveClass('assistant');
-    expect(wrapper).not.toHaveClass('user');
+    expect(wrapper).toBeInTheDocument();
+    // Assistant messages should contain "Agent" as the default sender name
+    expect(screen.getByText('Agent')).toBeInTheDocument();
   });
 
-  it('renders message tail for assistant messages', () => {
+  it('renders assistant messages with avatar', () => {
     const assistantMessage: MessageType = {
       ...baseMessage,
       sender: 'assistant',
     };
 
-    const { container } = render(<Message message={assistantMessage} />);
+    render(<Message message={assistantMessage} />);
 
-    const tail = container.querySelector('.messageTail');
-    expect(tail).toBeInTheDocument();
+    // Assistant messages should show "Agent" as the default sender
+    expect(screen.getByText('Agent')).toBeInTheDocument();
   });
 
-  it('does not render message tail for user messages', () => {
-    const { container } = render(<Message message={baseMessage} />);
+  it('renders user messages with user name', () => {
+    render(<Message message={baseMessage} />);
 
-    const tail = container.querySelector('.messageTail');
-    expect(tail).not.toBeInTheDocument();
+    // User messages should show "You" as the sender
+    expect(screen.getByText('You')).toBeInTheDocument();
   });
 
   it('renders error status', () => {
@@ -264,10 +268,10 @@ describe('Message', () => {
   });
 
   it('does not render attachments section when no attachments', () => {
-    const { container } = render(<Message message={baseMessage} />);
+    render(<Message message={baseMessage} />);
 
-    const attachments = container.querySelector('.attachments');
-    expect(attachments).not.toBeInTheDocument();
+    // When there are no attachments, the attachment section should not be visible
+    expect(screen.queryByText(/uploaded/)).not.toBeInTheDocument();
   });
 
   it('renders artifact content with special styling', () => {
@@ -277,13 +281,12 @@ describe('Message', () => {
       metadata: { isArtifact: true },
     };
 
-    const { container } = render(<Message message={artifactMessage} />);
+    render(<Message message={artifactMessage} />);
 
-    const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass('artifact');
-
-    const content = container.querySelector('.artifactContent');
-    expect(content).toBeInTheDocument();
+    // Artifact messages should be rendered with "Agent" as sender
+    expect(screen.getByText('Agent')).toBeInTheDocument();
+    // Check content is rendered
+    expect(screen.getByText('Test message')).toBeInTheDocument();
   });
 
   it('parses markdown content for assistant messages', async () => {
@@ -366,12 +369,12 @@ describe('Message', () => {
       content: '<script>alert("XSS")</script>Normal text',
     };
 
-    const { container } = render(<Message message={assistantMessage} />);
+    render(<Message message={assistantMessage} />);
 
-    // Check that content is rendered through dangerouslySetInnerHTML
-    const markdownContent = container.querySelector('.markdownContent');
-    expect(markdownContent).toBeInTheDocument();
-    expect(markdownContent?.innerHTML).toContain('<p>');
+    // The script tag should be escaped/sanitized, but the normal text should be visible
+    expect(screen.getByText(/Normal text/)).toBeInTheDocument();
+    // Script content should not execute
+    expect(screen.queryByText('alert("XSS")')).not.toBeInTheDocument();
   });
 
   it('handles empty attachments array', () => {
@@ -380,21 +383,21 @@ describe('Message', () => {
       attachments: [],
     };
 
-    const { container } = render(<Message message={messageWithEmptyAttachments} />);
+    render(<Message message={messageWithEmptyAttachments} />);
 
-    const attachments = container.querySelector('.attachments');
-    expect(attachments).not.toBeInTheDocument();
+    // Empty attachments array should not render any attachment indicators
+    expect(screen.queryByText(/uploaded/)).not.toBeInTheDocument();
   });
 
   it('renders all message structure elements', () => {
-    const { container } = render(<Message message={baseMessage} />);
+    render(<Message message={baseMessage} />);
 
-    expect(container.querySelector('.messageContainer')).toBeInTheDocument();
-    expect(container.querySelector('.senderName')).toBeInTheDocument();
-    expect(container.querySelector('.messageBubble')).toBeInTheDocument();
-    expect(container.querySelector('.message')).toBeInTheDocument();
-    expect(container.querySelector('.metadata')).toBeInTheDocument();
-    expect(container.querySelector('.time')).toBeInTheDocument();
+    // Check for sender name
+    expect(screen.getByText('You')).toBeInTheDocument();
+    // Check for message content
+    expect(screen.getByText('Test message')).toBeInTheDocument();
+    // Check for timestamp
+    expect(screen.getByText('2:30 PM')).toBeInTheDocument();
   });
 
   it('renders code artifact with syntax highlighting', async () => {
@@ -414,12 +417,13 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the code
-    const viewButton = screen.getByLabelText('Show content');
+    const viewButton = screen.getByText('View');
     await user.click(viewButton);
 
     const codeBlock = screen.getByText('console.log("Hello World");');
     expect(codeBlock).toBeInTheDocument();
-    expect(codeBlock.closest('pre')).toHaveClass('codeBlock');
+    // Verify code is in a pre element (code block)
+    expect(codeBlock.closest('pre')).toBeInTheDocument();
   });
 
   it('renders artifact without syntax highlighting for unknown language', async () => {
@@ -439,7 +443,7 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the content
-    const viewButton = screen.getByLabelText('Show content');
+    const viewButton = screen.getByText('View');
     await user.click(viewButton);
 
     const codeBlock = screen.getByText('Some content');
@@ -473,7 +477,7 @@ describe('Message', () => {
     render(<Message message={codeMessage} />);
 
     // Need to click view to see the content
-    const viewButton = screen.getByLabelText('Show content');
+    const viewButton = screen.getByText('View');
     await user.click(viewButton);
 
     // Should still render the code without highlighting
@@ -501,7 +505,8 @@ describe('Message', () => {
 
     render(<Message message={artifactMessage} />);
 
-    const downloadButton = screen.getByLabelText('Download test.txt');
+    // The download button has text "Download"
+    const downloadButton = screen.getByText('Download');
     await user.click(downloadButton);
 
     // Verify downloadFile was called
@@ -527,7 +532,8 @@ describe('Message', () => {
 
     render(<Message message={groupedMessage} />);
 
-    const downloadButton = screen.getByLabelText('Download all files');
+    // The Download All button has text "Download All"
+    const downloadButton = screen.getByText('Download All');
     await user.click(downloadButton);
 
     // Wait for setTimeout delays
@@ -559,16 +565,16 @@ describe('Message', () => {
     let artifactContent = screen.queryByText('Very long content...');
     expect(artifactContent).not.toBeInTheDocument();
 
-    // Click to show
-    const toggleButton = screen.getByLabelText('Show content');
-    await user.click(toggleButton);
+    // Click to show - button has text "View"
+    const viewButton = screen.getByText('View');
+    await user.click(viewButton);
 
     // Should show content
     artifactContent = screen.getByText('Very long content...');
     expect(artifactContent).toBeInTheDocument();
 
-    // Button text should change
-    expect(screen.getByLabelText('Hide content')).toBeInTheDocument();
+    // Button text should change to "Hide"
+    expect(screen.getByText('Hide')).toBeInTheDocument();
   });
 
   it('renders multiple artifacts with details', () => {
@@ -636,7 +642,7 @@ describe('Message', () => {
       const { container, unmount } = render(<Message message={message} />);
 
       // Need to click view to see the content
-      const viewButton = screen.getByLabelText('Show content');
+      const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
       const codeElement = container.querySelector(`code.language-${lang}`);
@@ -648,5 +654,42 @@ describe('Message', () => {
 
       unmount();
     }
+  });
+
+  it('calls onAuthCompleted when authentication is completed', async () => {
+    const onAuthCompleted = vi.fn();
+    const user = userEvent.setup();
+
+    // Import and mock the openPopupWindow function
+    const { openPopupWindow } = await import('../../../utils/popup-window');
+    vi.mocked(openPopupWindow).mockResolvedValue({ closed: true });
+
+    const authMessage: MessageType = {
+      id: '1',
+      role: 'assistant',
+      content: [],
+      timestamp: new Date(),
+      authEvent: {
+        contextId: 'test-context',
+        authParts: [
+          {
+            displayName: 'Service A',
+            consentLink: 'https://example.com/auth',
+          },
+        ],
+        status: 'pending',
+      },
+    };
+
+    render(<Message message={authMessage} isStreaming={false} onAuthCompleted={onAuthCompleted} />);
+
+    // Find and click the sign in button
+    const signInButton = await screen.findByText('Sign In');
+    await user.click(signInButton);
+
+    // Wait for the callback to be called
+    await vi.waitFor(() => {
+      expect(onAuthCompleted).toHaveBeenCalledTimes(1);
+    });
   });
 });
