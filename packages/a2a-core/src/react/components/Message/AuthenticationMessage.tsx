@@ -1,7 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Card,
-  CardHeader,
   Button,
   Text,
   Badge,
@@ -90,6 +88,7 @@ const useStyles = makeStyles({
 interface AuthenticationMessageProps {
   authParts: AuthRequiredPart[];
   status: AuthenticationStatus;
+  // Called when all auth parts have been successfully authenticated
   onAuthenticate?: (updatedParts: AuthRequiredPart[]) => void;
 }
 
@@ -289,7 +288,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
 
       {status === 'completed' && (
         <Badge
-          appearance="success"
+          appearance="tint"
           size="large"
           className={styles.successBadge}
           icon={<CheckmarkCircleRegular />}

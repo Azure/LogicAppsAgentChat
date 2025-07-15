@@ -147,12 +147,21 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
               const parsedMessages = JSON.parse(savedMessages);
               setMessages(parsedMessages);
 
-              // Find any pending auth messages and update the ref
-              const pendingAuthMessage = parsedMessages.find(
-                (msg: ChatMessage) => msg.authEvent && msg.authEvent.status === 'pending'
+              // Find any auth messages (pending or completed) and update the ref
+              const authMessage = parsedMessages.find(
+                (msg: ChatMessage) =>
+                  msg.authEvent &&
+                  (msg.authEvent.status === 'pending' || msg.authEvent.status === 'completed')
               );
-              if (pendingAuthMessage) {
-                authMessageIdRef.current = pendingAuthMessage.id;
+              if (authMessage) {
+                authMessageIdRef.current = authMessage.id;
+                // Log for debugging
+                console.log(
+                  '[A2A] Restored auth message:',
+                  authMessage.id,
+                  'status:',
+                  authMessage.authEvent.status
+                );
               }
             } catch (e) {
               console.error('Failed to load saved messages:', e);

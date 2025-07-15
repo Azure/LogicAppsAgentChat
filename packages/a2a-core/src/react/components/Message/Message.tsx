@@ -312,7 +312,9 @@ function MessageComponent({
           status={message.authEvent.status}
           onAuthenticate={() => {
             // When all services are authenticated, trigger the completion
-            if (onAuthCompleted && message.authEvent?.status === 'pending') {
+            // We don't need to check the status here since onAuthenticate
+            // is only called when all auth parts are successfully authenticated
+            if (onAuthCompleted) {
               onAuthCompleted();
             }
           }}

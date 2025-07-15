@@ -25,6 +25,11 @@ vi.mock('../../utils/downloadUtils', () => ({
   getMimeType: vi.fn((filename: string) => 'text/plain'),
 }));
 
+// Mock popup window utils
+vi.mock('../../../utils/popup-window', () => ({
+  openPopupWindow: vi.fn(),
+}));
+
 // Mock Prism and its components
 vi.mock('prismjs', () => ({
   default: {
@@ -649,5 +654,42 @@ describe('Message', () => {
 
       unmount();
     }
+  });
+
+  it('calls onAuthCompleted when authentication is completed', async () => {
+    const onAuthCompleted = vi.fn();
+    const user = userEvent.setup();
+
+    // Import and mock the openPopupWindow function
+    const { openPopupWindow } = await import('../../../utils/popup-window');
+    vi.mocked(openPopupWindow).mockResolvedValue({ closed: true });
+
+    const authMessage: MessageType = {
+      id: '1',
+      role: 'assistant',
+      content: [],
+      timestamp: new Date(),
+      authEvent: {
+        contextId: 'test-context',
+        authParts: [
+          {
+            displayName: 'Service A',
+            consentLink: 'https://example.com/auth',
+          },
+        ],
+        status: 'pending',
+      },
+    };
+
+    render(<Message message={authMessage} isStreaming={false} onAuthCompleted={onAuthCompleted} />);
+
+    // Find and click the sign in button
+    const signInButton = await screen.findByText('Sign In');
+    await user.click(signInButton);
+
+    // Wait for the callback to be called
+    await vi.waitFor(() => {
+      expect(onAuthCompleted).toHaveBeenCalledTimes(1);
+    });
   });
 });
