@@ -89,7 +89,7 @@ pnpm --filter @microsoft/a2achat-core add package-name
 - **tsup** for building the core package with multiple entry points
 - **Vite** for building demo applications
 - CSS is bundled separately and must be imported by consumers
-- React is a peer dependencies, not bundled
+- React is a peer dependency, not bundled
 
 ### State Management
 

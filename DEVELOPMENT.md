@@ -8,6 +8,7 @@ pnpm install
 
 # Start apps individually:
 pnpm --filter @a2achat/iframe-app dev    # Iframe app on :3001
+pnpm --filter @microsoft/a2achat-core dev # Core library in watch mode
 
 # Or start all packages in dev mode:
 pnpm run dev
@@ -37,14 +38,11 @@ The CI workflows will automatically handle missing lockfiles during the transiti
 ✅ **Completed:**
 
 - Monorepo structure with TurboRepo and PNPM workspaces
-- Migrated existing iframe functionality to `apps/iframe-app`
-- Skeleton packages for framework-agnostic core and wrappers
-
-🚧 **In Progress:**
-
-- All existing React components, hooks, and utilities are now in `apps/iframe-app/src`
-- Complete A2A SDK integration preserved
-- All original functionality maintained
+- Migrated all existing functionality to `@microsoft/a2achat-core` package
+- Framework-agnostic core library with React components
+- Iframe app using the core library
+- Full A2A SDK integration with authentication support
+- Documentation site with Docusaurus
 
 ## Applications
 
@@ -66,12 +64,12 @@ The actual chat widget for iframe embedding:
 
 ```
 ├── apps/
-│   └── iframe-app/         # Chat widget (migrated from src/)
-│       └── src/            # All original components/hooks/utils
-├── packages/               # Framework packages (skeleton)
-│   ├── a2a-core/          # Framework-agnostic core
-│   └── a2a-react/         # React wrapper
-└── src/                   # Original source (can be removed after testing)
+│   ├── iframe-app/         # Embeddable iframe widget
+│   ├── demo-app/           # Demo application
+│   └── docs-site/          # Documentation site (Docusaurus)
+├── packages/
+│   ├── a2a-core/          # Core library (@microsoft/a2achat-core)
+│   └── a2a-react/         # React wrapper (skeleton)
 ```
 
 ## Usage Examples
@@ -96,11 +94,11 @@ The actual chat widget for iframe embedding:
 
 ## Next Steps
 
-1. **Test the migrated functionality** - verify all features work
-2. **Implement the core library** - extract common functionality
-3. **Create framework wrappers** - build React packages
-4. **Set up CI/CD** - automated testing and deployment
-5. **Add proper build configurations** - optimize for production
+1. **Create framework-specific wrappers** - separate React/Vue/etc packages
+2. **Enhance documentation** - add more examples and guides
+3. **Performance optimization** - bundle size and runtime improvements
+4. **Add E2E tests** - comprehensive integration testing
+5. **Publish to npm** - release packages for public use
 
 ## Development Commands
 
@@ -114,10 +112,24 @@ pnpm run dev                    # All packages
 # Building
 pnpm run build                 # All packages
 pnpm --filter @a2achat/iframe-app build
+pnpm --filter @microsoft/a2achat-core build
+
 # Type checking
 pnpm run type-check            # All packages
 pnpm --filter @a2achat/iframe-app type-check
+pnpm --filter @microsoft/a2achat-core typecheck
+
+# Testing
+pnpm test                      # All packages
+pnpm --filter @microsoft/a2achat-core test
+pnpm --filter @microsoft/a2achat-core test:coverage
+
+# Linting and formatting
+pnpm lint
+pnpm format
+pnpm format:check
 
 # Individual app commands
 pnpm --filter @a2achat/iframe-app dev
+pnpm --filter @microsoft/a2achat-core dev
 ```

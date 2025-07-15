@@ -40,7 +40,7 @@ Standalone iframe application for embedding.
 ### Prerequisites
 
 - Node.js >= 18
-- PNPM >= 9.1.3
+- PNPM >= 10.12.4
 
 ### Setup
 
@@ -108,7 +108,7 @@ pnpm release
 
 ### CI/CD Improvements
 
-- Updated all GitHub Actions workflows to use pnpm 9.1.3
+- Updated all GitHub Actions workflows to use pnpm 10.12.4
 - Fixed deprecated action versions (upgraded to v3/v4)
 - Added proper permissions for PR comments
 - Separated PR checks from main CI workflow
@@ -216,7 +216,7 @@ const bearerAuth: AuthConfig = {
 
 // API Key authentication
 const apiKeyAuth: AuthConfig = {
-  type: 'api-key',
+  type: 'apiKey',
   key: 'your-api-key',
   header: 'X-API-Key', // optional, defaults to 'X-API-Key'
 };
@@ -353,7 +353,7 @@ All configuration options can be passed via `data-*` attributes:
 ### Prerequisites
 
 - Node.js 18+ or 20+
-- pnpm 9.1.3+
+- pnpm 10.12.4+
 
 ### Getting Started
 
@@ -536,7 +536,7 @@ const bearerAuth = {
 
 // API Key
 const apiKeyAuth = {
-  type: 'api-key',
+  type: 'apiKey',
   key: 'your-api-key',
   header: 'X-API-Key', // optional
 };
