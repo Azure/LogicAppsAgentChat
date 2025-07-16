@@ -56,9 +56,20 @@ export function FileUpload({
       }
 
       if (validFiles.length > 0) {
-        const dataTransfer = new DataTransfer();
-        validFiles.forEach((file) => dataTransfer.items.add(file));
-        onFileSelect(dataTransfer.files);
+        // Create a FileList-like object for the valid files
+        // In tests, we need to pass the original files to maintain object identity
+        if (typeof DataTransfer !== 'undefined') {
+          const dataTransfer = new DataTransfer();
+          validFiles.forEach((file) => dataTransfer.items.add(file));
+          onFileSelect(dataTransfer.files);
+        } else {
+          // Fallback for environments where DataTransfer is not available (like tests)
+          // Create a FileList-like array with the files
+          const fileList = Object.assign(validFiles, {
+            item: (index: number) => validFiles[index],
+          }) as unknown as FileList;
+          onFileSelect(fileList);
+        }
       }
 
       // Reset input

@@ -14,7 +14,7 @@ import {
 } from '@fluentui/react-components';
 import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
-import type { ChatTheme } from '@microsoft/a2achat-core';
+import type { ChatTheme } from '@microsoft/a2achat-core/react';
 
 const useStyles = makeStyles({
   sessionList: {

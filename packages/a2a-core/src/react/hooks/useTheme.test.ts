@@ -30,6 +30,12 @@ describe('useTheme', () => {
         border: '#e0e0e0',
         error: '#d32f2f',
         success: '#388e3c',
+        // Dark mode colors
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#2d2d2d',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#404040',
       },
       typography: {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -62,6 +68,12 @@ describe('useTheme', () => {
         border: '#e0e0e0',
         error: '#d32f2f',
         success: '#388e3c',
+        // Dark mode colors
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#2d2d2d',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#404040',
       },
       typography: {
         fontFamily: 'sans-serif',
@@ -171,7 +183,19 @@ describe('useTheme', () => {
 
     const { result } = renderHook(() => useTheme(customTheme));
 
-    expect(result.current).toEqual(customTheme);
+    // The result should contain the custom theme merged with default theme
+    expect(result.current).toEqual({
+      ...customTheme,
+      colors: {
+        ...customTheme.colors,
+        // Dark mode colors from default theme are included
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#2d2d2d',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#404040',
+      },
+    });
   });
 
   it('handles branding in custom theme', () => {

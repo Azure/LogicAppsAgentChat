@@ -48,17 +48,20 @@ export function CompanyLogo({ branding, className }: CompanyLogoProps) {
         objectFit: 'contain' as const,
       };
 
+  // Always apply the class names for testing purposes
+  const containerClasses = [
+    hasStyles ? styles.logoContainer : 'logoContainer',
+    hasStyles ? sizeClass : branding.logoSize || 'medium',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const imgClasses = hasStyles ? styles.logo : 'logo';
+
   return (
-    <div
-      className={hasStyles ? `${styles.logoContainer} ${sizeClass} ${className || ''}` : className}
-      style={containerStyle}
-    >
-      <img
-        src={branding.logoUrl}
-        alt="Company Logo"
-        className={hasStyles ? styles.logo : undefined}
-        style={imgStyle}
-      />
+    <div className={containerClasses} style={containerStyle}>
+      <img src={branding.logoUrl} alt="Company Logo" className={imgClasses} style={imgStyle} />
     </div>
   );
 }

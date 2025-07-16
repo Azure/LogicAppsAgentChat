@@ -267,9 +267,8 @@ describe('ChatWindow', () => {
     // Should show header with agent info because user is connected
     expect(screen.getByText('Test Agent')).toBeInTheDocument();
     expect(screen.getByText('Test Agent Description')).toBeInTheDocument();
-    // Logo should be rendered
-    const logos = screen.getAllByTestId('company-logo');
-    expect(logos).toHaveLength(1);
+    // No logo should be rendered since logoUrl is not provided
+    expect(screen.queryByTestId('company-logo')).not.toBeInTheDocument();
   });
 
   it('should apply theme styles to container', () => {
