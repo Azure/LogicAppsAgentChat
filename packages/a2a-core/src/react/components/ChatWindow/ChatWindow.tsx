@@ -1,10 +1,11 @@
 import React from 'react';
-import { makeStyles, shorthands, tokens, Button } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens, Button, mergeClasses } from '@fluentui/react-components';
 import { PanelLeftExpandRegular, PanelLeftContractRegular } from '@fluentui/react-icons';
 import { MessageList } from '../MessageList';
 import { MessageInput } from '../MessageInput';
 import { CompanyLogo } from '../CompanyLogo';
 import { useChatWidget } from '../../hooks/useChatWidget';
+import { useTheme } from '../../hooks/useTheme';
 import type { ChatWidgetProps } from '../../types';
 
 const useStyles = makeStyles({
@@ -24,11 +25,15 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap(tokens.spacingHorizontalM),
   },
+  headerWithLogo: {
+    height: '66px', // 10% more height when logo is present
+    paddingLeft: '26px', // 10px more padding on left side
+  },
   headerContent: {
     display: 'flex',
     flex: 1,
-    justifyContent: 'space-between',
     alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalM),
   },
   agentInfo: {
     display: 'flex',
@@ -65,6 +70,7 @@ export interface ChatWindowProps extends ChatWidgetProps {
   // All props come from ChatWidgetProps
   onToggleSidebar?: () => void;
   isSidebarCollapsed?: boolean;
+  mode?: 'light' | 'dark';
 }
 
 export function ChatWindow(props: ChatWindowProps) {
@@ -85,7 +91,11 @@ export function ChatWindow(props: ChatWindowProps) {
     onToggleSidebar,
     isSidebarCollapsed,
     apiKey,
+    mode = 'light',
   } = props;
+
+  // Apply theme if provided
+  useTheme(theme, mode);
 
   const { isConnected, agentName, agentDescription, sendMessage, handleAuthCompleted } =
     useChatWidget({
@@ -97,12 +107,13 @@ export function ChatWindow(props: ChatWindowProps) {
       apiKey,
     });
 
-  const showHeaderLogo = theme?.branding?.logoPosition === 'header';
-  const showFooterLogo = theme?.branding?.logoPosition === 'footer';
+  // Default to showing logo in header if logoUrl is provided and position is not explicitly 'footer'
+  const showHeaderLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition !== 'footer';
+  const showFooterLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition === 'footer';
 
   return (
     <div className={styles.chatWindow}>
-      <div className={styles.header}>
+      <div className={mergeClasses(styles.header, showHeaderLogo && styles.headerWithLogo)}>
         {onToggleSidebar && (
           <Button
             appearance="subtle"

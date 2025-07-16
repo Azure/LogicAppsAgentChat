@@ -44,6 +44,12 @@ export interface ChatTheme {
     border: string;
     error: string;
     success: string;
+    // Dark mode specific colors
+    backgroundDark?: string;
+    surfaceDark?: string;
+    textDark?: string;
+    textSecondaryDark?: string;
+    borderDark?: string;
   };
   typography: {
     fontFamily: string;

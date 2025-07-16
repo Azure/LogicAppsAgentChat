@@ -12,6 +12,12 @@ const DEFAULT_THEME: ChatTheme = {
     border: '#e0e0e0',
     error: '#d32f2f',
     success: '#388e3c',
+    // Dark mode colors
+    backgroundDark: '#1a1a1a',
+    surfaceDark: '#2d2d2d',
+    textDark: '#e0e0e0',
+    textSecondaryDark: '#a0a0a0',
+    borderDark: '#404040',
   },
   typography: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -31,12 +37,12 @@ const DEFAULT_THEME: ChatTheme = {
   },
 };
 
-export function useTheme(customTheme?: Partial<ChatTheme>) {
+export function useTheme(customTheme?: Partial<ChatTheme>, mode: 'light' | 'dark' = 'light') {
   const theme = mergeTheme(DEFAULT_THEME, customTheme);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    applyTheme(theme, mode);
+  }, [theme, mode]);
 
   return theme;
 }
@@ -68,13 +74,44 @@ function mergeTheme(defaultTheme: ChatTheme, customTheme?: Partial<ChatTheme>): 
   return result;
 }
 
-function applyTheme(theme: ChatTheme) {
+function applyTheme(theme: ChatTheme, mode: 'light' | 'dark') {
   const root = document.documentElement;
 
-  // Colors
-  Object.entries(theme.colors).forEach(([key, value]) => {
-    root.style.setProperty(`--chat-color-${kebabCase(key)}`, value);
-  });
+  // Apply mode class to root
+  root.classList.toggle('chat-dark-mode', mode === 'dark');
+
+  // Colors - apply light or dark mode colors
+  const isDark = mode === 'dark';
+
+  // Set primary color-related variables (same for both modes)
+  root.style.setProperty('--chat-color-primary', theme.colors.primary);
+  root.style.setProperty('--chat-color-primary-text', theme.colors.primaryText);
+  root.style.setProperty('--chat-color-error', theme.colors.error);
+  root.style.setProperty('--chat-color-success', theme.colors.success);
+
+  // Set mode-specific colors
+  root.style.setProperty(
+    '--chat-color-background',
+    isDark && theme.colors.backgroundDark ? theme.colors.backgroundDark : theme.colors.background
+  );
+  root.style.setProperty(
+    '--chat-color-surface',
+    isDark && theme.colors.surfaceDark ? theme.colors.surfaceDark : theme.colors.surface
+  );
+  root.style.setProperty(
+    '--chat-color-text',
+    isDark && theme.colors.textDark ? theme.colors.textDark : theme.colors.text
+  );
+  root.style.setProperty(
+    '--chat-color-text-secondary',
+    isDark && theme.colors.textSecondaryDark
+      ? theme.colors.textSecondaryDark
+      : theme.colors.textSecondary
+  );
+  root.style.setProperty(
+    '--chat-color-border',
+    isDark && theme.colors.borderDark ? theme.colors.borderDark : theme.colors.border
+  );
 
   // Typography
   root.style.setProperty('--chat-font-family', theme.typography.fontFamily);
@@ -89,8 +126,4 @@ function applyTheme(theme: ChatTheme) {
   Object.entries(theme.borderRadius).forEach(([key, value]) => {
     root.style.setProperty(`--chat-radius-${key}`, value);
   });
-}
-
-function kebabCase(str: string): string {
-  return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
 }

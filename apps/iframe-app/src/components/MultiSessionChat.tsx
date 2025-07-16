@@ -9,7 +9,7 @@ import {
   Spinner,
   mergeClasses,
 } from '@fluentui/react-components';
-import { webLightTheme } from '@fluentui/react-components';
+import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { useChatSessions } from '../hooks/useChatSessions';
 import { SessionList } from './SessionList';
 
@@ -86,9 +86,14 @@ interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
     apiUrl: string;
     apiKey?: string;
   };
+  mode?: 'light' | 'dark';
 }
 
-export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionChatProps) {
+export function MultiSessionChat({
+  config,
+  mode = 'light',
+  ...chatWidgetProps
+}: MultiSessionChatProps) {
   const styles = useStyles();
   const [agentCard, setAgentCard] = useState<AgentCard | undefined>();
   const [isLoadingAgent, setIsLoadingAgent] = useState(true);
@@ -238,7 +243,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   // Show loading state while fetching agent card
   if (isLoadingAgent) {
     return (
-      <FluentProvider theme={webLightTheme}>
+      <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
         <div className={styles.loadingContainer}>
           <Spinner size="medium" />
           <div>Loading agent...</div>
@@ -250,7 +255,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   // Show error if agent card failed to load
   if (agentError || !agentCard) {
     return (
-      <FluentProvider theme={webLightTheme}>
+      <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
         <div className={styles.errorContainer}>
           <div>Error: {agentError?.message || 'Failed to load agent'}</div>
         </div>
@@ -261,7 +266,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   // Show loading if no active session
   if (!activeSessionId || !activeSession) {
     return (
-      <FluentProvider theme={webLightTheme}>
+      <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
         <div className={styles.loadingContainer}>
           <Spinner size="medium" />
           <div>Loading chat sessions...</div>
@@ -271,7 +276,7 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
   }
 
   return (
-    <FluentProvider theme={webLightTheme}>
+    <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
       <div className={mergeClasses(styles.multiSessionContainer, isResizing && styles.resizing)}>
         <div
           ref={sidebarRef}
@@ -289,11 +294,13 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
             onNewSession={handleNewSession}
             onRenameSession={renameSession}
             onDeleteSession={deleteSession}
+            logoUrl={chatWidgetProps.theme?.branding?.logoUrl}
+            logoSize={chatWidgetProps.theme?.branding?.logoSize}
           />
           {!isCollapsed && <div className={styles.resizeHandle} onMouseDown={startResizing} />}
         </div>
         <div className={styles.chatArea}>
-          <ChatThemeProvider>
+          <ChatThemeProvider theme={mode}>
             <ChatWidget
               key={activeSessionId}
               agentCard={agentCard}
@@ -308,6 +315,8 @@ export function MultiSessionChat({ config, ...chatWidgetProps }: MultiSessionCha
               allowFileUpload={false}
               onToggleSidebar={toggleSidebar}
               isSidebarCollapsed={isCollapsed}
+              mode={mode}
+              fluentTheme={mode}
             />
           </ChatThemeProvider>
         </div>

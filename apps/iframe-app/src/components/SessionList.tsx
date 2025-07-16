@@ -30,6 +30,21 @@ const useStyles = makeStyles({
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
     display: 'flex',
     alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalM),
+  },
+  logo: {
+    height: '32px',
+    width: 'auto',
+    objectFit: 'contain' as const,
+    maxWidth: '120px',
+  },
+  logoSmall: {
+    height: '24px',
+    maxWidth: '100px',
+  },
+  logoLarge: {
+    height: '40px',
+    maxWidth: '150px',
   },
   footer: {
     display: 'flex',
@@ -146,6 +161,8 @@ interface SessionListProps {
   onNewSession: () => void;
   onRenameSession: (sessionId: string, newName: string) => void;
   onDeleteSession: (sessionId: string) => void;
+  logoUrl?: string;
+  logoSize?: 'small' | 'medium' | 'large';
 }
 
 // Memoized session item component to prevent unnecessary re-renders
@@ -292,6 +309,8 @@ export const SessionList = memo(
     onNewSession,
     onRenameSession,
     onDeleteSession,
+    logoUrl,
+    logoSize = 'medium',
   }: SessionListProps) => {
     const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -353,6 +372,17 @@ export const SessionList = memo(
     return (
       <div className={styles.sessionList}>
         <div className={styles.header}>
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt="Company Logo"
+              className={mergeClasses(
+                styles.logo,
+                logoSize === 'small' && styles.logoSmall,
+                logoSize === 'large' && styles.logoLarge
+              )}
+            />
+          )}
           <h3 className={styles.title}>Chats</h3>
         </div>
         <div className={styles.sessions}>

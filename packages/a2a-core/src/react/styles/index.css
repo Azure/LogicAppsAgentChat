@@ -1041,3 +1041,46 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+/* Dark mode support */
+.chat-dark-mode {
+  --chat-color-background: var(--chat-color-background-dark, #1a1a1a);
+  --chat-color-surface: var(--chat-color-surface-dark, #2d2d2d);
+  --chat-color-text: var(--chat-color-text-dark, #e0e0e0);
+  --chat-color-text-secondary: var(--chat-color-text-secondary-dark, #a0a0a0);
+  --chat-color-border: var(--chat-color-border-dark, #404040);
+}
+
+/* Dark mode specific component overrides */
+.chat-dark-mode .markdownContent code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chat-dark-mode .markdownContent pre {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.chat-dark-mode .messageWrapper.assistant .message {
+  background-color: var(--chat-color-surface);
+  border-color: var(--chat-color-border);
+}
+
+.chat-dark-mode .artifactItem:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.chat-dark-mode .iconButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--chat-color-border);
+}
+
+.chat-dark-mode .artifactContent pre {
+  background-color: var(--chat-color-surface);
+  border-color: var(--chat-color-border);
+}
+
+.chat-dark-mode .codeBlock {
+  background-color: var(--chat-color-surface);
+  border-color: var(--chat-color-border);
+}

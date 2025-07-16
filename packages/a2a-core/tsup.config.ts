@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { resolve, dirname, join } from 'path';
 
 export default defineConfig({
   entry: {
@@ -42,12 +42,16 @@ export default defineConfig({
 
             while ((match = classRegex.exec(css)) !== null) {
               const className = match[1];
-              // For now, just use the class name as-is (no hashing)
-              classNames[className] = className;
+              // Add a prefix to avoid conflicts
+              const prefixedClassName = `a2a-${className}`;
+              classNames[className] = prefixedClassName;
             }
 
             // Export the class names as a module
-            const contents = `export default ${JSON.stringify(classNames)};`;
+            const contents = `
+              const styles = ${JSON.stringify(classNames)};
+              export default styles;
+            `;
             return { contents, loader: 'js' };
           });
         },
@@ -64,8 +68,32 @@ export default defineConfig({
       mkdirSync(distDir, { recursive: true });
     }
 
+    // Collect all CSS module content
+    let cssModuleContent = '';
+
+    function processCSSModules(dir: string) {
+      const files = readdirSync(dir, { withFileTypes: true });
+
+      for (const file of files) {
+        const fullPath = join(dir, file.name);
+
+        if (file.isDirectory()) {
+          processCSSModules(fullPath);
+        } else if (file.name.endsWith('.module.css')) {
+          let css = readFileSync(fullPath, 'utf8');
+          // Replace class names with prefixed versions
+          css = css.replace(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g, '.a2a-$1');
+          cssModuleContent += `\n/* ${file.name} */\n${css}\n`;
+        }
+      }
+    }
+
+    processCSSModules(resolve('./src/react/components'));
+
     if (existsSync(srcCss)) {
-      const cssContent = readFileSync(srcCss, 'utf8');
+      let cssContent = readFileSync(srcCss, 'utf8');
+      // Append CSS module styles
+      cssContent += '\n/* CSS Modules */\n' + cssModuleContent;
       writeFileSync(distCss, cssContent);
       console.log('✓ Copied styles.css to dist/react/');
     }

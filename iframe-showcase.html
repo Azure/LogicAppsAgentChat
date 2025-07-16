@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2A Chat Iframe Showcase</title>
+  <style>
+    :root {
+      --bg-primary: #f0f2f5;
+      --bg-secondary: white;
+      --bg-tertiary: #f8f9fa;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666;
+      --text-tertiary: #333;
+      --border-color: #e9ecef;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.2);
+      --code-bg: #f8f9fa;
+      --code-text: #495057;
+    }
+    
+    body.dark-mode {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2a2a2a;
+      --bg-tertiary: #333333;
+      --text-primary: #e0e0e0;
+      --text-secondary: #999;
+      --text-tertiary: #cccccc;
+      --border-color: #404040;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.6);
+      --code-bg: #1e1e1e;
+      --code-text: #d4d4d4;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+    }
+    
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .example-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .example-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    /* Full-width card for multi-session */
+    .example-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .example-card.full-width .iframe-container {
+      height: 700px;
+    }
+    
+    .example-header {
+      background: var(--bg-tertiary);
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .example-header h3 {
+      margin: 0 0 6px 0;
+      color: var(--text-tertiary);
+      font-size: 20px;
+    }
+    
+    .example-header p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .iframe-container {
+      height: 500px;
+      position: relative;
+      background: var(--bg-tertiary);
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .code-snippet {
+      background: var(--code-bg);
+      border-top: 1px solid var(--border-color);
+      padding: 16px 20px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--code-text);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .feature-badge {
+      display: inline-block;
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    
+    .feature-badge.theme {
+      background: #f3e5f5;
+      color: #6a1b9a;
+    }
+    
+    .feature-badge.multi {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    
+    .feature-badge.logo {
+      background: #fff3e0;
+      color: #e65100;
+    }
+    
+    .feature-badge.auth {
+      background: #fce4ec;
+      color: #c2185b;
+    }
+    
+    .section-header {
+      margin: 40px 0 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      color: var(--text-tertiary);
+      font-size: 1.8rem;
+    }
+    
+    .loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    /* Theme Toggle Button */
+    .theme-toggle {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .theme-toggle:hover {
+      background: var(--bg-secondary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .theme-toggle:active {
+      transform: translateY(0);
+    }
+    
+    .theme-toggle svg {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.3s ease;
+    }
+    
+    .theme-toggle:hover .sun-icon {
+      transform: rotate(15deg);
+    }
+    
+    .theme-toggle:hover .moon-icon {
+      transform: rotate(-15deg);
+    }
+    
+    @media (max-width: 1200px) {
+      .examples-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .examples-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Chat Bubble Styles */
+    #chat-bubble-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    
+    .chat-bubble-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #0066cc;
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 102, 204, 0.4);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .chat-bubble-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 102, 204, 0.5);
+    }
+    
+    .chat-bubble-button:active {
+      transform: scale(0.95);
+    }
+    
+    .chat-bubble-button.active {
+      background: #0052a3;
+    }
+    
+    .chat-window {
+      position: absolute;
+      bottom: 80px;
+      right: 0;
+      width: 380px;
+      height: 600px;
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transform-origin: bottom right;
+      animation: chatWindowOpen 0.3s ease-out;
+      border: 1px solid var(--border-color);
+    }
+    
+    .chat-window.closing {
+      animation: chatWindowClose 0.3s ease-out forwards;
+    }
+    
+    @keyframes chatWindowOpen {
+      from {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    @keyframes chatWindowClose {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+    }
+    
+    .chat-window iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 16px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .chat-window {
+        width: calc(100vw - 40px);
+        height: calc(100vh - 120px);
+        right: 20px;
+        bottom: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Chat Bubble Implementation -->
+  <div id="chat-bubble-container">
+    <!-- Chat Bubble Button -->
+    <button id="chat-bubble-button" class="chat-bubble-button" aria-label="Open chat">
+      <svg class="chat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.8214 2.48697 15.5291 3.33782 17.0002L2 22L7 20.662C8.46997 21.513 10.1786 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 12H8.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 12H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 12H16.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    
+    <!-- Chat Window -->
+    <div id="chat-window" class="chat-window" style="display: none;">
+      <iframe 
+        src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=blue&logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg&welcomeMessage=Hi!%20I'm%20here%20to%20help%20you%20explore%20the%20A2A%20Chat%20integration%20options.%20Feel%20free%20to%20ask%20me%20anything!"
+        title="Customer Support Chat"
+        id="chat-bubble-iframe">
+      </iframe>
+    </div>
+  </div>
+
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div>
+        <h1>A2A Chat Iframe Showcase</h1>
+        <p class="subtitle">Live examples demonstrating various configuration options for the A2A Chat iframe integration</p>
+      </div>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+        <svg class="sun-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="moon-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Multi-Session Example (Full Width) -->
+    <div class="section-header">
+      <h2>Multi-Session Chat</h2>
+    </div>
+    
+    <div class="examples-grid">
+      <div class="example-card full-width">
+        <div class="example-header">
+          <h3>Multi-Session Chat with Blue Theme</h3>
+          <p>Enable users to manage multiple chat sessions simultaneously. Perfect for support agents or power users who need to handle multiple conversations.</p>
+          <div>
+            <span class="feature-badge multi">Multi-Session</span>
+            <span class="feature-badge theme">Blue Theme</span>
+            <span class="feature-badge logo">Company Logo</span>
+            <span class="feature-badge">User Name</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?multiSession=true&theme=blue&userName=John Snow&logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"
+            title="Multi-Session Chat">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?multiSession=true&amp;theme=blue&amp;userName=John%20Snow&logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"
+  width="100%" 
+  height="700"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+    </div>
+    
+    <!-- Theme Examples -->
+    <div class="section-header">
+      <h2>Theme Variations</h2>
+    </div>
+    
+    <div class="examples-grid">
+      <div class="example-card">
+        <div class="example-header">
+          <h3>Default Theme</h3>
+          <p>The standard appearance with default purple accent color</p>
+          <div>
+            <span class="feature-badge theme">Default Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame"
+            title="Default Theme">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+      
+      <div class="example-card">
+        <div class="example-header">
+          <h3>Green Theme</h3>
+          <p>A fresh, nature-inspired color scheme</p>
+          <div>
+            <span class="feature-badge theme">Green Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=green"
+            title="Green Theme">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=green"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+      
+      <div class="example-card">
+        <div class="example-header">
+          <h3>Purple Theme</h3>
+          <p>A rich, professional purple color scheme</p>
+          <div>
+            <span class="feature-badge theme">Purple Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=purple"
+            title="Purple Theme">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=purple"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+    </div>
+    
+    <!-- Feature Examples -->
+    <div class="section-header">
+      <h2>Feature Configurations</h2>
+    </div>
+    
+    <div class="examples-grid">
+      <div class="example-card">
+        <div class="example-header">
+          <h3>With Company Logo</h3>
+          <p>Display your company branding with a custom logo</p>
+          <div>
+            <span class="feature-badge logo">Company Logo</span>
+            <span class="feature-badge theme">Teal Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=teal&logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"
+            title="With Company Logo">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=teal&amp;logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+      
+      <div class="example-card">
+        <div class="example-header">
+          <h3>With File Upload</h3>
+          <p>Allow users to share files and documents</p>
+          <div>
+            <span class="feature-badge">File Upload</span>
+            <span class="feature-badge theme">Orange Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?allowFileUpload=true&theme=orange"
+            title="With File Upload">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?allowFileUpload=true&amp;theme=orange"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+      
+      <div class="example-card">
+        <div class="example-header">
+          <h3>Custom Welcome & Placeholder</h3>
+          <p>Personalize the chat experience with custom messages</p>
+          <div>
+            <span class="feature-badge">Custom Text</span>
+            <span class="feature-badge theme">Pink Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=pink&welcomeMessage=Welcome%20to%20our%20support%20chat!%20How%20can%20we%20help%20you%20today%3F&placeholder=Type%20your%20question%20here..."
+            title="Custom Messages">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=pink&amp;welcomeMessage=Welcome%20to%20our%20support%20chat!%20How%20can%20we%20help%20you%20today%3F&amp;placeholder=Type%20your%20question%20here..."&gt;
+&lt;/iframe&gt;</div>
+      </div>
+    </div>
+    
+    <!-- SVG Logo Example -->
+    <div class="section-header">
+      <h2>SVG Logo Example</h2>
+    </div>
+    
+    <div class="examples-grid">
+      <div class="example-card">
+        <div class="example-header">
+          <h3>Chat with SVG Logo</h3>
+          <p>Use SVG logos directly via data URLs for perfect scalability</p>
+          <div>
+            <span class="feature-badge logo">SVG Logo</span>
+            <span class="feature-badge theme">Blue Theme</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe id="svg-logo-example"></iframe>
+        </div>
+        <div class="code-snippet">// Convert your SVG to a data URL:
+const svgString = `&lt;svg xmlns="http://www.w3.org/2000/svg"...&gt;&lt;/svg&gt;`;
+const dataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
+
+// Then use it in the iframe:
+&lt;iframe src="...?logoUrl=${encodeURIComponent(dataUrl)}"&gt;&lt;/iframe&gt;</div>
+      </div>
+    </div>
+    
+    <!-- Complete Example -->
+    <div class="section-header">
+      <h2>Complete Integration Example</h2>
+    </div>
+    
+    <div class="examples-grid">
+      <div class="example-card full-width">
+        <div class="example-header">
+          <h3>Full-Featured Integration</h3>
+          <p>Combining all features: custom theme, user info, file upload, custom messages, and company branding</p>
+          <div>
+            <span class="feature-badge theme">Blue Theme</span>
+            <span class="feature-badge">User Info</span>
+            <span class="feature-badge">File Upload</span>
+            <span class="feature-badge">Custom Messages</span>
+            <span class="feature-badge logo">Company Logo</span>
+          </div>
+        </div>
+        <div class="iframe-container">
+          <iframe 
+            src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=blue&userName=John%20Doe&userId=user123&allowFileUpload=true&welcomeMessage=Hello!%20I'm here for any weather queries you may have. I can even share them to teams&placeholder=Ask%20me%20anything...&logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"
+            title="Full-Featured Chat">
+          </iframe>
+        </div>
+        <div class="code-snippet">&lt;iframe 
+  src="https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=blue&amp;userName=John%20Doe&amp;userId=user123&amp;allowFileUpload=true&amp;welcomeMessage=Hello%20John!%20I'm%20here%20to%20help%20with%20any%20questions%20you%20have.&amp;placeholder=Ask%20me%20anything...&amp;logoUrl=https://az-icons.com/export/icons/f523f75640947b7f31e55992576c5588.svg"
+  width="100%" 
+  height="700"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Azure logo SVG
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><defs><linearGradient id="ba6b54e9-66d7-42e0-a289-95171eaf47f3" x1="9" y1="1.796" x2="9" y2="6.371" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9cebff"/><stop offset="1" stop-color="#50e6ff"/></linearGradient><linearGradient id="e5c23c93-889c-4cfe-8adf-72bfa2a5b6e4" x1="3.374" y1="12.14" x2="3.374" y2="18.457" gradientUnits="userSpaceOnUse"><stop offset="0.001" stop-color="#b4ec36"/><stop offset="1" stop-color="#86d633"/></linearGradient><linearGradient id="fb46250a-f4a9-418f-b6ae-1a568665f153" x1="14.626" y1="12.14" x2="14.626" y2="18.457" gradientTransform="translate(-0.02 29.273) rotate(-90)" gradientUnits="userSpaceOnUse"><stop offset="0.001" stop-color="#b4ec36"/><stop offset="1" stop-color="#86d633"/></linearGradient></defs><g id="a9693b19-30a4-439f-a536-87fc73c5ba8c"><g><path d="M13.851,9.047H10.939A1.518,1.518,0,0,1,9.421,7.529V4.33H8.579v3.2A1.518,1.518,0,0,1,7.061,9.047H4.149a1.2,1.2,0,0,0-1.2,1.2v2.338h.841V10.244a.355.355,0,0,1,.356-.355H7.061A2.353,2.353,0,0,0,8.8,9.125a.278.278,0,0,1,.408,0,2.353,2.353,0,0,0,1.735.764h2.912a.354.354,0,0,1,.355.355v2.338h.841V10.244A1.2,1.2,0,0,0,13.851,9.047Z" fill="#0078d4"/><rect x="5.626" y="-0.02" width="6.747" height="6.747" rx="0.604" fill="url(#ba6b54e9-66d7-42e0-a289-95171eaf47f3)"/><rect y="11.273" width="6.747" height="6.747" rx="0.604" fill="url(#e5c23c93-889c-4cfe-8adf-72bfa2a5b6e4)"/><rect x="11.253" y="11.273" width="6.747" height="6.747" rx="0.604" transform="translate(29.273 0.02) rotate(90)" fill="url(#fb46250a-f4a9-418f-b6ae-1a568665f153)"/></g></g></svg>`;
+    
+    // Convert to base64 data URL
+    const dataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
+    const encodedDataUrl = encodeURIComponent(dataUrl);
+    
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    
+    // Dark Mode Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const sunIcon = themeToggle?.querySelector('.sun-icon');
+    const moonIcon = themeToggle?.querySelector('.moon-icon');
+    const body = document.body;
+    
+    // Set the SVG logo example iframe
+    const svgLogoIframe = document.getElementById('svg-logo-example');
+    if (svgLogoIframe) {
+      const modeParam = currentTheme === 'dark' ? '&mode=dark' : '';
+      svgLogoIframe.src = `https://rarayudu-test-agentauth.azurewebsites.net/api/agentsChat/TestAgentKind/IFrame?theme=blue&logoUrl=${encodedDataUrl}${modeParam}`;
+    }
+    if (currentTheme === 'dark') {
+      body.classList.add('dark-mode');
+      if (sunIcon && moonIcon) {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      }
+      // Apply dark theme to all iframes immediately
+      setTimeout(() => updateIframeThemes(true), 100);
+    }
+    
+    themeToggle?.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      const isDarkMode = body.classList.contains('dark-mode');
+      
+      if (isDarkMode) {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+        localStorage.setItem('theme', 'dark');
+        updateIframeThemes(true);
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+        localStorage.setItem('theme', 'light');
+        updateIframeThemes(false);
+      }
+    });
+    
+    // Update all iframes to dark/light mode
+    function updateIframeThemes(isDark) {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(iframe => {
+        if (!iframe.src) return;
+        
+        try {
+          const url = new URL(iframe.src);
+          if (url.hostname.includes('rarayudu-test-agentauth.azurewebsites.net')) {
+            // Update mode parameter instead of theme
+            if (isDark) {
+              url.searchParams.set('mode', 'dark');
+            } else {
+              url.searchParams.delete('mode'); // Remove mode param for light mode
+            }
+            iframe.src = url.toString();
+          }
+        } catch (e) {
+          console.error('Error updating iframe mode:', e);
+        }
+      });
+    }
+    
+    // Initialize iframe themes
+    window.addEventListener('load', () => {
+      // Apply dark mode to iframes if page is already in dark mode
+      if (body.classList.contains('dark-mode')) {
+        updateIframeThemes(true);
+      }
+    });
+    
+    // Chat Bubble functionality
+    const chatBubbleButton = document.getElementById('chat-bubble-button');
+    const chatWindow = document.getElementById('chat-window');
+    const chatIcon = chatBubbleButton?.querySelector('.chat-icon');
+    const closeIcon = chatBubbleButton?.querySelector('.close-icon');
+    let isOpen = false;
+    
+    chatBubbleButton?.addEventListener('click', () => {
+      if (!isOpen) {
+        // Open chat
+        chatWindow.style.display = 'block';
+        chatBubbleButton.classList.add('active');
+        chatIcon.style.display = 'none';
+        closeIcon.style.display = 'block';
+        isOpen = true;
+        
+        // Load iframe if not already loaded
+        const iframe = chatWindow.querySelector('iframe');
+        if (iframe && !iframe.dataset.loaded) {
+          iframe.dataset.loaded = 'true';
+        }
+      } else {
+        // Close chat
+        chatWindow.classList.add('closing');
+        chatBubbleButton.classList.remove('active');
+        chatIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+        
+        // Wait for animation to complete
+        setTimeout(() => {
+          chatWindow.style.display = 'none';
+          chatWindow.classList.remove('closing');
+          isOpen = false;
+        }, 300);
+      }
+    });
+    
+    // Optional: Close chat when clicking outside
+    document.addEventListener('click', (e) => {
+      if (isOpen && 
+          !chatBubbleButton?.contains(e.target) && 
+          !chatWindow?.contains(e.target)) {
+        // Use the same close logic
+        chatWindow.classList.add('closing');
+        chatBubbleButton.classList.remove('active');
+        chatIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+        
+        setTimeout(() => {
+          chatWindow.style.display = 'none';
+          chatWindow.classList.remove('closing');
+          isOpen = false;
+        }, 300);
+      }
+    });
+  </script>
+</body>
+</html>

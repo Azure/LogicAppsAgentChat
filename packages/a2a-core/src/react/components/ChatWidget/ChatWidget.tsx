@@ -42,14 +42,26 @@ const useStyles = makeStyles({
  * ```
  */
 export function ChatWidget(
-  props: ChatWidgetProps & { themeConfig?: ThemeConfig; fluentTheme?: 'light' | 'dark' }
+  props: ChatWidgetProps & {
+    themeConfig?: ThemeConfig;
+    fluentTheme?: 'light' | 'dark';
+    mode?: 'light' | 'dark';
+  }
 ) {
-  const { theme, themeConfig, fluentTheme = 'light', ...restProps } = props;
+  const { theme, themeConfig, fluentTheme = 'light', mode = 'light', ...restProps } = props;
   const styles = useStyles();
 
   // For backward compatibility, convert old theme to themeConfig
   const fluentThemeConfig: ThemeConfig | undefined = React.useMemo(() => {
     if (themeConfig) return themeConfig;
+
+    // Support new theme structure with colors object
+    if (theme && 'colors' in theme && theme.colors && typeof theme.colors.primary === 'string') {
+      return {
+        primaryColor: theme.colors.primary,
+      };
+    }
+
     // Legacy theme support - primaryColor might exist on old theme prop
     if (theme && 'primaryColor' in theme && typeof theme.primaryColor === 'string') {
       return {
@@ -66,10 +78,10 @@ export function ChatWidget(
   return (
     <ChatThemeProvider theme={fluentTheme} themeConfig={fluentThemeConfig}>
       {isMultiSession ? (
-        <ChatWindow {...restProps} theme={theme} />
+        <ChatWindow {...restProps} theme={theme} mode={mode} />
       ) : (
         <div className={styles.container}>
-          <ChatWindow {...restProps} theme={theme} />
+          <ChatWindow {...restProps} theme={theme} mode={mode} />
         </div>
       )}
     </ChatThemeProvider>

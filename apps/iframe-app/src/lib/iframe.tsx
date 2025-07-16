@@ -6,7 +6,12 @@ import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
 // Parse configuration from data attributes or URL parameters
-function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?: string } {
+function parseConfig(): {
+  props: ChatWidgetProps;
+  multiSession: boolean;
+  apiKey?: string;
+  mode?: 'light' | 'dark';
+} {
   const params = new URLSearchParams(window.location.search);
   const dataset = document.documentElement.dataset;
   // Get agent card URL (required) - support both 'agent' and 'agentCard' parameters
@@ -38,6 +43,8 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
 
   // Check if theme is provided as URL parameter (for demo)
   const themeParam = params.get('theme');
+  const modeParam = params.get('mode'); // Separate mode parameter
+
   if (themeParam) {
     // Handle predefined theme names from demo
     const themeColors: Record<string, Partial<ChatTheme['colors']>> = {
@@ -51,6 +58,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#e2e8f0',
         error: '#ef4444',
         success: '#10b981',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#2d2d2d',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#404040',
       },
       blue: {
         primary: '#2563eb',
@@ -62,6 +75,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#bfdbfe',
         error: '#dc2626',
         success: '#059669',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#1e293b',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#334155',
       },
       green: {
         primary: '#10b981',
@@ -73,6 +92,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#bbf7d0',
         error: '#dc2626',
         success: '#059669',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#1e3a2e',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#2d5a3d',
       },
       red: {
         primary: '#ef4444',
@@ -84,6 +109,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#fecaca',
         error: '#b91c1c',
         success: '#16a34a',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#3a1e1e',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#5a2d2d',
       },
       purple: {
         primary: '#8b5cf6',
@@ -95,6 +126,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#e9d5ff',
         error: '#dc2626',
         success: '#16a34a',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#2e1e3a',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#4a2d5a',
       },
       teal: {
         primary: '#14b8a6',
@@ -106,6 +143,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#99f6e4',
         error: '#dc2626',
         success: '#059669',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#1e3a3a',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#2d5a5a',
       },
       orange: {
         primary: '#f97316',
@@ -117,6 +160,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#fed7aa',
         error: '#dc2626',
         success: '#16a34a',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#3a2e1e',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#5a3d2d',
       },
       pink: {
         primary: '#ec4899',
@@ -128,6 +177,12 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
         border: '#fbcfe8',
         error: '#be123c',
         success: '#16a34a',
+        // Dark mode variants
+        backgroundDark: '#1a1a1a',
+        surfaceDark: '#3a1e2e',
+        textDark: '#e0e0e0',
+        textSecondaryDark: '#a0a0a0',
+        borderDark: '#5a2d4a',
       },
     };
 
@@ -152,16 +207,20 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
     };
   }
 
-  // Branding
-  if (dataset.logoUrl) {
+  // Branding - check both data attributes and URL parameters
+  const logoUrl = dataset.logoUrl || params.get('logoUrl');
+  if (logoUrl) {
+    const logoSize = dataset.logoSize || params.get('logoSize');
+    const logoPosition = dataset.logoPosition || params.get('logoPosition');
+
     theme.branding = {
-      logoUrl: dataset.logoUrl,
-      logoSize: (['small', 'medium', 'large'].includes(dataset.logoSize as string)
-        ? dataset.logoSize
+      logoUrl,
+      logoSize: (['small', 'medium', 'large'].includes(logoSize as string)
+        ? logoSize
         : 'medium') as 'small' | 'medium' | 'large',
       logoPosition:
-        dataset.logoPosition === 'header' || dataset.logoPosition === 'footer'
-          ? (dataset.logoPosition as 'header' | 'footer')
+        logoPosition === 'header' || logoPosition === 'footer'
+          ? (logoPosition as 'header' | 'footer')
           : 'header',
     };
   }
@@ -171,7 +230,7 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
     agentCard,
     theme: Object.keys(theme).length > 0 ? theme : undefined,
     userId: dataset.userId || params.get('userId') || undefined,
-    userName: window.LOGGED_IN_USER_NAME || dataset.userName || params.get('userName') || undefined,
+    userName: dataset.userName || params.get('userName') || window.LOGGED_IN_USER_NAME || undefined,
     placeholder: dataset.placeholder || params.get('placeholder') || undefined,
     welcomeMessage: dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
     allowFileUpload: dataset.allowFileUpload === 'true' || params.get('allowFileUpload') === 'true',
@@ -193,7 +252,10 @@ function parseConfig(): { props: ChatWidgetProps; multiSession: boolean; apiKey?
     }
   }
 
-  return { props, multiSession, apiKey };
+  // Determine mode
+  const mode = modeParam === 'dark' ? 'dark' : 'light';
+
+  return { props, multiSession, apiKey, mode };
 }
 
 // Wrapper component that can receive agent card via postMessage
@@ -201,10 +263,12 @@ function IframeWrapper({
   props,
   multiSession,
   apiKey,
+  mode: initialMode = 'light',
 }: {
   props: ChatWidgetProps;
   multiSession: boolean;
   apiKey?: string;
+  mode?: 'light' | 'dark';
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentCard, setAgentCard] = useState<any>(null);
@@ -272,6 +336,11 @@ function IframeWrapper({
   // If we received an agent card via postMessage, use that instead
   const finalProps = agentCard ? { ...props, agentCard } : props;
 
+  // Use the mode from props or URL params
+  const urlMode = params.get('mode');
+  const mode = urlMode === 'dark' ? 'dark' : initialMode;
+  const fluentTheme = mode;
+
   // Use MultiSessionChat if multi-session mode is enabled
   if (multiSession) {
     return (
@@ -281,17 +350,18 @@ function IframeWrapper({
           apiKey: apiKey || '', // Pass the API key from query params
         }}
         {...finalProps}
+        mode={mode}
       />
     );
   }
 
-  return <ChatWidget {...finalProps} />;
+  return <ChatWidget {...finalProps} mode={mode} fluentTheme={fluentTheme} />;
 }
 
 // Initialize the widget
 function init() {
   try {
-    const { props, multiSession, apiKey } = parseConfig();
+    const { props, multiSession, apiKey, mode } = parseConfig();
 
     const container = document.getElementById('chat-root');
 
@@ -301,7 +371,9 @@ function init() {
 
     const root = createRoot(container);
 
-    root.render(<IframeWrapper props={props} multiSession={multiSession} apiKey={apiKey} />);
+    root.render(
+      <IframeWrapper props={props} multiSession={multiSession} apiKey={apiKey} mode={mode} />
+    );
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
     console.error('Error details:', {

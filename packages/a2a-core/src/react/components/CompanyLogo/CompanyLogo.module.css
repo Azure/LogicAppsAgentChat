@@ -1,24 +1,44 @@
 .logoContainer {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--chat-spacing-unit) * 2);
 }
 
 .logo {
-  max-width: 100%;
-  height: auto;
+  display: block;
   object-fit: contain;
 }
 
-.small .logo {
+/* Size classes */
+.small {
   height: 24px;
 }
 
-.medium .logo {
+.small .logo {
+  max-height: 24px;
+  max-width: 120px;
+  height: 24px;
+  width: auto;
+}
+
+.medium {
   height: 32px;
 }
 
-.large .logo {
+.medium .logo {
+  max-height: 32px;
+  max-width: 160px;
+  height: 32px;
+  width: auto;
+}
+
+.large {
   height: 48px;
+}
+
+.large .logo {
+  max-height: 48px;
+  max-width: 240px;
+  height: 48px;
+  width: auto;
 }
