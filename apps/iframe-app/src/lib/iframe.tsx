@@ -1,3 +1,19 @@
+/**
+ * Iframe integration for A2A Chat Widget
+ *
+ * Security: This component implements origin verification for postMessage communication.
+ * To configure allowed origins, use one of these methods:
+ *
+ * 1. URL parameter: ?allowedOrigins=https://example.com,https://app.example.com
+ * 2. Data attribute: <html data-allowed-origins="https://example.com,https://app.example.com">
+ * 3. Wildcard subdomains: ?allowedOrigins=*.example.com
+ *
+ * If no origins are specified, the iframe will:
+ * - Allow messages from its own origin
+ * - Allow messages from the document referrer (parent frame)
+ * - In development (localhost), allow common development ports
+ */
+
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect } from 'react';
 import { ChatWidget, type ChatWidgetProps, type ChatTheme } from '@microsoft/a2achat-core/react';
@@ -258,6 +274,81 @@ function parseConfig(): {
   return { props, multiSession, apiKey, mode };
 }
 
+// Helper function to get allowed origins from configuration
+function getAllowedOrigins(): string[] {
+  // Get allowed origins from data attributes or URL parameters
+  const params = new URLSearchParams(window.location.search);
+  const dataset = document.documentElement.dataset;
+
+  // Check for allowed origins in dataset or params
+  const allowedOriginsStr = dataset.allowedOrigins || params.get('allowedOrigins');
+
+  if (allowedOriginsStr) {
+    return allowedOriginsStr.split(',').map((origin) => origin.trim());
+  }
+
+  // Default allowed origins based on current environment
+  const currentOrigin = window.location.origin;
+  const allowedOrigins = [currentOrigin];
+
+  // If we're in a known environment, add those origins
+  if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+    // Development environment - be more permissive but still explicit
+    allowedOrigins.push('http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000');
+  }
+
+  // Always allow the document referrer if it exists
+  if (document.referrer) {
+    try {
+      const referrerOrigin = new URL(document.referrer).origin;
+      if (!allowedOrigins.includes(referrerOrigin)) {
+        allowedOrigins.push(referrerOrigin);
+      }
+    } catch (e) {
+      // Invalid referrer URL, ignore
+    }
+  }
+
+  return allowedOrigins;
+}
+
+// Helper function to check if origin is allowed
+function isOriginAllowed(origin: string, allowedOrigins: string[]): boolean {
+  // Direct match
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  // Check for wildcard subdomain patterns (e.g., "*.example.com")
+  for (const allowed of allowedOrigins) {
+    if (allowed.startsWith('*.')) {
+      const domain = allowed.substring(2);
+      const originUrl = new URL(origin);
+      if (originUrl.hostname.endsWith(domain)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// Helper function to get parent origin for postMessage
+function getParentOrigin(): string {
+  // Try to get parent origin from referrer
+  if (document.referrer) {
+    try {
+      return new URL(document.referrer).origin;
+    } catch (e) {
+      // Invalid referrer URL
+    }
+  }
+
+  // If we can't determine parent origin, use current origin as fallback
+  // This is safer than using '*'
+  return window.location.origin;
+}
+
 // Wrapper component that can receive agent card via postMessage
 function IframeWrapper({
   props,
@@ -282,8 +373,17 @@ function IframeWrapper({
     if (expectPostMessage) {
       setIsWaitingForAgentCard(true);
 
+      // Get allowed origins from configuration
+      const allowedOrigins = getAllowedOrigins();
+
       // Listen for postMessage
       const handleMessage = (event: MessageEvent) => {
+        // Verify origin
+        if (!isOriginAllowed(event.origin, allowedOrigins)) {
+          console.warn('Ignoring message from untrusted origin:', event.origin);
+          return;
+        }
+
         // Validate message
         if (event.data && event.data.type === 'SET_AGENT_CARD') {
           setAgentCard(event.data.agentCard);
@@ -301,7 +401,9 @@ function IframeWrapper({
 
       // Send ready signal to parent
       if (window.parent !== window) {
-        window.parent.postMessage({ type: 'IFRAME_READY' }, '*');
+        // Use specific origin for parent communication
+        const parentOrigin = getParentOrigin();
+        window.parent.postMessage({ type: 'IFRAME_READY' }, parentOrigin);
       }
 
       return () => {
@@ -383,25 +485,52 @@ function init() {
       search: window.location.search,
     });
 
-    document.body.innerHTML = `
-      <div style="
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        font-family: sans-serif;
-        color: #666;
-        text-align: center;
-        padding: 20px;
-      ">
-        <div>
-          <h3 style="color: #333; margin-bottom: 10px;">Failed to load chat widget</h3>
-          <p style="margin: 0;">${typeof error === 'object' && error && 'message' in error && typeof (error as { message?: unknown }).message === 'string' ? (error as { message: string }).message : String(error)}</p>
-          <p style="margin-top: 10px; font-size: 12px; color: #999;">URL: ${window.location.href}</p>
-          <p style="margin-top: 5px; font-size: 12px; color: #999;">Parameters: ${window.location.search || 'none'}</p>
-        </div>
-      </div>
+    // Create elements safely to avoid XSS
+    const errorContainer = document.createElement('div');
+    errorContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      color: #666;
+      text-align: center;
+      padding: 20px;
     `;
+
+    const contentDiv = document.createElement('div');
+
+    const heading = document.createElement('h3');
+    heading.style.cssText = 'color: #333; margin-bottom: 10px;';
+    heading.textContent = 'Failed to load chat widget';
+
+    const errorMessage = document.createElement('p');
+    errorMessage.style.cssText = 'margin: 0;';
+    errorMessage.textContent =
+      typeof error === 'object' &&
+      error &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : String(error);
+
+    const urlInfo = document.createElement('p');
+    urlInfo.style.cssText = 'margin-top: 10px; font-size: 12px; color: #999;';
+    urlInfo.textContent = `URL: ${window.location.href}`;
+
+    const paramsInfo = document.createElement('p');
+    paramsInfo.style.cssText = 'margin-top: 5px; font-size: 12px; color: #999;';
+    paramsInfo.textContent = `Parameters: ${window.location.search || 'none'}`;
+
+    contentDiv.appendChild(heading);
+    contentDiv.appendChild(errorMessage);
+    contentDiv.appendChild(urlInfo);
+    contentDiv.appendChild(paramsInfo);
+
+    errorContainer.appendChild(contentDiv);
+
+    document.body.innerHTML = '';
+    document.body.appendChild(errorContainer);
   }
 }
 

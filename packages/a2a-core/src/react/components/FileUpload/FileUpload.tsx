@@ -41,7 +41,7 @@ export function FileUpload({
           const isAllowed = allowedFileTypes.some((type) => {
             if (type.includes('*')) {
               // Handle wildcard types like "image/*"
-              return file.type.startsWith(type.replace('*', ''));
+              return file.type.startsWith(type.replace(/\*/g, ''));
             }
             return type === `.${fileExtension}` || type === file.type;
           });
