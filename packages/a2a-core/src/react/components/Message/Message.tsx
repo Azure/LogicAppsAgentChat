@@ -72,6 +72,10 @@ marked.use(
 );
 
 const useStyles = makeStyles({
+  '@keyframes fadeIn': {
+    from: { opacity: 0, transform: 'translateY(10px)' },
+    to: { opacity: 1, transform: 'translateY(0)' },
+  },
   messageWrapper: {
     display: 'flex',
     flexDirection: 'column',
@@ -79,10 +83,6 @@ const useStyles = makeStyles({
     animationName: 'fadeIn',
     animationDuration: tokens.durationSlow,
     animationFillMode: 'both',
-    '@keyframes fadeIn': {
-      from: { opacity: 0, transform: 'translateY(10px)' },
-      to: { opacity: 1, transform: 'translateY(0)' },
-    },
   },
   userMessage: {
     alignItems: 'flex-end',

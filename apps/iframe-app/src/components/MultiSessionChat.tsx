@@ -296,8 +296,22 @@ export function MultiSessionChat({
             onDeleteSession={deleteSession}
             logoUrl={chatWidgetProps.theme?.branding?.logoUrl}
             logoSize={chatWidgetProps.theme?.branding?.logoSize}
+            themeColors={chatWidgetProps.theme?.colors}
           />
-          {!isCollapsed && <div className={styles.resizeHandle} onMouseDown={startResizing} />}
+          {!isCollapsed && (
+            <div
+              className={styles.resizeHandle}
+              onMouseDown={startResizing}
+              onMouseEnter={(e) => {
+                if (chatWidgetProps.theme?.colors?.primary) {
+                  e.currentTarget.style.backgroundColor = chatWidgetProps.theme.colors.primary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            />
+          )}
         </div>
         <div className={styles.chatArea}>
           <ChatThemeProvider theme={mode}>
@@ -310,8 +324,10 @@ export function MultiSessionChat({
                 ...chatWidgetProps.metadata,
                 sessionId: activeSessionId,
               }}
+              theme={chatWidgetProps.theme}
               userName={chatWidgetProps.userName}
               placeholder={chatWidgetProps.placeholder}
+              welcomeMessage={chatWidgetProps.welcomeMessage}
               allowFileUpload={false}
               onToggleSidebar={toggleSidebar}
               isSidebarCollapsed={isCollapsed}

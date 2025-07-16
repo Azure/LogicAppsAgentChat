@@ -14,6 +14,7 @@ import {
 } from '@fluentui/react-components';
 import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
+import type { ChatTheme } from '@microsoft/a2achat-core';
 
 const useStyles = makeStyles({
   sessionList: {
@@ -163,6 +164,7 @@ interface SessionListProps {
   onDeleteSession: (sessionId: string) => void;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
+  themeColors?: ChatTheme['colors'];
 }
 
 // Memoized session item component to prevent unnecessary re-renders
@@ -178,6 +180,7 @@ interface SessionItemProps {
   onSaveEdit: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   formatDate: (timestamp: number) => string;
+  themeColors?: ChatTheme['colors'];
 }
 
 const SessionItem = memo(
@@ -193,6 +196,7 @@ const SessionItem = memo(
     onSaveEdit,
     onKeyDown,
     formatDate,
+    themeColors,
   }: SessionItemProps) => {
     const styles = useStyles();
 
@@ -237,6 +241,15 @@ const SessionItem = memo(
       e.stopPropagation();
     }, []);
 
+    // Apply theme colors to active session
+    const activeStyle =
+      isActive && themeColors
+        ? {
+            backgroundColor: themeColors.primary + '15',
+            borderColor: themeColors.primary,
+          }
+        : {};
+
     return (
       <div className={styles.sessionItemWrapper}>
         <Card
@@ -244,6 +257,7 @@ const SessionItem = memo(
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           appearance="subtle"
+          style={activeStyle}
         >
           <div className={styles.sessionContent}>
             {isEditing ? (
@@ -311,6 +325,7 @@ export const SessionList = memo(
     onDeleteSession,
     logoUrl,
     logoSize = 'medium',
+    themeColors,
   }: SessionListProps) => {
     const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -369,8 +384,16 @@ export const SessionList = memo(
     // Ensure sessions is an array
     const safeSessions = Array.isArray(sessions) ? sessions : [];
 
+    // Apply theme colors if provided
+    const themeStyle = themeColors
+      ? ({
+          '--theme-primary': themeColors.primary,
+          '--theme-primary-hover': themeColors.primary + 'dd',
+        } as React.CSSProperties)
+      : {};
+
     return (
-      <div className={styles.sessionList}>
+      <div className={styles.sessionList} style={themeStyle}>
         <div className={styles.header}>
           {logoUrl && (
             <img
@@ -389,7 +412,29 @@ export const SessionList = memo(
           {safeSessions.length === 0 ? (
             <div className={styles.emptyState}>
               <Body1 className={styles.emptyStateText}>No chats yet</Body1>
-              <Button appearance="primary" onClick={onNewSession}>
+              <Button
+                appearance="primary"
+                onClick={onNewSession}
+                style={
+                  themeColors
+                    ? {
+                        backgroundColor: themeColors.primary,
+                        color: themeColors.primaryText || '#fff',
+                        border: 'none',
+                      }
+                    : {}
+                }
+                onMouseEnter={(e) => {
+                  if (themeColors) {
+                    e.currentTarget.style.backgroundColor = themeColors.primary + 'dd';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (themeColors) {
+                    e.currentTarget.style.backgroundColor = themeColors.primary;
+                  }
+                }}
+              >
                 Start a new chat
               </Button>
             </div>
@@ -408,6 +453,7 @@ export const SessionList = memo(
                 onSaveEdit={handleSaveEdit}
                 onKeyDown={handleKeyDown}
                 formatDate={formatDate}
+                themeColors={themeColors}
               />
             ))
           )}
@@ -420,7 +466,26 @@ export const SessionList = memo(
               onClick={onNewSession}
               size="medium"
               title="New Chat"
-              style={{ width: '100%', minHeight: '40px', height: '40px' }}
+              style={{
+                width: '100%',
+                minHeight: '40px',
+                height: '40px',
+                ...(themeColors && {
+                  backgroundColor: themeColors.primary,
+                  color: themeColors.primaryText || '#fff',
+                  border: 'none',
+                }),
+              }}
+              onMouseEnter={(e) => {
+                if (themeColors) {
+                  e.currentTarget.style.backgroundColor = themeColors.primary + 'dd';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (themeColors) {
+                  e.currentTarget.style.backgroundColor = themeColors.primary;
+                }
+              }}
             >
               New Chat
             </Button>

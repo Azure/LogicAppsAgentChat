@@ -12,6 +12,16 @@
     window.LOGGED_IN_USER_NAME = window.LOGGED_IN_USER_NAME?.includes("REPLACE_ME_WITH") ? undefined : window.LOGGED_IN_USER_NAME;
 
   </script>
+  <script>
+    // Immediately notify parent that iframe is loading
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'IFRAME_LOADING', timestamp: Date.now() }, '*');
+      } catch (e) {
+        // Ignore errors if postMessage fails
+      }
+    }
+  </script>
   <style>
     body {
       margin: 0;

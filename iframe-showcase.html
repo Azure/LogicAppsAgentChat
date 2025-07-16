@@ -188,6 +188,49 @@
       font-size: 14px;
     }
     
+    .iframe-auth-required {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .iframe-auth-required h3 {
+      color: var(--text-primary);
+      margin: 0 0 10px 0;
+      font-size: 20px;
+    }
+    
+    .iframe-auth-required p {
+      color: var(--text-secondary);
+      margin: 0 0 20px 0;
+      font-size: 14px;
+      max-width: 300px;
+    }
+    
+    .iframe-auth-required button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .iframe-auth-required button:hover {
+      background: #0052a3;
+    }
+    
     /* Theme Toggle Button */
     .theme-toggle {
       background: var(--bg-tertiary);
@@ -682,12 +725,127 @@ const dataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
       });
     }
     
-    // Initialize iframe themes
+    // Track iframe loading states
+    const iframeLoadingStates = new Map();
+    const IFRAME_LOAD_TIMEOUT = 1000; // 1 second
+
+    // Listen for iframe loading messages
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'IFRAME_LOADING') {
+        // Find which iframe sent this message
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+          try {
+            if (iframe.contentWindow === event.source) {
+              iframeLoadingStates.set(iframe, 'loaded');
+              // Remove loading indicator
+              const container = iframe.parentElement;
+              const loadingIndicator = container?.querySelector('.loading-indicator');
+              if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+              }
+            }
+          } catch (e) {
+            // Cross-origin, ignore
+          }
+        });
+      }
+    });
+    
+    // Function to handle authentication
+    function openAuthenticationPopup() {
+      const authUrl = 'https://rarayudu-test-agentauth.azurewebsites.net/.auth/login/aad';
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      const features = [
+        `width=${width}`,
+        `height=${height}`,
+        `left=${left}`,
+        `top=${top}`,
+        'toolbar=no',
+        'menubar=no',
+        'scrollbars=yes',
+        'resizable=yes',
+        'status=no'
+      ].join(',');
+      
+      const popup = window.open(authUrl, 'auth-popup', features);
+      
+      if (!popup) {
+        alert('Please allow popups for this site to authenticate.');
+        return;
+      }
+      
+      popup.focus();
+      
+      // Check when popup closes manually
+      const checkInterval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkInterval);
+          // Refresh the page to retry loading iframes
+          window.location.reload();
+        }
+      }, 500);
+    }
+    
+    // Function to check iframe loading
+    function checkIframeLoading() {
+      const iframes = document.querySelectorAll('.iframe-container iframe');
+      
+      iframes.forEach(iframe => {
+        if (iframeLoadingStates.has(iframe)) return; // Already checked
+        
+        const container = iframe.parentElement;
+        
+        // Add loading indicator if not present
+        let loadingIndicator = container?.querySelector('.loading-indicator');
+        if (!loadingIndicator && container) {
+          loadingIndicator = document.createElement('div');
+          loadingIndicator.className = 'loading-indicator';
+          loadingIndicator.textContent = 'Loading chat...';
+          container.insertBefore(loadingIndicator, iframe);
+        }
+        
+        // Set timeout to check if iframe loaded
+        setTimeout(() => {
+          if (!iframeLoadingStates.has(iframe) || iframeLoadingStates.get(iframe) !== 'loaded') {
+            // Iframe didn't send message - assume it's blocked
+            if (container) {
+              // Hide iframe and loading indicator
+              iframe.style.display = 'none';
+              if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+              }
+              
+              // Show authentication required message
+              const authDiv = document.createElement('div');
+              authDiv.className = 'iframe-auth-required';
+              authDiv.innerHTML = `
+                <h3>Authentication Required</h3>
+                <p>Please sign in to access the chat. After signing in, the page will refresh automatically.</p>
+                <button onclick="(${openAuthenticationPopup.toString()})()">Sign In</button>
+              `;
+              container.appendChild(authDiv);
+            }
+            
+            iframeLoadingStates.set(iframe, 'blocked');
+          }
+        }, IFRAME_LOAD_TIMEOUT);
+      });
+    }
+    
+    // Initialize iframe themes and check loading
     window.addEventListener('load', () => {
       // Apply dark mode to iframes if page is already in dark mode
       if (body.classList.contains('dark-mode')) {
         updateIframeThemes(true);
       }
+      
+      // Check iframe loading after a short delay
+      setTimeout(checkIframeLoading, 100);
     });
     
     // Chat Bubble functionality
@@ -699,6 +857,15 @@ const dataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
     
     chatBubbleButton?.addEventListener('click', () => {
       if (!isOpen) {
+        const iframe = chatWindow.querySelector('iframe');
+        
+        // Check if we've already determined this iframe is blocked
+        if (iframe && iframeLoadingStates.get(iframe) === 'blocked') {
+          // Open authentication popup instead
+          openAuthenticationPopup();
+          return;
+        }
+        
         // Open chat
         chatWindow.style.display = 'block';
         chatBubbleButton.classList.add('active');
@@ -706,10 +873,24 @@ const dataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
         closeIcon.style.display = 'block';
         isOpen = true;
         
-        // Load iframe if not already loaded
-        const iframe = chatWindow.querySelector('iframe');
+        // Check if iframe loads successfully
         if (iframe && !iframe.dataset.loaded) {
           iframe.dataset.loaded = 'true';
+          
+          // Add to loading check
+          setTimeout(() => {
+            if (!iframeLoadingStates.has(iframe) || iframeLoadingStates.get(iframe) !== 'loaded') {
+              // Iframe blocked - close the window and open auth
+              chatWindow.style.display = 'none';
+              chatBubbleButton.classList.remove('active');
+              chatIcon.style.display = 'block';
+              closeIcon.style.display = 'none';
+              isOpen = false;
+              
+              iframeLoadingStates.set(iframe, 'blocked');
+              openAuthenticationPopup();
+            }
+          }, IFRAME_LOAD_TIMEOUT);
         }
       } else {
         // Close chat
