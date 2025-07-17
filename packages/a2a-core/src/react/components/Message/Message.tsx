@@ -53,7 +53,7 @@ import 'prismjs/components/prism-scss';
 import type { Message as MessageType } from '../../types';
 import { downloadFile, getMimeType } from '../../utils/downloadUtils';
 
-// Configure marked with syntax highlighting
+// Configure marked with syntax highlighting and custom link renderer
 marked.use(
   markedHighlight({
     langPrefix: 'language-',
@@ -70,6 +70,16 @@ marked.use(
     },
   })
 );
+
+// Configure marked to open links in new tabs
+marked.use({
+  renderer: {
+    link(href, title, text) {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+    },
+  },
+});
 
 const useStyles = makeStyles({
   '@keyframes fadeIn': {
