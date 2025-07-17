@@ -467,9 +467,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     }
 
     try {
-      await clientRef.current.sendAuthenticationCompleted(contextIdRef.current);
+      // Get the stream iterator from sendAuthenticationCompleted
+      const stream = await clientRef.current.sendAuthenticationCompleted(contextIdRef.current);
 
-      // Update the auth message to completed status
+      // Update the auth message to completed status immediately
       if (authMessageIdRef.current) {
         setMessages((prev) => {
           const updatedMessages = prev.map((msg) => {
@@ -496,6 +497,106 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
           return updatedMessages;
         });
       }
+
+      // Process the stream response just like a regular message
+      for await (const task of stream) {
+        // Capture context ID from the server response if we don't have it
+        if (!contextIdRef.current) {
+          const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
+          if (serverContextId) {
+            contextIdRef.current = serverContextId as string;
+
+            // Persist context ID
+            if (options.persistSession && options.sessionKey) {
+              localStorage.setItem(`a2a-context-${options.sessionKey}`, contextIdRef.current);
+            }
+          }
+        }
+
+        // Process messages from the task
+        if (task.messages && task.messages.length > 0) {
+          for (let i = 0; i < task.messages.length; i++) {
+            const message = task.messages[i];
+            if (!message) continue;
+
+            const contentParts = message.content || [];
+            const textContent = contentParts
+              .filter((part: A2APart) => part.type === 'text')
+              .map((part: A2APart) => (part.type === 'text' ? part.content : ''))
+              .join('');
+
+            if (textContent) {
+              const messageId = `${message.role}-${task.id}-${i}`;
+              const isStreaming = task.state === 'running' || task.state === 'pending';
+
+              setMessages((prev) => {
+                // Skip duplicate user messages
+                if (message.role === 'user') {
+                  const isDuplicate = prev.some(
+                    (msg) => msg.role === 'user' && msg.content === textContent
+                  );
+                  if (isDuplicate) {
+                    return prev;
+                  }
+                }
+
+                // Check if message already exists
+                const existingIndex = prev.findIndex((msg) => msg.id === messageId);
+
+                if (existingIndex !== -1) {
+                  // Update existing message
+                  const updatedMessages = [...prev];
+                  updatedMessages[existingIndex] = {
+                    ...prev[existingIndex],
+                    content: textContent,
+                    isStreaming,
+                  };
+
+                  // Persist messages
+                  if (options.persistSession && options.sessionKey) {
+                    localStorage.setItem(
+                      `a2a-messages-${options.sessionKey}`,
+                      JSON.stringify(updatedMessages)
+                    );
+                  }
+
+                  return updatedMessages;
+                } else {
+                  // Create new message
+                  const chatMessage: ChatMessage = {
+                    id: messageId,
+                    role: message.role === 'assistant' ? 'assistant' : 'user',
+                    content: textContent,
+                    timestamp: new Date(),
+                    isStreaming,
+                    metadata: {
+                      taskId: task.id,
+                    },
+                  };
+
+                  const newMessages = [...prev, chatMessage];
+
+                  // Persist messages
+                  if (options.persistSession && options.sessionKey) {
+                    localStorage.setItem(
+                      `a2a-messages-${options.sessionKey}`,
+                      JSON.stringify(newMessages)
+                    );
+                  }
+
+                  return newMessages;
+                }
+              });
+            }
+          }
+        }
+
+        // Update loading state
+        setIsLoading(task.state === 'running');
+      }
+
+      // Ensure loading state is cleared after stream completes
+      setIsLoading(false);
 
       // Clear auth state
       setAuthState({
@@ -533,6 +634,9 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       }
 
       throw error;
+    } finally {
+      // Always clear loading state
+      setIsLoading(false);
     }
   }, [options.persistSession, options.sessionKey]);
 

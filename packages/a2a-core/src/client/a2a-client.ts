@@ -688,7 +688,7 @@ export class A2AClient {
   };
 
   // Send authentication completed message as a regular user message with data part
-  sendAuthenticationCompleted = async (contextId: string): Promise<void> => {
+  sendAuthenticationCompleted = async (contextId: string): Promise<AsyncIterable<Task>> => {
     // Create the auth completed message exactly as expected by the server
     // The contextId must be in the message itself, and we need a "data" part
     const messageRequest: MessageSendRequest = {
@@ -710,28 +710,8 @@ export class A2AClient {
       },
     };
 
-    // Send it using the existing message.stream method
-    try {
-      let responseReceived = false;
-
-      for await (const task of this.message.stream(messageRequest)) {
-        responseReceived = true;
-
-        // We can break after receiving acknowledgment that the message was received
-        // The server will continue processing and resume the original task
-        if (task.id) {
-          break;
-        }
-      }
-
-      if (!responseReceived) {
-        throw new Error('No response received for authentication completed message');
-      }
-    } catch (error) {
-      throw new Error(
-        `Failed to send authentication completed: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    // Return the stream iterator so the caller can process all messages
+    return this.message.stream(messageRequest);
   };
 
   // Task operations
