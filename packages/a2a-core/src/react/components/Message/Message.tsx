@@ -294,6 +294,7 @@ function MessageComponent({
   onAuthCompleted,
 }: MessageProps) {
   const styles = useStyles();
+
   const isUser = message.sender === 'user';
   const isSystem = message.sender === 'system';
   const senderName = isUser ? userName : isSystem ? 'System' : agentName;

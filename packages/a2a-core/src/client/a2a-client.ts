@@ -146,6 +146,8 @@ export class A2AClient {
 
       // Store reference to client instance for testing
       const clientInstance = this;
+      // Store handler reference directly to avoid scope issues
+      const authHandler = this.onAuthRequired;
 
       // Create async iterable
       return {
@@ -244,10 +246,6 @@ export class A2AClient {
                     try {
                       // Parse JSON-RPC response from SSE data
                       const jsonRpcData = message.data as any;
-                      console.log(
-                        'DEBUG: Raw SSE message data:',
-                        JSON.stringify(jsonRpcData, null, 2)
-                      );
 
                       // Check if it's a JSON-RPC error
                       if (jsonRpcData.error) {
@@ -341,6 +339,85 @@ export class A2AClient {
                             ? { contextId: (currentTask as any).contextId }
                             : {}),
                         });
+                      } else if (
+                        result.kind === 'auth-required' ||
+                        (result.kind === 'status-update' &&
+                          result.status?.state === 'auth-required')
+                      ) {
+                        // Handle authentication required status FIRST before general status updates
+
+                        if (!currentTask) {
+                          currentTask = {
+                            id: result.taskId || result.id,
+                            state: 'running',
+                            createdAt: new Date().toISOString(),
+                            messages: [],
+                            artifacts: [],
+                            ...(result.contextId ? { contextId: result.contextId } : {}),
+                          };
+                        }
+
+                        // Extract auth data from the message parts
+                        const authMessage = result.status?.message;
+
+                        if (authMessage && authMessage.parts) {
+                          const authParts: AuthRequiredPart[] = [];
+
+                          // Collect all auth parts
+                          for (const part of authMessage.parts) {
+                            if (part.kind === 'Data' || part.kind === 'data') {
+                              const authData = part.data;
+                              if (
+                                authData?.messageType === 'InTaskAuthRequired' &&
+                                authData?.consentLink
+                              ) {
+                                // Handle new packet structure where consentLink is an object
+                                const consentLink = authData.consentLink;
+                                authParts.push({
+                                  consentLink: consentLink.link || consentLink, // Support both new and old formats
+                                  status:
+                                    consentLink.status || authData.status || 'Unauthenticated',
+                                  serviceName:
+                                    consentLink.apiDetails?.apiDisplayName ||
+                                    authData.serviceName ||
+                                    'External Service',
+                                  serviceIcon:
+                                    consentLink.apiDetails?.apiIconUri || authData.serviceIcon,
+                                  description: authData.description,
+                                });
+                              }
+                            }
+                          }
+
+                          // If we have auth parts, trigger the handler
+
+                          if (authParts.length > 0 && authHandler) {
+                            const authEvent = {
+                              taskId: result.taskId || currentTask.id,
+                              contextId: result.contextId || (currentTask as any).contextId || '',
+                              authParts,
+                              messageType: 'InTaskAuthRequired',
+                            };
+
+                            // Call the auth handler
+                            Promise.resolve(authHandler(authEvent))
+                              .then(() => {
+                                // Auth handler completed successfully
+                              })
+                              .catch((error) => {
+                                errorOccurred = new Error(
+                                  `Authentication failed: ${error.message}`
+                                );
+                                isComplete = true;
+                                if (sseClient) {
+                                  sseClient.close();
+                                }
+                              });
+                          }
+                        }
+
+                        // Don't complete the stream yet - wait for auth completion
+                        // The stream will continue after authentication
                       } else if (result.kind === 'status-update') {
                         // Status update - accumulate messages
                         if (!currentTask) {
@@ -509,77 +586,6 @@ export class A2AClient {
                           // Mark task as completed or continue based on final flag
                           currentTask.state = 'completed';
                         }
-                      } else if (result.kind === 'auth-required') {
-                        // Handle authentication required status
-                        console.log(
-                          'DEBUG: Auth required event received:',
-                          JSON.stringify(result, null, 2)
-                        );
-
-                        if (!currentTask) {
-                          currentTask = {
-                            id: result.taskId || result.id,
-                            state: 'running',
-                            createdAt: new Date().toISOString(),
-                            messages: [],
-                            artifacts: [],
-                            ...(result.contextId ? { contextId: result.contextId } : {}),
-                          };
-                        }
-
-                        // Extract auth data from the message parts
-                        const authMessage = result.status?.message;
-                        if (authMessage && authMessage.parts) {
-                          const authParts: AuthRequiredPart[] = [];
-
-                          // Collect all auth parts
-                          for (const part of authMessage.parts) {
-                            if (part.kind === 'Data' || part.kind === 'data') {
-                              const authData = part.data;
-                              if (
-                                authData?.messageType === 'InTaskAuthRequired' &&
-                                authData?.consentLink
-                              ) {
-                                authParts.push({
-                                  consentLink: authData.consentLink.link,
-                                  status: authData.status || 'Unauthenticated',
-                                  serviceName: authData.serviceName || 'External Service',
-                                  serviceIcon: authData.serviceIcon,
-                                  description: authData.description,
-                                });
-                              }
-                            }
-                          }
-
-                          // If we have auth parts, trigger the handler
-                          if (authParts.length > 0 && clientInstance.onAuthRequired) {
-                            const authEvent = {
-                              taskId: result.taskId || currentTask.id,
-                              contextId: result.contextId || (currentTask as any).contextId || '',
-                              authParts,
-                              messageType: 'InTaskAuthRequired',
-                            };
-
-                            // Call the auth handler
-                            Promise.resolve(clientInstance.onAuthRequired(authEvent))
-                              .then(() => {
-                                console.log('DEBUG: Auth handler completed successfully');
-                              })
-                              .catch((error) => {
-                                console.error('DEBUG: Auth handler failed:', error);
-                                errorOccurred = new Error(
-                                  `Authentication failed: ${error.message}`
-                                );
-                                isComplete = true;
-                                if (sseClient) {
-                                  sseClient.close();
-                                }
-                              });
-                          }
-                        }
-
-                        // Don't complete the stream yet - wait for auth completion
-                        // The stream will continue after authentication
                       } else {
                         // Unknown format, try to construct a basic task
                         if (!currentTask) {
@@ -683,8 +689,6 @@ export class A2AClient {
 
   // Send authentication completed message as a regular user message with data part
   sendAuthenticationCompleted = async (contextId: string): Promise<void> => {
-    console.log('DEBUG: Sending authentication completed message for context:', contextId);
-
     // Create the auth completed message exactly as expected by the server
     // The contextId must be in the message itself, and we need a "data" part
     const messageRequest: MessageSendRequest = {
@@ -711,13 +715,11 @@ export class A2AClient {
       let responseReceived = false;
 
       for await (const task of this.message.stream(messageRequest)) {
-        console.log('DEBUG: Auth completed response:', task);
         responseReceived = true;
 
         // We can break after receiving acknowledgment that the message was received
         // The server will continue processing and resume the original task
         if (task.id) {
-          console.log('DEBUG: Authentication completed message acknowledged, task:', task.id);
           break;
         }
       }
@@ -725,10 +727,7 @@ export class A2AClient {
       if (!responseReceived) {
         throw new Error('No response received for authentication completed message');
       }
-
-      console.log('DEBUG: Authentication completed message sent successfully');
     } catch (error) {
-      console.error('DEBUG: Failed to send authentication completed:', error);
       throw new Error(
         `Failed to send authentication completed: ${error instanceof Error ? error.message : String(error)}`
       );

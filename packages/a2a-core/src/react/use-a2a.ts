@@ -155,13 +155,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
               );
               if (authMessage) {
                 authMessageIdRef.current = authMessage.id;
-                // Log for debugging
-                console.log(
-                  '[A2A] Restored auth message:',
-                  authMessage.id,
-                  'status:',
-                  authMessage.authEvent.status
-                );
               }
             } catch (e) {
               console.error('Failed to load saved messages:', e);
@@ -211,18 +204,8 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         timestamp: new Date(),
       };
 
-      console.log('DEBUG: Adding user message:', {
-        id: userMessageId,
-        content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-      });
-
       setMessages((prev) => {
         const newMessages = [...prev, userMessage];
-
-        console.log('DEBUG: Messages after adding user message:', {
-          total: newMessages.length,
-          lastMessage: newMessages[newMessages.length - 1],
-        });
 
         // Persist messages immediately when user message is added
         if (options.persistSession && options.sessionKey) {
@@ -289,17 +272,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                 const messageId = `${message.role}-${task.id}-${i}`;
                 const isStreaming = task.state === 'running' || task.state === 'pending';
 
-                console.log('DEBUG: Processing message update:', {
-                  messageId,
-                  role: message.role,
-                  taskId: task.id,
-                  taskState: task.state,
-                  isStreaming,
-                  contentLength: textContent.length,
-                  contentPreview:
-                    textContent.substring(0, 50) + (textContent.length > 50 ? '...' : ''),
-                });
-
                 setMessages((prev) => {
                   // Skip if this is a user message that we already have
                   if (message.role === 'user') {
@@ -307,7 +279,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                       (msg) => msg.role === 'user' && msg.content === textContent
                     );
                     if (isDuplicate) {
-                      console.log('DEBUG: Skipping duplicate user message:', textContent);
                       return prev; // Return unchanged messages
                     }
                   }
@@ -319,13 +290,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     const existingMessage = prev[existingIndex];
 
                     if (existingMessage) {
-                      console.log('DEBUG: Updating existing message:', {
-                        messageId,
-                        oldContentLength: existingMessage.content.length,
-                        newContentLength: textContent.length,
-                        contentChanged: existingMessage.content !== textContent,
-                      });
-
                       // Always update content to ensure real-time streaming display
                       const updatedMessages = [...prev];
                       updatedMessages[existingIndex] = {
@@ -353,11 +317,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     return prev;
                   } else {
                     // Create new message for first chunk
-                    console.log('DEBUG: Creating new message:', {
-                      messageId,
-                      contentLength: textContent.length,
-                      contentPreview: textContent.substring(0, 50) + '...',
-                    });
 
                     const chatMessage: ChatMessage = {
                       id: messageId,
