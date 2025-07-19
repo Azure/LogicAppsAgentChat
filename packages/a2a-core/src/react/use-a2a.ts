@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { A2AClient } from '../client/a2a-client';
 import type { AgentCard, Part as A2APart } from '../types';
-import type { AuthConfig, AuthRequiredHandler } from '../client/types';
+import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../client/types';
 
 export interface ChatMessage {
   id: string;
@@ -24,6 +24,7 @@ export interface UseA2AOptions {
   persistSession?: boolean;
   sessionKey?: string;
   onAuthRequired?: AuthRequiredHandler;
+  onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
 }
 
@@ -135,6 +136,11 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         };
 
         clientConfig.onAuthRequired = authHandler;
+
+        // Pass the onUnauthorized handler if provided
+        if (options.onUnauthorized) {
+          clientConfig.onUnauthorized = options.onUnauthorized;
+        }
 
         clientRef.current = new A2AClient(clientConfig);
 

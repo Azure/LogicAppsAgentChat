@@ -71,9 +71,11 @@ export function ChatWidget(
     return undefined;
   }, [theme, themeConfig]);
 
-  // Check if we're in a multi-session context by looking for the parent container
-  const isMultiSession =
-    typeof window !== 'undefined' && window.location.search.includes('multiSession=true');
+  // Check if we're in a single-session context by looking for the parent container
+  // Default is multi-session unless explicitly set to single-session
+  const isSingleSession =
+    typeof window !== 'undefined' && window.location.search.includes('singleSession=true');
+  const isMultiSession = !isSingleSession;
 
   return (
     <ChatThemeProvider theme={fluentTheme} themeConfig={fluentThemeConfig}>

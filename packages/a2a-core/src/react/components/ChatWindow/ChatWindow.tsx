@@ -91,6 +91,7 @@ export function ChatWindow(props: ChatWindowProps) {
     onToggleSidebar,
     isSidebarCollapsed,
     apiKey,
+    onUnauthorized,
     mode = 'light',
   } = props;
 
@@ -103,6 +104,7 @@ export function ChatWindow(props: ChatWindowProps) {
       auth,
       onMessage,
       onConnectionChange,
+      onUnauthorized,
       sessionKey,
       apiKey,
     });

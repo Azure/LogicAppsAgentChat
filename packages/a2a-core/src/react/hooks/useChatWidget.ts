@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useA2A } from '../use-a2a';
 import { AgentDiscovery } from '../../discovery/agent-discovery';
 import type { AgentCard } from '../../types';
-import type { AuthConfig, AuthRequiredHandler } from '../../client/types';
+import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../../client/types';
 import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
@@ -13,6 +13,7 @@ interface UseChatWidgetProps {
   onMessage?: (message: Message) => void;
   onConnectionChange?: (connected: boolean) => void;
   onAuthRequired?: AuthRequiredHandler;
+  onUnauthorized?: UnauthorizedHandler;
   sessionKey?: string;
   apiKey?: string;
 }
@@ -23,6 +24,7 @@ export function useChatWidget({
   onMessage,
   onConnectionChange,
   onAuthRequired,
+  onUnauthorized,
   sessionKey,
   apiKey,
 }: UseChatWidgetProps) {
@@ -57,12 +59,14 @@ export function useChatWidget({
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired,
+          onUnauthorized,
           apiKey,
         }
       : {
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
           onAuthRequired,
+          onUnauthorized,
           apiKey,
         }
   );

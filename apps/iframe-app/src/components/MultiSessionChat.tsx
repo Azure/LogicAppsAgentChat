@@ -85,6 +85,7 @@ interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
   config: {
     apiUrl: string;
     apiKey?: string;
+    onUnauthorized?: () => void | Promise<void>;
   };
   mode?: 'light' | 'dark';
 }
@@ -333,6 +334,7 @@ export function MultiSessionChat({
               isSidebarCollapsed={isCollapsed}
               mode={mode}
               fluentTheme={mode}
+              onUnauthorized={config.onUnauthorized}
             />
           </ChatThemeProvider>
         </div>

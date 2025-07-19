@@ -313,4 +313,164 @@ describe('SSEClient', () => {
       id: 'msg-123',
     });
   });
+
+  describe('POST method and fetch API', () => {
+    beforeEach(() => {
+      // Mock fetch directly on global since it's already mocked in setup
+      if (!vi.isMockFunction(global.fetch)) {
+        vi.mocked(global.fetch);
+      }
+    });
+
+    it('should handle 401 errors with onUnauthorized callback', async () => {
+      const onUnauthorized = vi.fn();
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.example.com/stream',
+        method: 'POST',
+        statusText: 'Unauthorized',
+      });
+    });
+
+    it('should retry connection after successful token refresh', async () => {
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+      const messages: SSEMessage[] = [];
+
+      // First call returns 401, second call succeeds
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: vi
+                .fn()
+                .mockResolvedValueOnce({
+                  done: false,
+                  value: new TextEncoder().encode('data: {"message": "success"}\n\n'),
+                })
+                .mockResolvedValueOnce({ done: true }),
+              cancel: vi.fn(),
+            }),
+          },
+        } as any);
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      client.onMessage((message) => {
+        messages.push(message);
+      });
+
+      // Wait for both connection attempts
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should have called onUnauthorized once
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+      // Should have made two fetch calls
+      expect(fetch).toHaveBeenCalledTimes(2);
+
+      // Should have received the message from the successful retry
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toEqual({
+        event: 'message',
+        data: { message: 'success' },
+      });
+    });
+
+    it('should not retry on 401 if already retrying', async () => {
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+
+      // Both calls return 401
+      vi.mocked(fetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for connection attempts
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should have called onUnauthorized only once (not on retry)
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+      // Should have made two fetch calls (initial + retry)
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle async onUnauthorized callback', async () => {
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.example.com/stream',
+        method: 'POST',
+        statusText: 'Unauthorized',
+      });
+    });
+
+    it('should not call onUnauthorized for non-401 errors', async () => {
+      const onUnauthorized = vi.fn();
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
+  });
 });

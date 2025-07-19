@@ -4,7 +4,7 @@ export class SSEClient {
   private eventSource: EventSource | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private url: string;
-  private options: Required<SSEClientOptions>;
+  private options: SSEClientOptions;
   private messageHandlers: MessageHandler[] = [];
   private errorHandlers: ErrorHandler[] = [];
   private messageQueue: SSEMessage[] = [];
@@ -25,12 +25,12 @@ export class SSEClient {
       body: '',
       ...options,
     };
-    this.reconnectDelay = this.options.reconnectDelay;
+    this.reconnectDelay = this.options.reconnectDelay || 1000;
 
     this.connect();
   }
 
-  private async connect(): Promise<void> {
+  private async connect(isRetry = false): Promise<void> {
     if (this.closed) return;
 
     try {
@@ -47,6 +47,20 @@ export class SSEClient {
         });
 
         if (!response.ok) {
+          // Handle 401 Unauthorized specially
+          if (response.status === 401 && this.options.onUnauthorized && !isRetry) {
+            await Promise.resolve(
+              this.options.onUnauthorized({
+                url: this.url,
+                method: this.options.method || 'POST',
+                statusText: response.statusText,
+              })
+            );
+
+            // After onUnauthorized completes, retry the connection once
+            console.log('Retrying SSE connection after authentication refresh...');
+            return this.connect(true);
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -54,8 +68,8 @@ export class SSEClient {
           throw new Error('No response body');
         }
 
-        this.options.onOpen();
-        this.reconnectDelay = this.options.reconnectDelay;
+        this.options.onOpen?.();
+        this.reconnectDelay = this.options.reconnectDelay || 1000;
 
         // Process the stream
         this.reader = response.body.getReader();
@@ -82,6 +96,10 @@ export class SSEClient {
               if (line.trim() === '') {
                 // Empty line indicates end of message
                 if (Object.keys(currentMessage).length > 0) {
+                  // Default to 'message' event if no event specified
+                  if (!currentMessage.event) {
+                    currentMessage.event = 'message';
+                  }
                   this.handleSSEMessage(currentMessage as SSEMessage);
                   currentMessage = {};
                 }
@@ -115,8 +133,8 @@ export class SSEClient {
         this.eventSource = new EventSource(this.url, eventSourceInit);
 
         this.eventSource.onopen = () => {
-          this.options.onOpen();
-          this.reconnectDelay = this.options.reconnectDelay;
+          this.options.onOpen?.();
+          this.reconnectDelay = this.options.reconnectDelay || 1000;
         };
 
         this.eventSource.onmessage = (event) => {
@@ -277,7 +295,7 @@ export class SSEClient {
       this.reader = null;
     }
 
-    this.options.onClose();
+    this.options.onClose?.();
   }
 
   // Async iterator interface

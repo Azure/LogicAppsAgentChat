@@ -5,6 +5,7 @@ import type {
   RequestInterceptor,
   ResponseInterceptor,
   HttpClientOptions,
+  UnauthorizedHandler,
 } from './types';
 
 export class HttpClient {
@@ -12,6 +13,7 @@ export class HttpClient {
   private readonly auth: AuthConfig | undefined;
   private readonly options: Required<HttpClientOptions>;
   private readonly apiKey?: string;
+  private readonly onUnauthorized?: UnauthorizedHandler;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
 
@@ -19,11 +21,13 @@ export class HttpClient {
     baseUrl: string,
     auth?: AuthConfig,
     options: HttpClientOptions = {},
-    apiKey?: string
+    apiKey?: string,
+    onUnauthorized?: UnauthorizedHandler
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.auth = auth;
     this.apiKey = apiKey;
+    this.onUnauthorized = onUnauthorized;
     this.options = {
       timeout: 30000,
       retries: 3,
@@ -121,6 +125,16 @@ export class HttpClient {
           clearTimeout(timeoutId);
 
           if (!res.ok) {
+            // Handle 401 Unauthorized specially
+            if (res.status === 401 && this.onUnauthorized) {
+              const unauthorizedEvent = {
+                url: request.url,
+                method: request.method,
+                statusText: res.statusText,
+              };
+              await Promise.resolve(this.onUnauthorized(unauthorizedEvent));
+            }
+
             const errorBody = await this.parseErrorResponse(res);
             throw new Error(errorBody || `HTTP error! status: ${res.status} ${res.statusText}`);
           }

@@ -47,3 +47,12 @@ export interface AuthRequiredEvent {
 
 // Authentication Handler
 export type AuthRequiredHandler = (event: AuthRequiredEvent) => Promise<void> | void;
+
+// Unauthorized Handler - called when receiving 401 HTTP status
+export interface UnauthorizedEvent {
+  url: string;
+  method: string;
+  statusText?: string;
+}
+
+export type UnauthorizedHandler = (event: UnauthorizedEvent) => Promise<void> | void;

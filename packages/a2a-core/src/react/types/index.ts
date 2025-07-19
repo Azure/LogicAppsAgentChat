@@ -95,4 +95,9 @@ export interface ChatWidgetProps {
   onToggleSidebar?: () => void; // Callback for toggling sidebar
   isSidebarCollapsed?: boolean; // Current sidebar state
   apiKey?: string; // Optional API key for authentication
+  onUnauthorized?: (event: {
+    url: string;
+    method: string;
+    statusText?: string;
+  }) => Promise<void> | void; // Called on 401 errors
 }

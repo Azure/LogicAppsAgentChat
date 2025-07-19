@@ -18,6 +18,7 @@ import { createRoot } from 'react-dom/client';
 import { useState, useEffect } from 'react';
 import { ChatWidget, type ChatWidgetProps, type ChatTheme } from '@microsoft/a2achat-core/react';
 import { MultiSessionChat } from '../components/MultiSessionChat';
+import { createUnauthorizedHandler, getBaseUrl } from './authHandler';
 import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
@@ -255,8 +256,9 @@ function parseConfig(): {
     apiKey: apiKey || undefined,
   };
 
-  // Check if multi-session mode is enabled
-  const multiSession = dataset.multiSession === 'true' || params.get('multiSession') === 'true';
+  // Check if single-session mode is enabled (default is multi-session)
+  const singleSession = dataset.singleSession === 'true' || params.get('singleSession') === 'true';
+  const multiSession = !singleSession;
 
   // Parse metadata if provided
   const metadataStr = dataset.metadata || params.get('metadata');
@@ -443,6 +445,21 @@ function IframeWrapper({
   const mode = urlMode === 'dark' ? 'dark' : initialMode;
   const fluentTheme = mode;
 
+  // Create unauthorized handler for authentication
+  const baseUrl = getBaseUrl(finalProps.agentCard);
+  const onUnauthorized = createUnauthorizedHandler({
+    baseUrl,
+    onRefreshSuccess: () => {
+      console.log('Authentication token refreshed successfully');
+    },
+    onRefreshFailed: () => {
+      console.log('Authentication token refresh failed, prompting re-login');
+    },
+    onLogoutComplete: () => {
+      console.log('Logout completed, refreshing page');
+    },
+  });
+
   // Use MultiSessionChat if multi-session mode is enabled
   if (multiSession) {
     return (
@@ -450,6 +467,7 @@ function IframeWrapper({
         config={{
           apiUrl: finalProps.agentCard,
           apiKey: apiKey || '', // Pass the API key from query params
+          onUnauthorized,
         }}
         {...finalProps}
         mode={mode}
@@ -457,7 +475,14 @@ function IframeWrapper({
     );
   }
 
-  return <ChatWidget {...finalProps} mode={mode} fluentTheme={fluentTheme} />;
+  return (
+    <ChatWidget
+      {...finalProps}
+      mode={mode}
+      fluentTheme={fluentTheme}
+      onUnauthorized={onUnauthorized}
+    />
+  );
 }
 
 // Initialize the widget

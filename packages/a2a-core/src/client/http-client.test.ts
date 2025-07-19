@@ -229,6 +229,95 @@ describe('HttpClient', () => {
 
       await expect(client.post('/test', {})).rejects.toThrow('Invalid input');
     });
+
+    it('should call onUnauthorized handler for 401 responses', async () => {
+      const mockFetch = vi.mocked(fetch);
+      const onUnauthorized = vi.fn();
+
+      // Mock all retry attempts to fail with 401
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({ error: 'Unauthorized' }),
+      } as Response);
+
+      client = new HttpClient(
+        'https://api.test.com',
+        undefined,
+        { retries: 2 }, // Reduce retries for faster test
+        undefined,
+        onUnauthorized
+      );
+
+      await expect(client.get('/protected')).rejects.toThrow(
+        'HTTP error! status: 401 Unauthorized'
+      );
+
+      expect(onUnauthorized).toHaveBeenCalledTimes(3); // Once per initial attempt + 2 retries
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.test.com/protected',
+        method: 'GET',
+        statusText: 'Unauthorized',
+      });
+    });
+
+    it('should handle async onUnauthorized handler', async () => {
+      const mockFetch = vi.mocked(fetch);
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({ error: 'Unauthorized' }),
+      } as Response);
+
+      client = new HttpClient(
+        'https://api.test.com',
+        undefined,
+        { retries: 0 }, // No retries for faster test
+        undefined,
+        onUnauthorized
+      );
+
+      await expect(client.post('/auth', { data: 'test' })).rejects.toThrow(
+        'HTTP error! status: 401 Unauthorized'
+      );
+
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.test.com/auth',
+        method: 'POST',
+        statusText: 'Unauthorized',
+      });
+    });
+
+    it('should not call onUnauthorized for non-401 errors', async () => {
+      const mockFetch = vi.mocked(fetch);
+      const onUnauthorized = vi.fn();
+
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: async () => ({ error: 'Server error' }),
+      } as Response);
+
+      client = new HttpClient(
+        'https://api.test.com',
+        undefined,
+        { retries: 0 }, // No retries for faster test
+        undefined,
+        onUnauthorized
+      );
+
+      await expect(client.get('/error')).rejects.toThrow(
+        'HTTP error! status: 500 Internal Server Error'
+      );
+
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
   });
 
   describe('request interceptors', () => {

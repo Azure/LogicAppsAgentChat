@@ -1,7 +1,13 @@
 import { HttpClient } from './http-client';
 import { MessageSchema, MessageSendRequestSchema, TaskSchema } from '../types/schemas';
 import type { AgentCard, AgentCapabilities, Task, MessageSendRequest, TaskState } from '../types';
-import type { AuthConfig, HttpClientOptions, AuthRequiredHandler, AuthRequiredPart } from './types';
+import type {
+  AuthConfig,
+  HttpClientOptions,
+  AuthRequiredHandler,
+  AuthRequiredPart,
+  UnauthorizedHandler,
+} from './types';
 import { SSEClient } from '../streaming/sse-client';
 import type { SSEMessage } from '../streaming/types';
 
@@ -10,6 +16,7 @@ export interface A2AClientConfig {
   auth?: AuthConfig;
   httpOptions?: HttpClientOptions;
   onAuthRequired?: AuthRequiredHandler;
+  onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
 }
 
@@ -23,12 +30,14 @@ export class A2AClient {
   private readonly httpClient: HttpClient;
   private readonly auth: AuthConfig;
   private readonly onAuthRequired?: AuthRequiredHandler;
+  private readonly onUnauthorized?: UnauthorizedHandler;
   private readonly apiKey?: string;
 
   constructor(config: A2AClientConfig) {
     this.agentCard = config.agentCard;
     this.auth = config.auth || { type: 'none' };
     this.onAuthRequired = config.onAuthRequired;
+    this.onUnauthorized = config.onUnauthorized;
     this.apiKey = config.apiKey;
 
     // Initialize HTTP client with service endpoint from agent card
@@ -36,7 +45,8 @@ export class A2AClient {
       this.agentCard.url,
       this.auth,
       config.httpOptions,
-      this.apiKey
+      this.apiKey,
+      this.onUnauthorized
     );
   }
 
@@ -238,6 +248,7 @@ export class A2AClient {
                     headers,
                     body: JSON.stringify(jsonRpcRequest),
                     withCredentials: this.auth.type !== 'none',
+                    onUnauthorized: this.onUnauthorized,
                   });
 
                   // Store SSE client for testing - store on the client instance

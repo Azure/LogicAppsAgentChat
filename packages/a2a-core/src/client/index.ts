@@ -8,4 +8,9 @@ export type {
   RequestConfig,
   RequestInterceptor,
   ResponseInterceptor,
+  AuthRequiredHandler,
+  AuthRequiredEvent,
+  AuthRequiredPart,
+  UnauthorizedHandler,
+  UnauthorizedEvent,
 } from './types';

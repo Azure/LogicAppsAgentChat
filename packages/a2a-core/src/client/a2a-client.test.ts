@@ -53,6 +53,18 @@ describe('A2AClient', () => {
       expect(client.getAgentCard()).toEqual(mockAgentCard);
     });
 
+    it('should initialize with onUnauthorized handler', async () => {
+      const onUnauthorized = vi.fn();
+
+      client = new A2AClient({
+        agentCard: mockAgentCard,
+        onUnauthorized,
+      });
+
+      expect(client.getAgentCard()).toEqual(mockAgentCard);
+      // The handler is stored internally and will be called by HttpClient
+    });
+
     it('should initialize with API key', async () => {
       const apiKey = 'test-api-key-123';
       client = new A2AClient({

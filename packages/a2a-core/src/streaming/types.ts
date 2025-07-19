@@ -13,6 +13,11 @@ export interface SSEClientOptions {
   onClose?: () => void;
   method?: string;
   body?: string;
+  onUnauthorized?: (event: {
+    url: string;
+    method: string;
+    statusText?: string;
+  }) => void | Promise<void>;
 }
 
 export interface SSEParser {
