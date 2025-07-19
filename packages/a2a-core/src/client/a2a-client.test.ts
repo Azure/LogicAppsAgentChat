@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { A2AClient } from './a2a-client';
 import type { AgentCard, Task, Message } from '../types';
 import { getMockAgentCard } from '../test-utils/mock-agent-card';
+import { SSEClient } from '../streaming/sse-client';
 
 // Mock dependencies
 vi.mock('./http-client');
 vi.mock('../discovery/agent-discovery');
+vi.mock('../streaming/sse-client');
 
 describe('A2AClient', () => {
   let client: A2AClient;
@@ -259,6 +261,93 @@ describe('A2AClient', () => {
       expect(capabilities.streaming).toBe(true);
       expect(capabilities.pushNotifications).toBe(false);
       expect(capabilities.stateTransitionHistory).toBe(false);
+    });
+  });
+
+  describe('authentication flow', () => {
+    beforeEach(() => {
+      client = new A2AClient({
+        agentCard: mockAgentCard,
+        auth: {
+          type: 'bearer',
+          token: 'test-token',
+        },
+      });
+    });
+
+    it('should send authentication completed message with context and task IDs', async () => {
+      const contextId = 'test-context-123';
+      const taskId = 'test-task-456';
+
+      // Mock the SSE client
+      const mockEmit = vi.fn();
+      const mockClose = vi.fn();
+      const mockSSEClient = {
+        emit: mockEmit,
+        close: mockClose,
+        on: vi.fn(),
+        off: vi.fn(),
+      };
+
+      // Mock SSEClient constructor
+      vi.mocked(SSEClient).mockImplementation(() => mockSSEClient as any);
+
+      // Call sendAuthenticationCompleted and get the stream iterator
+      const stream = await client.sendAuthenticationCompleted(contextId, taskId);
+
+      // Start consuming the stream to trigger SSE connection
+      const iterator = stream[Symbol.asyncIterator]();
+
+      // Try to get the first value (this will trigger the SSE connection)
+      try {
+        await iterator.next();
+      } catch (e) {
+        // Expected to fail since we're mocking
+      }
+
+      // Verify the SSE client was created with correct parameters
+      expect(SSEClient).toHaveBeenCalledWith(
+        'https://api.test-agent.com',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
+            Authorization: 'Bearer test-token',
+          }),
+          body: expect.stringContaining('"messageType":"AuthenticationCompleted"'),
+          withCredentials: true,
+        })
+      );
+
+      // Parse the body to verify it contains the taskId
+      const callArgs = vi.mocked(SSEClient).mock.calls[0];
+      const options = callArgs[1];
+      const body = JSON.parse(options.body);
+
+      // Check the structure is correct
+      expect(body.method).toBe('message/stream');
+      expect(body.params).toBeDefined();
+      expect(body.params.message).toBeDefined();
+
+      // The message is transformed to A2A format with parts, not content
+      expect(body.params.message.kind).toBe('message');
+      expect(body.params.message.role).toBe('user');
+      expect(body.params.message.taskId).toBe(taskId); // taskId should be at message level
+      expect(body.params.message.contextId).toBe(contextId); // contextId should be at message level
+      expect(body.params.message.parts).toBeDefined();
+      expect(body.params.message.parts).toHaveLength(1);
+      expect(body.params.message.parts[0].kind).toBe('data');
+      expect(body.params.message.parts[0].data).toEqual({
+        messageType: 'AuthenticationCompleted',
+      });
+
+      // Check configuration
+      expect(body.params.configuration).toBeDefined();
+      expect(body.params.configuration.acceptedOutputModes).toEqual(['text']);
+
+      // Clean up
+      mockClose();
     });
   });
 });

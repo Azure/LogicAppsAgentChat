@@ -61,6 +61,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
   const clientRef = useRef<A2AClient>();
   const contextIdRef = useRef<string | undefined>(undefined);
   const authMessageIdRef = useRef<string | undefined>(undefined);
+  const authTaskIdRef = useRef<string | undefined>(undefined);
 
   const connect = useCallback(
     async (card: AgentCard) => {
@@ -86,6 +87,9 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         // Create a custom auth handler that adds auth messages to the UI
         const authHandler: AuthRequiredHandler = async (event) => {
+          // Store the task ID for when we send the authentication completed message
+          authTaskIdRef.current = event.taskId;
+
           // Add authentication message to the UI
           const authMessageId = `auth-${event.taskId}-${Date.now()}`;
           authMessageIdRef.current = authMessageId;
@@ -466,9 +470,16 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       throw new Error('No context ID available for authentication');
     }
 
+    if (!authTaskIdRef.current) {
+      throw new Error('No task ID available for authentication');
+    }
+
     try {
-      // Get the stream iterator from sendAuthenticationCompleted
-      const stream = await clientRef.current.sendAuthenticationCompleted(contextIdRef.current);
+      // Get the stream iterator from sendAuthenticationCompleted with both contextId and taskId
+      const stream = await clientRef.current.sendAuthenticationCompleted(
+        contextIdRef.current,
+        authTaskIdRef.current
+      );
 
       // Update the auth message to completed status immediately
       if (authMessageIdRef.current) {
@@ -598,10 +609,11 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       // Ensure loading state is cleared after stream completes
       setIsLoading(false);
 
-      // Clear auth state
+      // Clear auth state and task ID reference
       setAuthState({
         isRequired: false,
       });
+      authTaskIdRef.current = undefined;
     } catch (error) {
       setError(error as Error);
 

@@ -193,6 +193,8 @@ export class A2AClient {
                     ...(request.context?.['contextId']
                       ? { contextId: request.context['contextId'] }
                       : {}),
+                    // Include taskId directly in message if available
+                    ...(request.context?.['taskId'] ? { taskId: request.context['taskId'] } : {}),
                   };
 
                   // Convert to JSON-RPC format for A2A protocol streaming
@@ -688,9 +690,12 @@ export class A2AClient {
   };
 
   // Send authentication completed message as a regular user message with data part
-  sendAuthenticationCompleted = async (contextId: string): Promise<AsyncIterable<Task>> => {
+  sendAuthenticationCompleted = async (
+    contextId: string,
+    taskId: string
+  ): Promise<AsyncIterable<Task>> => {
     // Create the auth completed message exactly as expected by the server
-    // The contextId must be in the message itself, and we need a "data" part
+    // The contextId and taskId must be in the message itself, and we need a "data" part
     const messageRequest: MessageSendRequest = {
       message: {
         role: 'user',
@@ -706,6 +711,7 @@ export class A2AClient {
       },
       context: {
         contextId,
+        taskId, // Include the taskId at the context level
         acceptedOutputModes: ['text'],
       },
     };

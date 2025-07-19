@@ -132,7 +132,7 @@ export function ExampleWithHooks() {
 }
 
 // Example with manual popup handling and completion message
-export async function manualAuthFlow(client: A2AClient, contextId: string) {
+export async function manualAuthFlow(client: A2AClient, contextId: string, taskId: string) {
   // This would be called after receiving an auth-required event
   const consentUrl = 'https://example.com/consent'; // From the auth event
 
@@ -144,8 +144,8 @@ export async function manualAuthFlow(client: A2AClient, contextId: string) {
     if (popupResult.closed && !popupResult.error) {
       // 3. Send authentication completed message
       // This sends a regular user message with a data part containing { messageType: 'AuthenticationCompleted' }
-      // It uses the same SSE streaming as normal messages
-      await client.sendAuthenticationCompleted(contextId);
+      // It uses the same SSE streaming as normal messages with the taskId from the auth event
+      await client.sendAuthenticationCompleted(contextId, taskId);
       console.log('Authentication flow completed, server will resume the original task');
     } else {
       throw new Error('Authentication was cancelled or failed');
@@ -168,8 +168,11 @@ export async function manualAuthFlow(client: A2AClient, contextId: string) {
 //       "role": "user",
 //       "parts": [{
 //         "kind": "data",
-//         "data": { "messageType": "AuthenticationCompleted" }
+//         "data": {
+//           "messageType": "AuthenticationCompleted"
+//         }
 //       }],
+//       "taskId": "...",  // The taskId from the auth-required event
 //       "contextId": "..."
 //     },
 //     "configuration": {
