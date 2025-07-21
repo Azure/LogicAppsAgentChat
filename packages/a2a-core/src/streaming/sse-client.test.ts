@@ -472,5 +472,140 @@ describe('SSEClient', () => {
 
       expect(onUnauthorized).not.toHaveBeenCalled();
     });
+
+    it('should handle 302 redirect errors with onUnauthorized callback', async () => {
+      const onUnauthorized = vi.fn();
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 302,
+        statusText: 'Found',
+        headers: new Headers({
+          Location: 'https://login.example.com',
+        }),
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.example.com/stream',
+        method: 'POST',
+        statusText: 'Redirect',
+      });
+    });
+
+    it('should retry connection after handling 302 redirect', async () => {
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+      const messages: SSEMessage[] = [];
+
+      // First call returns 302, second call succeeds
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 302,
+          statusText: 'Found',
+          headers: new Headers({
+            Location: 'https://auth.example.com/login',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: vi
+                .fn()
+                .mockResolvedValueOnce({
+                  done: false,
+                  value: new TextEncoder().encode('data: {"message": "authenticated"}\n\n'),
+                })
+                .mockResolvedValueOnce({ done: true }),
+              cancel: vi.fn(),
+            }),
+          },
+        } as any);
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      client.onMessage((message) => {
+        messages.push(message);
+      });
+
+      // Wait for both connection attempts
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should have called onUnauthorized once
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+      // Should have made two fetch calls
+      expect(fetch).toHaveBeenCalledTimes(2);
+
+      // Should have received the message from the successful retry
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toEqual({
+        event: 'message',
+        data: { message: 'authenticated' },
+      });
+    });
+
+    it('should not retry on 302 if already retrying', async () => {
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+
+      // Both calls return 302
+      vi.mocked(fetch).mockResolvedValue({
+        ok: false,
+        status: 302,
+        statusText: 'Found',
+        headers: new Headers({
+          Location: 'https://login.example.com',
+        }),
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for connection attempts
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should have called onUnauthorized only once (not on retry)
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+      // Should have made two fetch calls (initial + retry)
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not call onUnauthorized for non-401/302 errors', async () => {
+      const onUnauthorized = vi.fn();
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      });
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onUnauthorized,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
   });
 });

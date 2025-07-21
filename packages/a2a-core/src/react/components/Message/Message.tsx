@@ -23,6 +23,7 @@ import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import Prism from 'prismjs';
 import { AuthenticationMessage } from './AuthenticationMessage';
+import { CodeBlockHeader } from './CodeBlockHeader';
 import 'prismjs/themes/prism.css';
 // Import all Prism language components
 import 'prismjs/components/prism-clike';
@@ -83,8 +84,8 @@ marked.use({
 
 const useStyles = makeStyles({
   '@keyframes fadeIn': {
-    from: { opacity: 0, transform: 'translateY(10px)' },
-    to: { opacity: 1, transform: 'translateY(0)' },
+    '0%': { opacity: 0, transform: 'translateY(10px)' },
+    '100%': { opacity: 1, transform: 'translateY(0)' },
   },
   messageWrapper: {
     display: 'flex',
@@ -251,6 +252,28 @@ const useStyles = makeStyles({
     fontFamily: 'monospace',
     fontSize: tokens.fontSizeBase300,
   },
+  codeBlockWrapper: {
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.overflow('hidden'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    marginTop: tokens.spacingVerticalM,
+    marginBottom: tokens.spacingVerticalM,
+  },
+  codeBlockContent: {
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+    backgroundColor: tokens.colorNeutralBackground3,
+    overflowX: 'auto',
+    '& pre': {
+      margin: 0,
+      padding: 0,
+      backgroundColor: 'transparent',
+      border: 'none',
+    },
+    '& code': {
+      backgroundColor: 'transparent',
+      padding: 0,
+    },
+  },
   groupedArtifactContainer: {
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
@@ -390,34 +413,99 @@ function MessageComponent({
             language
           );
           return (
-            <pre className={styles.codeBlock}>
-              <code
-                className={`language-${language}`}
-                dangerouslySetInnerHTML={{ __html: highlighted }}
-              />
-            </pre>
+            <div className={styles.codeBlockWrapper}>
+              <CodeBlockHeader language={language} code={message.metadata.rawContent} />
+              <div className={styles.codeBlockContent}>
+                <pre>
+                  <code
+                    className={`language-${language}`}
+                    dangerouslySetInnerHTML={{ __html: highlighted }}
+                  />
+                </pre>
+              </div>
+            </div>
           );
         } catch (err) {
           console.error('Prism highlight error:', err);
         }
       }
       return (
-        <pre className={styles.codeBlock}>
-          <code>{message.metadata.rawContent}</code>
-        </pre>
+        <div className={styles.codeBlockWrapper}>
+          <CodeBlockHeader language="" code={message.metadata.rawContent} />
+          <div className={styles.codeBlockContent}>
+            <pre>
+              <code>{message.metadata.rawContent}</code>
+            </pre>
+          </div>
+        </div>
       );
     }
 
-    const html = useMemo(
-      () =>
-        marked.parse(message.content, {
-          gfm: true,
-          breaks: true,
-        }) as string,
-      [message.content]
-    );
+    // For regular markdown content, we need to parse and render code blocks with headers
+    const processedContent = useMemo(() => {
+      // Extract code blocks and render them separately
+      const codeBlockRegex = /```(\w*)\n([\s\S]*?)\n```/g;
+      let lastIndex = 0;
+      const elements: React.ReactNode[] = [];
+      let match;
 
-    return <div className={styles.markdownContent} dangerouslySetInnerHTML={{ __html: html }} />;
+      while ((match = codeBlockRegex.exec(message.content)) !== null) {
+        // Add content before the code block
+        if (match.index > lastIndex) {
+          const textContent = message.content.slice(lastIndex, match.index);
+          const html = marked.parse(textContent, { gfm: true, breaks: true }) as string;
+          elements.push(
+            <div key={`text-${lastIndex}`} dangerouslySetInnerHTML={{ __html: html }} />
+          );
+        }
+
+        // Add the code block with header
+        const language = match[1] || '';
+        const code = match[2];
+        let highlighted = code;
+
+        if (language && Prism.languages[language]) {
+          try {
+            highlighted = Prism.highlight(code, Prism.languages[language], language);
+          } catch (err) {
+            console.error('Prism highlight error:', err);
+          }
+        }
+
+        elements.push(
+          <div key={`code-${match.index}`} className={styles.codeBlockWrapper}>
+            <CodeBlockHeader language={language} code={code} />
+            <div className={styles.codeBlockContent}>
+              <pre>
+                <code
+                  className={language ? `language-${language}` : ''}
+                  dangerouslySetInnerHTML={{ __html: highlighted }}
+                />
+              </pre>
+            </div>
+          </div>
+        );
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add any remaining content after the last code block
+      if (lastIndex < message.content.length) {
+        const remainingContent = message.content.slice(lastIndex);
+        const html = marked.parse(remainingContent, { gfm: true, breaks: true }) as string;
+        elements.push(<div key={`text-${lastIndex}`} dangerouslySetInnerHTML={{ __html: html }} />);
+      }
+
+      // If no code blocks were found, just return the parsed markdown
+      if (elements.length === 0) {
+        const html = marked.parse(message.content, { gfm: true, breaks: true }) as string;
+        return <div dangerouslySetInnerHTML={{ __html: html }} />;
+      }
+
+      return <>{elements}</>;
+    }, [message.content]);
+
+    return <div className={styles.markdownContent}>{processedContent}</div>;
   };
 
   // Helper function to get language from filename
@@ -545,21 +633,31 @@ function MessageComponent({
                               language
                             );
                             return (
-                              <pre className={styles.codeBlock}>
-                                <code
-                                  className={`language-${language}`}
-                                  dangerouslySetInnerHTML={{ __html: highlighted }}
-                                />
-                              </pre>
+                              <div className={styles.codeBlockWrapper}>
+                                <CodeBlockHeader language={language} code={artifact.rawContent} />
+                                <div className={styles.codeBlockContent}>
+                                  <pre>
+                                    <code
+                                      className={`language-${language}`}
+                                      dangerouslySetInnerHTML={{ __html: highlighted }}
+                                    />
+                                  </pre>
+                                </div>
+                              </div>
                             );
                           } catch (err) {
                             console.error('Prism highlight error:', err);
                           }
                         }
                         return (
-                          <pre className={styles.codeBlock}>
-                            <code>{artifact.rawContent}</code>
-                          </pre>
+                          <div className={styles.codeBlockWrapper}>
+                            <CodeBlockHeader language="" code={artifact.rawContent} />
+                            <div className={styles.codeBlockContent}>
+                              <pre>
+                                <code>{artifact.rawContent}</code>
+                              </pre>
+                            </div>
+                          </div>
                         );
                       })()}
                     </div>

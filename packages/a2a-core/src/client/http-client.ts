@@ -105,6 +105,7 @@ export class HttpClient {
             method: request.method,
             headers: request.headers,
             signal: controller.signal,
+            redirect: 'manual', // Prevent automatic redirect following
           };
 
           // Add optional properties if defined
@@ -123,6 +124,19 @@ export class HttpClient {
 
           const res = await fetch(fetchRequest);
           clearTimeout(timeoutId);
+
+          // Handle manual redirect responses
+          if (res.type === 'opaqueredirect' || res.status === 302 || res.status === 301) {
+            if (this.onUnauthorized) {
+              const unauthorizedEvent = {
+                url: request.url,
+                method: request.method,
+                statusText: 'Redirect',
+              };
+              await Promise.resolve(this.onUnauthorized(unauthorizedEvent));
+            }
+            throw new Error('HTTP redirect detected - session may have expired');
+          }
 
           if (!res.ok) {
             // Handle 401 Unauthorized specially

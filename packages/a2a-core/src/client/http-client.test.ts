@@ -318,6 +318,75 @@ describe('HttpClient', () => {
 
       expect(onUnauthorized).not.toHaveBeenCalled();
     });
+
+    it('should call onUnauthorized handler for 302 redirect responses', async () => {
+      const mockFetch = vi.mocked(fetch);
+      const onUnauthorized = vi.fn();
+
+      // Mock all retry attempts to fail with 302
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 302,
+        statusText: 'Found',
+        headers: new Headers({
+          Location: 'https://login.example.com',
+        }),
+        json: async () => ({ error: 'Redirect to login' }),
+      } as Response);
+
+      client = new HttpClient(
+        'https://api.test.com',
+        undefined,
+        { retries: 2 }, // Reduce retries for faster test
+        undefined,
+        onUnauthorized
+      );
+
+      await expect(client.get('/protected')).rejects.toThrow(
+        'HTTP redirect detected - session may have expired'
+      );
+
+      expect(onUnauthorized).toHaveBeenCalledTimes(3); // Once per initial attempt + 2 retries
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.test.com/protected',
+        method: 'GET',
+        statusText: 'Redirect',
+      });
+    });
+
+    it('should handle async onUnauthorized handler for 302 responses', async () => {
+      const mockFetch = vi.mocked(fetch);
+      const onUnauthorized = vi.fn().mockResolvedValue(undefined);
+
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 302,
+        statusText: 'Found',
+        headers: new Headers({
+          Location: 'https://auth.example.com/login',
+        }),
+        json: async () => ({ redirect: 'login required' }),
+      } as Response);
+
+      client = new HttpClient(
+        'https://api.test.com',
+        undefined,
+        { retries: 0 }, // No retries for faster test
+        undefined,
+        onUnauthorized
+      );
+
+      await expect(client.post('/auth', { data: 'test' })).rejects.toThrow(
+        'HTTP redirect detected - session may have expired'
+      );
+
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+      expect(onUnauthorized).toHaveBeenCalledWith({
+        url: 'https://api.test.com/auth',
+        method: 'POST',
+        statusText: 'Redirect',
+      });
+    });
   });
 
   describe('request interceptors', () => {

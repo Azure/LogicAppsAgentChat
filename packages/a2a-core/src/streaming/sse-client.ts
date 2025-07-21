@@ -44,7 +44,30 @@ export class SSEClient {
           },
           body: this.options.body,
           credentials: this.options.withCredentials ? 'include' : 'same-origin',
+          redirect: 'manual', // Prevent automatic redirect following
         });
+
+        // Handle manual redirect responses
+        if (
+          response.type === 'opaqueredirect' ||
+          response.status === 302 ||
+          response.status === 301
+        ) {
+          if (this.options.onUnauthorized && !isRetry) {
+            await Promise.resolve(
+              this.options.onUnauthorized({
+                url: this.url,
+                method: this.options.method || 'POST',
+                statusText: 'Redirect',
+              })
+            );
+
+            // After onUnauthorized completes, retry the connection once
+            console.log('Retrying SSE connection after authentication refresh...');
+            return this.connect(true);
+          }
+          throw new Error('HTTP redirect detected - session may have expired');
+        }
 
         if (!response.ok) {
           // Handle 401 Unauthorized specially
