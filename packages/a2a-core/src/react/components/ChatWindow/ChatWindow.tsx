@@ -98,16 +98,23 @@ export function ChatWindow(props: ChatWindowProps) {
   // Apply theme if provided
   useTheme(theme, mode);
 
-  const { isConnected, agentName, agentDescription, sendMessage, handleAuthCompleted } =
-    useChatWidget({
-      agentCard,
-      auth,
-      onMessage,
-      onConnectionChange,
-      onUnauthorized,
-      sessionKey,
-      apiKey,
-    });
+  const {
+    isConnected,
+    agentName,
+    agentDescription,
+    sendMessage,
+    handleAuthCompleted,
+    handleAuthCanceled,
+    contextId,
+  } = useChatWidget({
+    agentCard,
+    auth,
+    onMessage,
+    onConnectionChange,
+    onUnauthorized,
+    sessionKey,
+    apiKey,
+  });
 
   // Default to showing logo in header if logoUrl is provided and position is not explicitly 'footer'
   const showHeaderLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition !== 'footer';
@@ -147,6 +154,7 @@ export function ChatWindow(props: ChatWindowProps) {
           agentName={agentName || 'Assistant'}
           userName={userName}
           onAuthCompleted={handleAuthCompleted}
+          onAuthCanceled={handleAuthCanceled}
         />
       </div>
 
@@ -164,6 +172,7 @@ export function ChatWindow(props: ChatWindowProps) {
           maxFileSize={maxFileSize}
           allowedFileTypes={allowedFileTypes}
           disabled={!isConnected}
+          contextId={contextId}
         />
       </div>
     </div>

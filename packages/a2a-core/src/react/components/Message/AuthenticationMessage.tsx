@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Button,
   Text,
@@ -24,6 +24,11 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
     boxShadow: tokens.shadow2,
+  },
+  cancelButtonContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: tokens.spacingVerticalM,
   },
   containerCompleted: {
     backgroundColor: 'rgba(16, 124, 16, 0.05)', // Very subtle green tint
@@ -90,6 +95,8 @@ export interface AuthenticationMessageProps {
   status: AuthenticationStatus;
   // Called when all auth parts have been successfully authenticated
   onAuthenticate?: (updatedParts: AuthRequiredPart[]) => void;
+  // Called when user cancels authentication
+  onCancel?: () => void;
 }
 
 interface AuthPartState extends AuthRequiredPart {
@@ -102,8 +109,10 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
   authParts,
   status,
   onAuthenticate,
+  onCancel,
 }) => {
   const styles = useStyles();
+  const [localStatus, setLocalStatus] = useState<AuthenticationStatus>(status);
   const [authStates, setAuthStates] = useState<AuthPartState[]>(() =>
     authParts.map((part) => ({
       ...part,
@@ -111,6 +120,11 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
       isAuthenticating: false,
     }))
   );
+
+  // Sync local status with prop changes
+  useEffect(() => {
+    setLocalStatus(status);
+  }, [status]);
 
   const handleAuthenticate = useCallback(
     async (index: number) => {
@@ -171,15 +185,22 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
     [authStates, onAuthenticate]
   );
 
+  const handleCancel = useCallback(() => {
+    setLocalStatus('canceled');
+    onCancel?.();
+  }, [onCancel]);
+
   // Check if all auth parts are locally authenticated
   const allLocallyAuthenticated = authStates.every((state) => state.isAuthenticated);
-  const effectiveStatus = allLocallyAuthenticated ? 'completed' : status;
+  const effectiveStatus =
+    localStatus === 'canceled' ? 'canceled' : allLocallyAuthenticated ? 'completed' : localStatus;
 
   const getIcon = () => {
     switch (effectiveStatus) {
       case 'completed':
         return <CheckmarkCircleRegular className={styles.successIcon} />;
       case 'failed':
+      case 'canceled':
         return <ErrorCircleRegular className={styles.errorIcon} />;
       default:
         return <ShieldCheckmarkRegular className={styles.icon} />;
@@ -192,6 +213,8 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         return 'Authentication Completed';
       case 'failed':
         return 'Authentication Failed';
+      case 'canceled':
+        return 'Authentication Canceled';
       default:
         return 'Authentication Required';
     }
@@ -202,6 +225,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
       case 'completed':
         return { color: tokens.colorPaletteGreenForeground1 };
       case 'failed':
+      case 'canceled':
         return { color: tokens.colorPaletteRedForeground1 };
       default:
         return {};
@@ -209,10 +233,11 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
   };
 
   const getContainerStyles = () => {
-    switch (status) {
+    switch (localStatus) {
       case 'completed':
         return mergeClasses(styles.container, styles.containerCompleted);
       case 'failed':
+      case 'canceled':
         return mergeClasses(styles.container, styles.containerFailed);
       default:
         return styles.container;
@@ -228,7 +253,7 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         </Text>
       </div>
 
-      {status === 'pending' && (
+      {effectiveStatus === 'pending' && (
         <Text className={styles.description}>
           This action requires authentication with{' '}
           {authParts.length === 1 ? 'an external service' : 'external services'}. Please sign in to
@@ -236,59 +261,67 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         </Text>
       )}
 
-      <div className={styles.services}>
-        {authStates.map((authState, index) => (
-          <div key={index} className={styles.service}>
-            <div className={styles.serviceInfo}>
-              {authState.serviceIcon ? (
-                <img
-                  src={authState.serviceIcon}
-                  alt={authState.serviceName}
-                  className={styles.serviceIcon}
-                />
-              ) : (
-                <ShieldCheckmarkRegular />
-              )}
-              <div className={styles.serviceDetails}>
-                <Text weight="semibold">{authState.serviceName || 'External Service'}</Text>
-                {authState.description && (
-                  <Text size={200} className={styles.description}>
-                    {authState.description}
-                  </Text>
+      {effectiveStatus === 'canceled' && (
+        <Text className={styles.description}>Authentication request was canceled.</Text>
+      )}
+
+      {effectiveStatus !== 'canceled' && (
+        <div className={styles.services}>
+          {authStates.map((authState, index) => (
+            <div key={index} className={styles.service}>
+              <div className={styles.serviceInfo}>
+                {authState.serviceIcon ? (
+                  <img
+                    src={authState.serviceIcon}
+                    alt={authState.serviceName}
+                    className={styles.serviceIcon}
+                  />
+                ) : (
+                  <ShieldCheckmarkRegular />
                 )}
+                <div className={styles.serviceDetails}>
+                  <Text weight="semibold">{authState.serviceName || 'External Service'}</Text>
+                  {authState.description && (
+                    <Text size={200} className={styles.description}>
+                      {authState.description}
+                    </Text>
+                  )}
+                </div>
               </div>
+
+              {effectiveStatus === 'pending' && (
+                <Button
+                  appearance={authState.isAuthenticated ? 'subtle' : 'primary'}
+                  size="small"
+                  disabled={authState.isAuthenticated || authState.isAuthenticating}
+                  onClick={() => handleAuthenticate(index)}
+                  icon={authState.isAuthenticated ? <CheckmarkCircleRegular /> : undefined}
+                >
+                  {authState.isAuthenticated
+                    ? 'Authenticated'
+                    : authState.isAuthenticating
+                      ? 'Authenticating...'
+                      : 'Sign In'}
+                </Button>
+              )}
+
+              {effectiveStatus === 'completed' && (
+                <Badge
+                  appearance="tint"
+                  icon={
+                    <CheckmarkCircleRegular
+                      style={{ color: tokens.colorPaletteGreenForeground1 }}
+                    />
+                  }
+                  style={{ color: tokens.colorPaletteGreenForeground1 }}
+                >
+                  Authenticated
+                </Badge>
+              )}
             </div>
-
-            {effectiveStatus === 'pending' && (
-              <Button
-                appearance={authState.isAuthenticated ? 'subtle' : 'primary'}
-                size="small"
-                disabled={authState.isAuthenticated || authState.isAuthenticating}
-                onClick={() => handleAuthenticate(index)}
-                icon={authState.isAuthenticated ? <CheckmarkCircleRegular /> : undefined}
-              >
-                {authState.isAuthenticated
-                  ? 'Authenticated'
-                  : authState.isAuthenticating
-                    ? 'Authenticating...'
-                    : 'Sign In'}
-              </Button>
-            )}
-
-            {effectiveStatus === 'completed' && (
-              <Badge
-                appearance="tint"
-                icon={
-                  <CheckmarkCircleRegular style={{ color: tokens.colorPaletteGreenForeground1 }} />
-                }
-                style={{ color: tokens.colorPaletteGreenForeground1 }}
-              >
-                Authenticated
-              </Badge>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {effectiveStatus === 'completed' && (
         <Badge
@@ -299,6 +332,19 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         >
           All services authenticated successfully
         </Badge>
+      )}
+
+      {effectiveStatus === 'pending' && onCancel && (
+        <div className={styles.cancelButtonContainer}>
+          <Button
+            appearance="secondary"
+            size="small"
+            onClick={handleCancel}
+            disabled={authStates.some((state) => state.isAuthenticating)}
+          >
+            Cancel Authentication
+          </Button>
+        </div>
       )}
     </div>
   );

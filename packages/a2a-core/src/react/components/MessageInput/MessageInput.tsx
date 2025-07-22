@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Button,
   Textarea,
-  Caption1,
   tokens,
   makeStyles,
   shorthands,
@@ -11,6 +10,7 @@ import {
 import { SendRegular, AttachRegular, DismissRegular } from '@fluentui/react-icons';
 import { useChatStore } from '../../store/chatStore';
 import { generateMessageId } from '../../utils/messageUtils';
+import { StatusMessage } from './StatusMessage';
 import type { Attachment } from '../../types';
 
 const useStyles = makeStyles({
@@ -60,11 +60,6 @@ const useStyles = makeStyles({
     minWidth: '40px',
     height: '40px',
   },
-  connectionStatus: {
-    color: tokens.colorNeutralForeground3,
-    fontSize: tokens.fontSizeBase200,
-    textAlign: 'center',
-  },
 });
 
 interface MessageInputProps {
@@ -74,6 +69,7 @@ interface MessageInputProps {
   allowFileUpload?: boolean;
   maxFileSize?: number;
   allowedFileTypes?: string[];
+  contextId?: string;
 }
 
 export function MessageInput({
@@ -83,14 +79,78 @@ export function MessageInput({
   allowFileUpload = false,
   maxFileSize: _maxFileSize, // Not used with Fluent UI file input
   allowedFileTypes,
+  contextId,
 }: MessageInputProps) {
   const styles = useStyles();
   const [message, setMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { isConnected } = useChatStore();
+  const wasTypingRef = useRef(false);
+  const shouldRestoreFocusRef = useRef(true);
+  const {
+    isConnected,
+    isTyping: globalIsTyping,
+    getIsTypingForContext,
+    getAuthRequiredForContext,
+  } = useChatStore();
 
-  const isDisabled = disabled || !isConnected;
+  // Get session-specific states, fallback to global state if no contextId
+  const isTyping = contextId ? getIsTypingForContext(contextId) : globalIsTyping;
+  const authRequired = getAuthRequiredForContext(contextId);
+
+  // Disable input when:
+  // 1. Not connected
+  // 2. Streaming is active (isTyping)
+  // 3. Auth is required (authRequired is not null)
+  const isDisabled = disabled || !isConnected || isTyping || authRequired !== null;
+
+  // Track if user focuses elsewhere while typing
+  useEffect(() => {
+    const handleFocusChange = (e: FocusEvent) => {
+      // If typing is happening and user focuses on something else
+      if (isTyping && e.target && e.target !== textareaRef.current) {
+        // Don't restore focus if user intentionally focused elsewhere
+        shouldRestoreFocusRef.current = false;
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusChange);
+    return () => document.removeEventListener('focusin', handleFocusChange);
+  }, [isTyping]);
+
+  // Focus restoration when agent stops typing
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    // If agent was typing and now stopped
+    if (wasTypingRef.current && !isTyping) {
+      // Only restore focus if we should (user didn't focus elsewhere)
+      if (shouldRestoreFocusRef.current) {
+        timeoutId = setTimeout(() => {
+          if (textareaRef.current && !textareaRef.current.disabled) {
+            textareaRef.current.focus();
+          }
+        }, 100);
+      }
+
+      // Reset for next time
+      wasTypingRef.current = false;
+      shouldRestoreFocusRef.current = true;
+    }
+
+    // Update the ref for next time
+    if (isTyping) {
+      wasTypingRef.current = true;
+      // When typing starts, assume we should restore focus unless user clicks elsewhere
+      shouldRestoreFocusRef.current = true;
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isTyping]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -142,6 +202,13 @@ export function MessageInput({
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
+      {/* Status message with priority hierarchy */}
+      <StatusMessage
+        isConnected={isConnected}
+        isTyping={isTyping}
+        hasAuthRequired={authRequired !== null}
+      />
+
       {pendingAttachments.length > 0 && (
         <div className={styles.attachmentPreview}>
           {pendingAttachments.map((file, index) => (
@@ -202,8 +269,6 @@ export function MessageInput({
           aria-label="Send message"
         />
       </div>
-
-      {!isConnected && <Caption1 className={styles.connectionStatus}>Connecting...</Caption1>}
     </form>
   );
 }

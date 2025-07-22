@@ -8,7 +8,7 @@ export type { AgentCard, AuthConfig, AuthRequiredPart };
 export type MessageRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'sending' | 'sent' | 'error';
 export type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
-export type AuthenticationStatus = 'pending' | 'completed' | 'failed';
+export type AuthenticationStatus = 'pending' | 'completed' | 'failed' | 'canceled';
 
 export interface Message {
   id: string;

@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import type { Message, Attachment } from '../types';
 import type { AuthRequiredEvent } from '../../client/types';
+
+// Enable MapSet plugin for Immer to handle Maps
+enableMapSet();
 
 interface ChatState {
   messages: Message[];
@@ -10,14 +14,18 @@ interface ChatState {
   pendingUploads: Map<string, Attachment>;
   authRequired: AuthRequiredEvent | null;
 
+  // Session-specific states
+  typingByContext: Map<string, boolean>;
+  authRequiredByContext: Map<string, AuthRequiredEvent | null>;
+
   // Actions
   addMessage: (message: Message) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   deleteMessage: (id: string) => void;
   setMessages: (messages: Message[]) => void;
   setConnected: (connected: boolean) => void;
-  setTyping: (typing: boolean) => void;
-  setAuthRequired: (event: AuthRequiredEvent | null) => void;
+  setTyping: (typing: boolean, contextId?: string) => void;
+  setAuthRequired: (event: AuthRequiredEvent | null, contextId?: string) => void;
 
   // File upload actions
   addPendingUpload: (attachment: Attachment) => void;
@@ -26,15 +34,21 @@ interface ChatState {
 
   // Utilities
   clearMessages: () => void;
+
+  // Getters for session-specific states
+  getIsTypingForContext: (contextId: string | undefined) => boolean;
+  getAuthRequiredForContext: (contextId: string | undefined) => AuthRequiredEvent | null;
 }
 
 export const useChatStore = create<ChatState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     messages: [],
     isConnected: false,
     isTyping: false,
     pendingUploads: new Map(),
     authRequired: null,
+    typingByContext: new Map(),
+    authRequiredByContext: new Map(),
 
     addMessage: (message) =>
       set((state) => {
@@ -61,9 +75,33 @@ export const useChatStore = create<ChatState>()(
 
     setConnected: (connected) => set({ isConnected: connected }),
 
-    setTyping: (typing) => set({ isTyping: typing }),
+    setTyping: (typing, contextId) =>
+      set((state) => {
+        let newTypingByContext = state.typingByContext;
+        if (contextId) {
+          // Create a new Map to avoid Immer issues
+          newTypingByContext = new Map(state.typingByContext);
+          newTypingByContext.set(contextId, typing);
+        }
+        return {
+          isTyping: typing,
+          typingByContext: newTypingByContext,
+        };
+      }),
 
-    setAuthRequired: (event) => set({ authRequired: event }),
+    setAuthRequired: (event, contextId) =>
+      set((state) => {
+        let newAuthRequiredByContext = state.authRequiredByContext;
+        if (contextId) {
+          // Create a new Map to avoid Immer issues
+          newAuthRequiredByContext = new Map(state.authRequiredByContext);
+          newAuthRequiredByContext.set(contextId, event);
+        }
+        return {
+          authRequired: event,
+          authRequiredByContext: newAuthRequiredByContext,
+        };
+      }),
 
     addPendingUpload: (attachment) =>
       set((state) => {
@@ -90,5 +128,17 @@ export const useChatStore = create<ChatState>()(
       }),
 
     clearMessages: () => set({ messages: [] }),
+
+    getIsTypingForContext: (contextId: string | undefined): boolean => {
+      if (!contextId) return false;
+      const state = get();
+      return state.typingByContext.get(contextId) || false;
+    },
+
+    getAuthRequiredForContext: (contextId: string | undefined): AuthRequiredEvent | null => {
+      if (!contextId) return null;
+      const state = get();
+      return state.authRequiredByContext.get(contextId) || null;
+    },
   }))
 );

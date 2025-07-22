@@ -28,6 +28,7 @@ interface MessageListProps {
   agentName?: string;
   userName?: string;
   onAuthCompleted?: () => void;
+  onAuthCanceled?: () => void;
 }
 
 export function MessageList({
@@ -35,6 +36,7 @@ export function MessageList({
   agentName = 'Agent',
   userName = 'You',
   onAuthCompleted,
+  onAuthCanceled,
 }: MessageListProps) {
   const styles = useStyles();
   const { messages, isTyping } = useChatStore();
@@ -90,6 +92,7 @@ export function MessageList({
           agentName={agentName}
           userName={userName}
           onAuthCompleted={onAuthCompleted}
+          onAuthCanceled={onAuthCanceled}
         />
       ))}
 

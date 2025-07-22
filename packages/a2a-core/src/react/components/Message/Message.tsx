@@ -318,6 +318,7 @@ interface MessageProps {
   agentName?: string;
   userName?: string;
   onAuthCompleted?: () => void;
+  onAuthCanceled?: () => void;
 }
 
 function MessageComponent({
@@ -325,6 +326,7 @@ function MessageComponent({
   agentName = 'Agent',
   userName = 'You',
   onAuthCompleted,
+  onAuthCanceled,
 }: MessageProps) {
   const styles = useStyles();
 
@@ -352,6 +354,7 @@ function MessageComponent({
               onAuthCompleted();
             }
           }}
+          onCancel={onAuthCanceled}
         />
       </div>
     );

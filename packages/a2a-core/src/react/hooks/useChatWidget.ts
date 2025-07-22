@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useA2A } from '../use-a2a';
 import { AgentDiscovery } from '../../discovery/agent-discovery';
 import type { AgentCard } from '../../types';
-import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../../client/types';
+import type {
+  AuthConfig,
+  AuthRequiredHandler,
+  UnauthorizedHandler,
+  AuthRequiredEvent,
+} from '../../client/types';
 import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
@@ -32,12 +37,14 @@ export function useChatWidget({
   const processedMessageIds = useRef<Set<string>>(new Set());
   const messageIdMap = useRef<Map<string, string>>(new Map());
   const sentMessageContents = useRef<Set<string>>(new Set());
+  const contextIdRef = useRef<string | undefined>();
 
   const {
     addMessage,
     updateMessage,
     setConnected,
     setTyping,
+    setAuthRequired,
     clearMessages: clearLocalMessages,
   } = useChatStore();
 
@@ -58,18 +65,29 @@ export function useChatWidget({
           auth,
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
-          onAuthRequired,
+          onAuthRequired: (event: AuthRequiredEvent) => {
+            setAuthRequired(event, contextIdRef.current);
+            return onAuthRequired?.(event);
+          },
           onUnauthorized,
           apiKey,
         }
       : {
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
-          onAuthRequired,
+          onAuthRequired: (event: AuthRequiredEvent) => {
+            setAuthRequired(event, contextIdRef.current);
+            return onAuthRequired?.(event);
+          },
           onUnauthorized,
           apiKey,
         }
   );
+
+  // Update contextIdRef when contextId changes
+  useEffect(() => {
+    contextIdRef.current = contextId;
+  }, [contextId]);
 
   // Handle connection state changes
   useEffect(() => {
@@ -79,8 +97,8 @@ export function useChatWidget({
 
   // Handle typing changes
   useEffect(() => {
-    setTyping(isLoading);
-  }, [isLoading, setTyping]);
+    setTyping(isLoading, contextId);
+  }, [isLoading, setTyping, contextId]);
 
   // Handle incoming messages from SDK
   useEffect(() => {
@@ -269,10 +287,17 @@ export function useChatWidget({
   const handleAuthCompleted = useCallback(async () => {
     try {
       await sendAuthenticationCompleted();
+      // Clear auth required state when authentication is completed
+      setAuthRequired(null, contextIdRef.current);
     } catch (error) {
       console.error('Failed to send authentication completed:', error);
     }
-  }, [sendAuthenticationCompleted]);
+  }, [sendAuthenticationCompleted, setAuthRequired]);
+
+  const handleAuthCanceled = useCallback(() => {
+    // Clear auth required state when authentication is canceled
+    setAuthRequired(null, contextIdRef.current);
+  }, [setAuthRequired]);
 
   return {
     sendMessage,
@@ -285,5 +310,6 @@ export function useChatWidget({
     clearSession,
     sendAuthenticationCompleted,
     handleAuthCompleted,
+    handleAuthCanceled,
   };
 }

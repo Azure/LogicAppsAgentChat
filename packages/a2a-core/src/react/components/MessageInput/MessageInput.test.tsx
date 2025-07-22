@@ -33,11 +33,15 @@ describe('MessageInput', () => {
     vi.clearAllMocks();
     mockUseChatStore.mockReturnValue({
       isConnected: true,
+      isTyping: false,
+      authRequired: null,
       messages: [],
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
+      getIsTypingForContext: vi.fn().mockReturnValue(false),
+      getAuthRequiredForContext: vi.fn().mockReturnValue(null),
     });
   });
 
@@ -149,11 +153,15 @@ describe('MessageInput', () => {
   it('disables all inputs when not connected', () => {
     mockUseChatStore.mockReturnValue({
       isConnected: false,
+      isTyping: false,
+      authRequired: null,
       messages: [],
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
+      getIsTypingForContext: vi.fn().mockReturnValue(false),
+      getAuthRequiredForContext: vi.fn().mockReturnValue(null),
     });
 
     render(<MessageInput onSendMessage={mockOnSendMessage} allowFileUpload />);
@@ -169,11 +177,15 @@ describe('MessageInput', () => {
   it('shows connection status when not connected', () => {
     mockUseChatStore.mockReturnValue({
       isConnected: false,
+      isTyping: false,
+      authRequired: null,
       messages: [],
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       setConnected: vi.fn(),
       clearMessages: vi.fn(),
+      getIsTypingForContext: vi.fn().mockReturnValue(false),
+      getAuthRequiredForContext: vi.fn().mockReturnValue(null),
     });
 
     render(<MessageInput onSendMessage={mockOnSendMessage} />);

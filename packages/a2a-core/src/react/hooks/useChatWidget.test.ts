@@ -133,7 +133,7 @@ describe('useChatWidget', () => {
     );
 
     expect(result.current.isTyping).toBe(true);
-    expect(setTyping).toHaveBeenCalledWith(true);
+    expect(setTyping).toHaveBeenCalledWith(true, undefined);
   });
 
   it('should send messages through SDK', async () => {
