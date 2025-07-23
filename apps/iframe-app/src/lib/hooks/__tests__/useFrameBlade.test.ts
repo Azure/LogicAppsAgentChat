@@ -14,10 +14,11 @@ describe('useFrameBlade', () => {
     } as any;
 
     // Mock location.hash
-    Object.defineProperty(window.location, 'hash', {
-      value: '#session123',
-      configurable: true,
-    });
+    delete (window as any).location;
+    (window as any).location = {
+      ...window.location,
+      hash: '#session123',
+    };
 
     // Capture event listeners
     messageListeners = [];
@@ -42,6 +43,12 @@ describe('useFrameBlade', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+
+    // Clear body classes
+    document.body.className = '';
+
+    // Clear message listeners
+    messageListeners = [];
   });
 
   it('should be ready immediately when not enabled', () => {
@@ -111,6 +118,9 @@ describe('useFrameBlade', () => {
       })
     );
 
+    // Clear any initial calls
+    onThemeChange.mockClear();
+
     // Simulate theme change message
     const event = new MessageEvent('message', {
       origin: 'https://portal.azure.com',
@@ -125,6 +135,7 @@ describe('useFrameBlade', () => {
       messageListeners.forEach((listener) => listener(event));
     });
 
+    expect(onThemeChange).toHaveBeenCalledTimes(1);
     expect(onThemeChange).toHaveBeenCalledWith('dark');
     expect(document.body.classList.contains('fxs-theme-dark')).toBe(true);
   });
@@ -195,6 +206,9 @@ describe('useFrameBlade', () => {
         onThemeChange,
       })
     );
+
+    // Clear any initial calls
+    onThemeChange.mockClear();
 
     // Simulate message without signature
     const event = new MessageEvent('message', {

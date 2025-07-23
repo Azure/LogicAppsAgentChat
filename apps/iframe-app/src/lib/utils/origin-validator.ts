@@ -49,7 +49,8 @@ export function isOriginAllowed(origin: string, allowedOrigins: string[]): boole
       const domain = allowed.substring(2);
       try {
         const originUrl = new URL(origin);
-        if (originUrl.hostname.endsWith(domain)) {
+        // Check if it's a subdomain (not the domain itself)
+        if (originUrl.hostname.endsWith('.' + domain)) {
           return true;
         }
       } catch {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { IframeWrapper } from '../IframeWrapper';
 import type { IframeConfig } from '../../lib/utils/config-parser';
 
@@ -52,6 +52,9 @@ describe('IframeWrapper', () => {
 
     // Reset mocks
     vi.clearAllMocks();
+
+    // Clear localStorage
+    localStorage.clear();
   });
 
   it('should render ChatWidget in single-session mode', () => {
@@ -137,9 +140,11 @@ describe('IframeWrapper', () => {
     const { rerender } = render(<IframeWrapper config={defaultConfig} />);
 
     // Simulate receiving agent card
-    if (capturedCallback) {
-      capturedCallback({ name: 'New Agent', endpoint: 'https://new.api.com' });
-    }
+    act(() => {
+      if (capturedCallback) {
+        capturedCallback({ name: 'New Agent', endpoint: 'https://new.api.com' });
+      }
+    });
 
     rerender(<IframeWrapper config={defaultConfig} />);
 
@@ -170,9 +175,11 @@ describe('IframeWrapper', () => {
     expect(screen.getByText('ChatWidget (mode: light)')).toBeInTheDocument();
 
     // Simulate theme change
-    if (capturedThemeCallback) {
-      capturedThemeCallback('dark');
-    }
+    act(() => {
+      if (capturedThemeCallback) {
+        capturedThemeCallback('dark');
+      }
+    });
 
     // Component should re-render with dark mode
     expect(screen.getByText('ChatWidget (mode: dark)')).toBeInTheDocument();
@@ -201,9 +208,11 @@ describe('IframeWrapper', () => {
     render(<IframeWrapper config={portalConfig} />);
 
     // Simulate receiving auth token
-    if (capturedAuthCallback) {
-      capturedAuthCallback('frame-blade-auth-token');
-    }
+    act(() => {
+      if (capturedAuthCallback) {
+        capturedAuthCallback('frame-blade-auth-token');
+      }
+    });
 
     // Verify ChatWidget receives the auth token
     expect(vi.mocked(ChatWidget)).toHaveBeenCalledWith(
@@ -220,5 +229,78 @@ describe('IframeWrapper', () => {
     render(<IframeWrapper config={defaultConfig} />);
 
     expect(screen.getByText('ChatWidget (mode: dark)')).toBeInTheDocument();
+  });
+
+  it('should handle chat history from Frame Blade', async () => {
+    const { useFrameBlade } = await import('../../lib/hooks/useFrameBlade');
+
+    let capturedHistoryCallback: ((history: any) => void) | undefined;
+
+    vi.mocked(useFrameBlade).mockImplementation(({ onChatHistoryReceived }) => {
+      capturedHistoryCallback = onChatHistoryReceived;
+      return {
+        isReady: true,
+        sendMessage: vi.fn(),
+      };
+    });
+
+    const portalConfig: IframeConfig = {
+      ...defaultConfig,
+      inPortal: true,
+      trustedParentOrigin: 'https://portal.azure.com',
+    };
+
+    render(<IframeWrapper config={portalConfig} />);
+
+    const chatHistory = {
+      contextId: 'test-context-123',
+      messages: [
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'Test message',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+      ],
+    };
+
+    // Simulate receiving chat history
+    act(() => {
+      if (capturedHistoryCallback) {
+        capturedHistoryCallback(chatHistory);
+      }
+    });
+
+    // Verify localStorage was updated
+    expect(localStorage.getItem('a2a-context-default')).toBe('test-context-123');
+    const storedMessages = JSON.parse(localStorage.getItem('a2a-messages-default') || '[]');
+    expect(storedMessages).toHaveLength(1);
+    expect(storedMessages[0].content).toBe('Test message');
+  });
+
+  it('should store contextId in localStorage for single-session mode', () => {
+    const configWithContextId: IframeConfig = {
+      ...defaultConfig,
+      contextId: 'ctx-from-url',
+      multiSession: false,
+    };
+
+    render(<IframeWrapper config={configWithContextId} />);
+
+    expect(localStorage.getItem('a2a-context-default')).toBe('ctx-from-url');
+  });
+
+  it('should not store contextId for multi-session mode', () => {
+    localStorage.clear();
+
+    const configWithContextId: IframeConfig = {
+      ...defaultConfig,
+      contextId: 'ctx-from-url',
+      multiSession: true,
+    };
+
+    render(<IframeWrapper config={configWithContextId} />);
+
+    expect(localStorage.getItem('a2a-context-default')).toBeNull();
   });
 });

@@ -1,0 +1,204 @@
+name: Release IFrame Dist
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Get latest tag and calculate new version
+        id: version
+        run: |
+          # Get the latest tag that matches our pattern
+          LATEST_TAG=$(git tag -l "iframe-v*" --sort=-version:refname | head -n 1 || echo "iframe-v0.0.0")
+          
+          # If no iframe tags exist, check for general tags as fallback
+          if [ "$LATEST_TAG" = "iframe-v0.0.0" ]; then
+            GENERAL_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            # Extract version from general tag if it exists
+            if [ "$GENERAL_TAG" != "v0.0.0" ]; then
+              VERSION=${GENERAL_TAG#v}
+              LATEST_TAG="iframe-v${VERSION}"
+            fi
+          fi
+          
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Remove 'iframe-v' prefix
+          CURRENT_VERSION=${LATEST_TAG#iframe-v}
+          
+          # Split version into components
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+          
+          # Calculate new version based on release type
+          case "${{ github.event.inputs.release_type }}" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          NEW_TAG="iframe-v${NEW_VERSION}"
+          
+          echo "New version: $NEW_VERSION"
+          echo "New tag: $NEW_TAG"
+          
+          # Set outputs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "previous_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create iframe-app dist zip
+        run: |
+          cd apps/iframe-app
+          # Ensure dist directory exists
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found"
+            exit 1
+          fi
+          # Create zip file
+          zip -r ../../iframe-app-dist-${{ steps.version.outputs.version }}.zip dist/
+          cd ../..
+          echo "Created iframe-app-dist-${{ steps.version.outputs.version }}.zip"
+          ls -la iframe-app-dist-*.zip
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get previous tag for comparison
+          PREVIOUS_TAG="${{ steps.version.outputs.previous_tag }}"
+          NEW_TAG="${{ steps.version.outputs.tag }}"
+          
+          # Get commits since last tag
+          if [ "$PREVIOUS_TAG" = "iframe-v0.0.0" ]; then
+            echo "First release - including all commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges -- apps/iframe-app)
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges -- apps/iframe-app)
+          fi
+          
+          # Count changes
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c '^-' || echo "0")
+          
+          # Create release notes
+          cat << EOF > release_notes.md
+          ## IFrame App Distribution v${{ steps.version.outputs.version }}
+          
+          This release contains the built distribution files for the A2A Chat IFrame application.
+          
+          ### What's Changed in iframe-app (${COMMIT_COUNT} commits)
+          
+          ${COMMITS:-No changes in iframe-app since last release}
+          
+          ### Installation
+          
+          1. Download \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\`
+          2. Extract the contents to your web server
+          3. The \`dist\` folder contains all necessary files to embed the chat widget
+          
+          ### Usage
+          
+          Include the IFrame in your HTML:
+          \`\`\`html
+          <iframe 
+            src="path/to/dist/index.html?agentCard=YOUR_AGENT_URL" 
+            width="400" 
+            height="600">
+          </iframe>
+          \`\`\`
+          
+          **Full Changelog**: ${PREVIOUS_TAG}...${NEW_TAG}
+          EOF
+          
+          echo "Release notes generated"
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: IFrame App Distribution v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            iframe-app-dist-${{ steps.version.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Type**: ${{ github.event.inputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous Tag**: ${{ steps.version.outputs.previous_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\` - IFrame application distribution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Notes Preview" >> $GITHUB_STEP_SUMMARY
+          cat release_notes.md >> $GITHUB_STEP_SUMMARY

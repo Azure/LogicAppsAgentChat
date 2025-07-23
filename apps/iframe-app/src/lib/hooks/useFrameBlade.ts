@@ -87,18 +87,22 @@ export function useFrameBlade({
 
       const msg = evt.data as FrameBladeMessage;
 
+      // Check for Frame Blade signature
+      if (msg.signature !== FRAME_SIGNATURE) {
+        return;
+      }
+
       switch (msg.kind) {
         case 'themeChanged':
           // Handle theme changes
           if (msg.data) {
-            const newTheme = msg.data.theme === 'dark' ? 'dark' : 'light';
+            // msg.data is the theme string directly
+            const newTheme = msg.data === 'dark' ? 'dark' : 'light';
             onThemeChange?.(newTheme);
 
             // Apply Frame Blade theme class to body
             document.body.className = document.body.className.replace(/fxs-theme-\w+/g, '');
-            if (msg.data) {
-              document.body.classList.add(`fxs-theme-${msg.data}`);
-            }
+            document.body.classList.add(`fxs-theme-${newTheme}`);
           }
           break;
 
@@ -114,6 +118,19 @@ export function useFrameBlade({
             console.log('Received chat history from parent blade');
             onChatHistoryReceived(msg.data as ChatHistoryData);
           }
+          break;
+
+        case 'frametitle':
+          // Set the document title and reveal content
+          if (msg.data) {
+            document.title = msg.data;
+            sendMessage('revealcontent');
+          }
+          break;
+
+        case 'framecontent':
+          // Just acknowledge frame content
+          sendMessage('revealcontent');
           break;
 
         default:

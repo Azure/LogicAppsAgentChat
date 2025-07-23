@@ -1,0 +1,116 @@
+name: Release Dist (Simple)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate version format
+        run: |
+          if ! [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Create iframe-app dist zip
+        run: |
+          cd apps/iframe-app
+          # Ensure dist directory exists
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found in apps/iframe-app"
+            echo "Current directory contents:"
+            ls -la
+            exit 1
+          fi
+          
+          # Create versioned zip file
+          zip -r ../../a2achat-iframe-${{ github.event.inputs.version }}.zip dist/
+          
+          # Also create a 'latest' zip for convenience
+          cp ../../a2achat-iframe-${{ github.event.inputs.version }}.zip ../../a2achat-iframe-latest.zip
+          
+          cd ../..
+          echo "Created distribution files:"
+          ls -la a2achat-iframe-*.zip
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: A2A Chat IFrame v${{ github.event.inputs.version }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease }}
+          body: |
+            ## A2A Chat IFrame Distribution v${{ github.event.inputs.version }}
+            
+            ### Downloads
+            - `a2achat-iframe-${{ github.event.inputs.version }}.zip` - Versioned distribution
+            - `a2achat-iframe-latest.zip` - Same as above (for stable URLs)
+            
+            ### Installation
+            1. Download the zip file
+            2. Extract to your web server
+            3. Embed using an iframe:
+            
+            ```html
+            <iframe 
+              src="path/to/dist/index.html?agentCard=YOUR_AGENT_URL" 
+              width="400" 
+              height="600">
+            </iframe>
+            ```
+            
+            ### Configuration
+            See the [IFrame documentation](https://github.com/${{ github.repository }}/tree/main/apps/iframe-app) for all available configuration options.
+          files: |
+            a2achat-iframe-${{ github.event.inputs.version }}.zip
+            a2achat-iframe-latest.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Job Summary
+        run: |
+          echo "## Release Created Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: v${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release**: ${{ github.event.inputs.prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- a2achat-iframe-${{ github.event.inputs.version }}.zip" >> $GITHUB_STEP_SUMMARY
+          echo "- a2achat-iframe-latest.zip" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View the release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY

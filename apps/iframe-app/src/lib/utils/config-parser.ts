@@ -64,7 +64,9 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
 
   if (match && match[1]) {
     const agentKind = match[1];
-    const baseUrl = currentUrl.split('/api/agentsChat/')[0];
+    // Find the base URL by getting everything before the matched pattern
+    const matchIndex = currentUrl.toLowerCase().indexOf('/api/agentschat/');
+    const baseUrl = currentUrl.substring(0, matchIndex);
     return `${baseUrl}/api/agents/${agentKind}/.well-known/agent.json`;
   }
 
@@ -139,8 +141,12 @@ function parseMetadata(
 }
 
 function parseFileUploadConfig(params: URLSearchParams, dataset: DOMStringMap) {
+  // Default to true if not explicitly set to false
+  const allowFileUploadStr = dataset.allowFileUpload || params.get('allowFileUpload');
+  const allowFileUpload = allowFileUploadStr !== 'false';
+
   return {
-    allowFileUpload: dataset.allowFileUpload === 'true' || params.get('allowFileUpload') === 'true',
+    allowFileUpload,
     maxFileSize: dataset.maxFileSize ? parseInt(dataset.maxFileSize) : undefined,
     allowedFileTypes: dataset.allowedFileTypes?.split(',').map((t) => t.trim()),
   };
@@ -170,10 +176,26 @@ export function parseIframeConfig(): IframeConfig {
   const apiKey = params.get('apiKey') || dataset.apiKey;
 
   // Parse theme
-  const theme = parseTheme(params, dataset);
+  let theme = parseTheme(params, dataset);
 
   // Parse file upload config
   const fileUploadConfig = parseFileUploadConfig(params, dataset);
+
+  // Parse branding
+  const brandTitle = dataset.brandTitle || params.get('brandTitle') || undefined;
+  const brandSubtitle = dataset.brandSubtitle || params.get('brandSubtitle') || undefined;
+  const brandLogoUrl = dataset.brandLogoUrl || params.get('brandLogoUrl') || undefined;
+
+  // If branding properties exist, add them to the theme
+  if (brandTitle || brandSubtitle || brandLogoUrl) {
+    if (!theme) {
+      theme = {};
+    }
+    theme.branding = {
+      name: brandTitle,
+      logoUrl: brandLogoUrl,
+    };
+  }
 
   // Build props
   const props: ChatWidgetProps = {
@@ -182,7 +204,8 @@ export function parseIframeConfig(): IframeConfig {
     userId: dataset.userId || params.get('userId') || undefined,
     userName: dataset.userName || params.get('userName') || window.LOGGED_IN_USER_NAME || undefined,
     placeholder: dataset.placeholder || params.get('placeholder') || undefined,
-    welcomeMessage: dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
+    welcomeMessage:
+      brandSubtitle || dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
     metadata: parseMetadata(params, dataset),
     apiKey: apiKey || undefined,
     ...fileUploadConfig,

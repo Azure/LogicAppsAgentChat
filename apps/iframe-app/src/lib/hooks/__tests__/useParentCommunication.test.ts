@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useParentCommunication } from '../useParentCommunication';
 
 // Mock the origin validator module
-vi.mock('../utils/origin-validator', () => ({
+vi.mock('../../utils/origin-validator', () => ({
   getAllowedOrigins: vi.fn(() => ['http://localhost:3000', 'https://parent.example.com']),
   isOriginAllowed: vi.fn((origin, allowed) => allowed.includes(origin)),
   getParentOrigin: vi.fn(() => 'https://parent.example.com'),
