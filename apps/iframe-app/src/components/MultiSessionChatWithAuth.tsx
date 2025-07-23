@@ -1,4 +1,3 @@
-import React from 'react';
 import { MultiSessionChat } from './MultiSessionChat';
 import { SessionExpiredModal } from './SessionExpiredModal';
 import { useSessionExpiredHandler } from '../hooks/useSessionExpiredHandler';
@@ -28,7 +27,12 @@ export function MultiSessionChatWithAuth({
         config={{
           apiUrl,
           apiKey,
-          onUnauthorized: handleUnauthorized,
+          onUnauthorized: () =>
+            handleUnauthorized({
+              url: apiUrl,
+              method: 'GET',
+              statusText: 'Unauthorized',
+            }),
         }}
         mode={mode}
         {...chatWidgetProps}

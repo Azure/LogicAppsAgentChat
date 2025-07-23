@@ -19,7 +19,8 @@
     "@fluentui/react-icons": "^2.0.306",
     "@microsoft/a2achat-core": "workspace:*",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "vite-plugin-mkcert": "^1.17.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

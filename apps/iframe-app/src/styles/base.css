@@ -111,3 +111,57 @@
     --chat-border-color: #374151;
   }
 }
+
+/* Frame Blade specific styling */
+.fxs-frame-header {
+  font-family: var(--chat-font-family);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--chat-text-primary);
+  margin: 0;
+  padding: 1rem;
+}
+
+.fxs-frame-content {
+  padding: 1rem;
+  color: var(--chat-text-primary);
+}
+
+.fxs-frame-button {
+  background-color: var(--chat-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--chat-radius-small);
+  cursor: pointer;
+  font-family: var(--chat-font-family);
+  font-size: var(--chat-font-size-base);
+  transition: background-color 0.2s ease;
+}
+
+.fxs-frame-button:hover {
+  background-color: var(--chat-primary-hover);
+}
+
+.fxs-frame-button:active {
+  transform: translateY(1px);
+}
+
+/* Apply Frame Blade theme classes */
+body.fxs-theme-dark {
+  --chat-color-background: #1a1a1a;
+  --chat-color-surface: #2d2d2d;
+  --chat-color-text: #e0e0e0;
+  --chat-color-text-secondary: #a0a0a0;
+  --chat-color-border: #404040;
+  --chat-bg-secondary: #1f2937;
+  --chat-bg-hover: #374151;
+  --chat-text-primary: #f9fafb;
+  --chat-text-secondary: #d1d5db;
+  --chat-border-color: #374151;
+}
+
+body.fxs-theme-blue {
+  --chat-color-primary: #0078d4;
+  --chat-color-primary-hover: #106ebe;
+}

@@ -112,6 +112,7 @@ export function MultiSessionChat({
     switchSession,
     renameSession,
     deleteSession,
+    updateSessionMessages,
   } = useChatSessions();
 
   // Check screen size and auto-collapse on small screens
@@ -241,6 +242,16 @@ export function MultiSessionChat({
     [switchSession]
   );
 
+  const handleContextIdChange = useCallback(
+    (contextId: string) => {
+      if (activeSessionId) {
+        // Update the session with the new contextId
+        updateSessionMessages([], contextId);
+      }
+    },
+    [activeSessionId, updateSessionMessages]
+  );
+
   // Show loading state while fetching agent card
   if (isLoadingAgent) {
     return (
@@ -335,6 +346,7 @@ export function MultiSessionChat({
               mode={mode}
               fluentTheme={mode}
               onUnauthorized={config.onUnauthorized}
+              onContextIdChange={handleContextIdChange}
             />
           </ChatThemeProvider>
         </div>

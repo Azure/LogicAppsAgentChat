@@ -92,6 +92,7 @@ export function ChatWindow(props: ChatWindowProps) {
     isSidebarCollapsed,
     apiKey,
     onUnauthorized,
+    onContextIdChange,
     mode = 'light',
   } = props;
 
@@ -115,6 +116,13 @@ export function ChatWindow(props: ChatWindowProps) {
     sessionKey,
     apiKey,
   });
+
+  // Notify parent when contextId changes
+  React.useEffect(() => {
+    if (contextId && onContextIdChange) {
+      onContextIdChange(contextId);
+    }
+  }, [contextId, onContextIdChange]);
 
   // Default to showing logo in header if logoUrl is provided and position is not explicitly 'footer'
   const showHeaderLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition !== 'footer';
