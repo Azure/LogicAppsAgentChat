@@ -4,6 +4,9 @@ import { MultiSessionChat } from '../MultiSessionChat';
 import { vi } from 'vitest';
 import { SessionManager } from '../../utils/sessionManager';
 
+// Mock the session manager
+vi.mock('../../utils/sessionManager');
+
 // Mock the ChatWidget from a2a-core
 vi.mock('@microsoft/a2achat-core/react', () => ({
   ChatWidget: ({ sessionKey, onContextIdChange }: any) => {
@@ -48,6 +51,8 @@ describe('MultiSessionChat contextId handling', () => {
     // Clear localStorage before each test
     localStorage.clear();
     vi.clearAllMocks();
+    // Clear mock sessions
+    (SessionManager as any).clearAllSessions();
   });
 
   it('should update SessionManager when contextId is obtained from server', async () => {
@@ -71,8 +76,9 @@ describe('MultiSessionChat contextId handling', () => {
 
     // Wait for contextId to be set
     await waitFor(
-      () => {
-        const session = SessionManager.getInstance().getSession(sessionId!);
+      async () => {
+        const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+        const session = await sessionManager.getSession(sessionId!);
         expect(session?.contextId).toBe(`context-for-${sessionKey}`);
       },
       { timeout: 500 }
@@ -100,22 +106,23 @@ describe('MultiSessionChat contextId handling', () => {
 
     // Wait for contextId to be set on first session
     await waitFor(
-      () => {
-        const session = SessionManager.getInstance().getSession(initialSessionId!);
+      async () => {
+        const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+        const session = await sessionManager.getSession(initialSessionId!);
         expect(session?.contextId).toBe(`context-for-${initialSessionKey}`);
       },
       { timeout: 500 }
     );
 
     // Create a new session
-    const sessionManager = SessionManager.getInstance();
-    const newSession = sessionManager.createSession('New Session');
+    const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+    const newSession = await sessionManager.createSession('New Session');
 
     // Manually set a contextId for the new session to simulate previous conversation
-    sessionManager.updateSessionMessages(newSession.id, [], 'existing-context-123');
+    await sessionManager.updateSessionMessages(newSession.id, [], 'existing-context-123');
 
     // Switch to the new session (this would normally be done via UI)
-    sessionManager.setActiveSession(newSession.id);
+    await sessionManager.setActiveSession(newSession.id);
 
     // Force re-render by changing a prop
     const { rerender } = render(
@@ -134,27 +141,27 @@ describe('MultiSessionChat contextId handling', () => {
     });
 
     // Verify that the new session has its own contextId
-    await waitFor(() => {
-      const session = sessionManager.getSession(newSession.id);
+    await waitFor(async () => {
+      const session = await sessionManager.getSession(newSession.id);
       expect(session?.contextId).toBe('existing-context-123');
     });
   });
 
   it('should handle multiple session switches correctly', async () => {
-    const sessionManager = SessionManager.getInstance();
+    const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
 
     // Create multiple sessions with different contextIds
-    const session1 = sessionManager.createSession('Session 1');
-    sessionManager.updateSessionMessages(session1.id, [], 'context-111');
+    const session1 = await sessionManager.createSession('Session 1');
+    await sessionManager.updateSessionMessages(session1.id, [], 'context-111');
 
-    const session2 = sessionManager.createSession('Session 2');
-    sessionManager.updateSessionMessages(session2.id, [], 'context-222');
+    const session2 = await sessionManager.createSession('Session 2');
+    await sessionManager.updateSessionMessages(session2.id, [], 'context-222');
 
-    const session3 = sessionManager.createSession('Session 3');
-    sessionManager.updateSessionMessages(session3.id, [], 'context-333');
+    const session3 = await sessionManager.createSession('Session 3');
+    await sessionManager.updateSessionMessages(session3.id, [], 'context-333');
 
     // Start with session1
-    sessionManager.setActiveSession(session1.id);
+    await sessionManager.setActiveSession(session1.id);
 
     const { rerender } = render(
       <MultiSessionChat
@@ -172,11 +179,11 @@ describe('MultiSessionChat contextId handling', () => {
     });
 
     // Verify session1 has correct contextId
-    const s1 = sessionManager.getSession(session1.id);
+    const s1 = await sessionManager.getSession(session1.id);
     expect(s1?.contextId).toBe('context-111');
 
     // Switch to session2
-    sessionManager.setActiveSession(session2.id);
+    await sessionManager.setActiveSession(session2.id);
     rerender(
       <MultiSessionChat
         config={{
@@ -192,11 +199,11 @@ describe('MultiSessionChat contextId handling', () => {
     });
 
     // Verify session2 has correct contextId
-    const s2 = sessionManager.getSession(session2.id);
+    const s2 = await sessionManager.getSession(session2.id);
     expect(s2?.contextId).toBe('context-222');
 
     // Switch to session3
-    sessionManager.setActiveSession(session3.id);
+    await sessionManager.setActiveSession(session3.id);
     rerender(
       <MultiSessionChat
         config={{
@@ -212,11 +219,11 @@ describe('MultiSessionChat contextId handling', () => {
     });
 
     // Verify session3 has correct contextId
-    const s3 = sessionManager.getSession(session3.id);
+    const s3 = await sessionManager.getSession(session3.id);
     expect(s3?.contextId).toBe('context-333');
 
     // Switch back to session1
-    sessionManager.setActiveSession(session1.id);
+    await sessionManager.setActiveSession(session1.id);
     rerender(
       <MultiSessionChat
         config={{
@@ -232,7 +239,7 @@ describe('MultiSessionChat contextId handling', () => {
     });
 
     // Verify session1 still has correct contextId
-    const s1Again = sessionManager.getSession(session1.id);
+    const s1Again = await sessionManager.getSession(session1.id);
     expect(s1Again?.contextId).toBe('context-111');
   });
 });

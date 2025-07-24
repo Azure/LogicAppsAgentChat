@@ -20,13 +20,18 @@ export * from './plugins';
 
 // Export utils
 export * from './utils/popup-window';
+export {
+  getAgentMessagesStorageKey,
+  getAgentContextStorageKey,
+  getAgentStorageIdentifier,
+} from './utils/storage-keys';
 
 // Re-export commonly used items at top level for convenience
 export { A2AClient } from './client/a2a-client';
 export { AgentDiscovery } from './discovery/agent-discovery';
 export { HttpClient } from './client/http-client';
 export { SSEClient } from './streaming/sse-client';
-export { SessionManager } from './session/session-manager';
+export { SessionManager, LocalStoragePlugin } from './session/session-manager';
 export { ChatInterface } from './chat/chat-interface';
 export { PluginManager } from './plugins/plugin-manager';
 export { AnalyticsPlugin, LoggerPlugin } from './plugins';

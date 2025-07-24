@@ -1,4 +1,6 @@
 import { Message } from '@microsoft/a2achat-core/react';
+import { IndexedDBStorageAdapter } from '../lib/storage/indexeddb-storage-adapter';
+import { getAgentStorageIdentifier } from '@microsoft/a2achat-core';
 
 export interface ChatSession {
   id: string;
@@ -18,23 +20,70 @@ export interface SessionMetadata {
   lastMessage?: string;
 }
 
-const SESSIONS_KEY = 'a2a-chat-sessions';
-const ACTIVE_SESSION_KEY = 'a2a-active-session';
-
 export class SessionManager {
-  private static instance: SessionManager;
+  private static instances: Map<string, SessionManager> = new Map();
+  private storage: IndexedDBStorageAdapter;
+  private initPromise: Promise<void>;
+  private sessionsKey: string;
+  private activeSessionKey: string;
+  private agentUrl: string;
 
-  private constructor() {}
-
-  static getInstance(): SessionManager {
-    if (!SessionManager.instance) {
-      SessionManager.instance = new SessionManager();
-    }
-    return SessionManager.instance;
+  private constructor(agentUrl: string) {
+    this.agentUrl = agentUrl;
+    const agentId = getAgentStorageIdentifier(agentUrl);
+    this.sessionsKey = `a2a-chat-sessions-${agentId}`;
+    this.activeSessionKey = `a2a-active-session-${agentId}`;
+    this.storage = new IndexedDBStorageAdapter();
+    this.initPromise = this.migrateFromLocalStorage();
   }
 
-  getAllSessions(): SessionMetadata[] {
-    const sessionsData = localStorage.getItem(SESSIONS_KEY);
+  static getInstance(agentUrl: string): SessionManager {
+    if (!SessionManager.instances.has(agentUrl)) {
+      SessionManager.instances.set(agentUrl, new SessionManager(agentUrl));
+    }
+    return SessionManager.instances.get(agentUrl)!;
+  }
+
+  private async migrateFromLocalStorage(): Promise<void> {
+    try {
+      // Try to migrate from old non-agent-specific keys first
+      const oldSessionsKey = 'a2a-chat-sessions';
+      const oldActiveKey = 'a2a-active-session';
+
+      // Check if there's existing data in localStorage to migrate
+      const sessionsData = localStorage.getItem(oldSessionsKey);
+      const activeSessionId = localStorage.getItem(oldActiveKey);
+
+      if (sessionsData) {
+        // Migrate sessions to IndexedDB with agent-specific key
+        await this.storage.setItem(this.sessionsKey, sessionsData);
+        localStorage.removeItem(oldSessionsKey);
+        console.log(
+          `[SessionManager] Migrated sessions from localStorage to IndexedDB for agent: ${this.agentUrl}`
+        );
+      }
+
+      if (activeSessionId) {
+        // Migrate active session with agent-specific key
+        await this.storage.setItem(this.activeSessionKey, activeSessionId);
+        localStorage.removeItem(oldActiveKey);
+        console.log(
+          `[SessionManager] Migrated active session from localStorage to IndexedDB for agent: ${this.agentUrl}`
+        );
+      }
+    } catch (error) {
+      console.error('[SessionManager] Migration error:', error);
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    await this.initPromise;
+  }
+
+  async getAllSessions(): Promise<SessionMetadata[]> {
+    await this.ensureInitialized();
+
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
     if (!sessionsData) {
       return [];
     }
@@ -69,17 +118,19 @@ export class SessionManager {
           };
         })
         .filter((session) => session.id) // Filter out any sessions without ID
-        .sort((a, b) => b.updatedAt - a.updatedAt);
+        .sort((a, b) => b.createdAt - a.createdAt); // Sort by creation time to maintain stable order
     } catch (error) {
       console.error('Error parsing sessions:', error);
       return [];
     }
   }
 
-  getSession(sessionId: string): ChatSession | null {
+  async getSession(sessionId: string): Promise<ChatSession | null> {
     if (!sessionId) return null;
 
-    const sessionsData = localStorage.getItem(SESSIONS_KEY);
+    await this.ensureInitialized();
+
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
     if (!sessionsData) return null;
 
     try {
@@ -102,7 +153,9 @@ export class SessionManager {
     }
   }
 
-  createSession(name?: string): ChatSession {
+  async createSession(name?: string): Promise<ChatSession> {
+    await this.ensureInitialized();
+
     const sessionId = this.generateSessionId();
     const now = Date.now();
 
@@ -115,85 +168,137 @@ export class SessionManager {
       updatedAt: now,
     };
 
-    console.log('[SessionManager] Creating new session:', sessionId);
-    this.saveSession(newSession);
-    this.setActiveSession(sessionId);
+    console.log(`[SessionManager] Creating new session for ${this.agentUrl}:`, sessionId);
+    await this.saveSession(newSession);
+    await this.setActiveSession(sessionId);
 
     // Debug: Log all sessions after creation
-    const allSessions = this.getAllSessions();
-    console.log('[SessionManager] Total sessions after creation:', allSessions.length);
+    const allSessions = await this.getAllSessions();
     console.log(
-      '[SessionManager] All session IDs:',
+      `[SessionManager] Total sessions after creation for ${this.agentUrl}:`,
+      allSessions.length
+    );
+    console.log(
+      `[SessionManager] All session IDs for ${this.agentUrl}:`,
       allSessions.map((s) => s.id)
     );
 
     return newSession;
   }
 
-  saveSession(session: ChatSession): void {
-    const sessionsData = localStorage.getItem(SESSIONS_KEY);
+  async saveSession(session: ChatSession): Promise<void> {
+    await this.ensureInitialized();
+
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
     const sessions = sessionsData ? JSON.parse(sessionsData) : {};
 
-    console.log('[SessionManager] Before save - existing sessions:', Object.keys(sessions));
+    console.log(
+      `[SessionManager] Before save - existing sessions for ${this.agentUrl}:`,
+      Object.keys(sessions)
+    );
 
     sessions[session.id] = {
       ...session,
       updatedAt: Date.now(),
     };
 
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+    await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
 
-    console.log('[SessionManager] After save - all sessions:', Object.keys(sessions));
+    console.log(
+      `[SessionManager] After save - all sessions for ${this.agentUrl}:`,
+      Object.keys(sessions)
+    );
   }
 
-  updateSessionMessages(sessionId: string, messages: Message[], contextId?: string): void {
-    const session = this.getSession(sessionId);
+  async updateSessionMessages(
+    sessionId: string,
+    messages: Message[],
+    contextId?: string
+  ): Promise<void> {
+    const session = await this.getSession(sessionId);
     if (!session) return;
+
+    // Only update if messages have actually changed
+    const messagesChanged = JSON.stringify(session.messages) !== JSON.stringify(messages);
+    const contextIdChanged = contextId && !session.contextId;
+
+    if (!messagesChanged && !contextIdChanged) {
+      return; // No changes, don't update
+    }
 
     session.messages = messages;
     if (contextId && !session.contextId) {
       session.contextId = contextId;
     }
 
-    this.saveSession(session);
+    await this.saveSession(session);
   }
 
-  renameSession(sessionId: string, newName: string): void {
-    const session = this.getSession(sessionId);
+  async updateSessionContextId(sessionId: string, contextId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session) return;
+
+    // Only update if contextId is actually changing
+    if (session.contextId === contextId) {
+      return; // No change
+    }
+
+    session.contextId = contextId;
+
+    // Save without updating updatedAt since this is just metadata
+    await this.ensureInitialized();
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
+    const sessions = sessionsData ? JSON.parse(sessionsData) : {};
+
+    sessions[session.id] = session; // Don't update updatedAt
+    await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
+  }
+
+  async renameSession(sessionId: string, newName: string): Promise<void> {
+    const session = await this.getSession(sessionId);
     if (!session) return;
 
     session.name = newName;
-    this.saveSession(session);
+    await this.saveSession(session);
   }
 
-  deleteSession(sessionId: string): void {
-    const sessionsData = localStorage.getItem(SESSIONS_KEY);
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.ensureInitialized();
+
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
     if (!sessionsData) return;
 
     try {
       const sessions = JSON.parse(sessionsData);
       delete sessions[sessionId];
-      localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+      await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
 
       // If this was the active session, clear it
-      const activeSessionId = this.getActiveSessionId();
+      const activeSessionId = await this.getActiveSessionId();
       if (activeSessionId === sessionId) {
-        localStorage.removeItem(ACTIVE_SESSION_KEY);
+        await this.storage.removeItem(this.activeSessionKey);
       }
     } catch (error) {
       console.error('Error deleting session:', error);
     }
   }
 
-  getActiveSessionId(): string | null {
-    return localStorage.getItem(ACTIVE_SESSION_KEY);
+  async getActiveSessionId(): Promise<string | null> {
+    await this.ensureInitialized();
+    return await this.storage.getItem(this.activeSessionKey);
   }
 
-  setActiveSession(sessionId: string): void {
-    localStorage.setItem(ACTIVE_SESSION_KEY, sessionId);
+  async setActiveSession(sessionId: string): Promise<void> {
+    await this.ensureInitialized();
+    await this.storage.setItem(this.activeSessionKey, sessionId);
   }
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // For testing purposes only
+  static clearAllSessions(): void {
+    SessionManager.instances.clear();
   }
 }

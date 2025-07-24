@@ -277,7 +277,13 @@ describe('useA2A', () => {
 
   it('should persist messages to localStorage when persistSession is enabled', async () => {
     const sessionKey = 'test-session';
-    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+    const { result } = renderHook(() =>
+      useA2A({
+        persistSession: true,
+        sessionKey,
+        agentUrl: 'http://example.com/.well-known/agent.json',
+      })
+    );
 
     // Setup localStorage mock
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
@@ -306,10 +312,11 @@ describe('useA2A', () => {
     });
 
     // Verify localStorage was called with messages
-    expect(setItemSpy).toHaveBeenCalledWith(`a2a-messages-${sessionKey}`, expect.any(String));
+    const expectedKey = `a2a-messages-example-com-${sessionKey}`;
+    expect(setItemSpy).toHaveBeenCalledWith(expectedKey, expect.any(String));
 
     // Verify messages were stored
-    const storedMessages = JSON.parse(localStorage.getItem(`a2a-messages-${sessionKey}`) || '[]');
+    const storedMessages = JSON.parse(localStorage.getItem(expectedKey) || '[]');
     expect(storedMessages).toHaveLength(2);
     expect(storedMessages[0].content).toBe('Test message');
     expect(storedMessages[1].content).toBe('Response to persist');
@@ -320,6 +327,8 @@ describe('useA2A', () => {
 
   it('should restore messages from localStorage on mount', async () => {
     const sessionKey = 'test-session';
+    const agentUrl = 'http://example.com/.well-known/agent.json';
+    const storageKey = `a2a-messages-example-com-${sessionKey}`;
     const storedMessages = [
       {
         id: 'stored-1',
@@ -336,9 +345,15 @@ describe('useA2A', () => {
     ];
 
     // Setup localStorage with existing messages
-    localStorage.setItem(`a2a-messages-${sessionKey}`, JSON.stringify(storedMessages));
+    localStorage.setItem(storageKey, JSON.stringify(storedMessages));
 
-    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+    const { result } = renderHook(() =>
+      useA2A({
+        persistSession: true,
+        sessionKey,
+        agentUrl,
+      })
+    );
 
     // Connect to load messages from localStorage
     await act(async () => {
@@ -375,8 +390,8 @@ describe('useA2A', () => {
     });
 
     // Verify localStorage was cleared
-    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-messages-${sessionKey}`);
-    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-context-${sessionKey}`);
+    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-messages-example-com-${sessionKey}`);
+    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-context-example-com-${sessionKey}`);
     expect(result.current.messages).toHaveLength(0);
 
     removeItemSpy.mockRestore();
@@ -474,9 +489,16 @@ describe('useA2A', () => {
 
   it('should persist context ID to localStorage', async () => {
     const sessionKey = 'test-context';
-    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
+    const agentUrl = 'http://example.com/.well-known/agent.json';
+    const { result } = renderHook(() =>
+      useA2A({
+        persistSession: true,
+        sessionKey,
+        agentUrl,
+      })
+    );
 
-    localStorage.setItem(`a2a-context-${sessionKey}`, 'stored-context-id');
+    localStorage.setItem(`a2a-context-example-com-${sessionKey}`, 'stored-context-id');
 
     // Mock stream response
     mockStreamReturnValue = {
@@ -501,7 +523,7 @@ describe('useA2A', () => {
     });
 
     // Context should be persisted
-    expect(localStorage.getItem(`a2a-context-${sessionKey}`)).toBeTruthy();
+    expect(localStorage.getItem(`a2a-context-example-com-${sessionKey}`)).toBeTruthy();
 
     localStorage.clear();
   });

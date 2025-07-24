@@ -20,6 +20,7 @@ interface UseChatWidgetProps {
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
   sessionKey?: string;
+  agentUrl?: string;
   apiKey?: string;
 }
 
@@ -31,6 +32,7 @@ export function useChatWidget({
   onAuthRequired,
   onUnauthorized,
   sessionKey,
+  agentUrl,
   apiKey,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
@@ -47,6 +49,9 @@ export function useChatWidget({
     setAuthRequired,
     clearMessages: clearLocalMessages,
   } = useChatStore();
+
+  // Get agent URL from props or derive from agentCard
+  const derivedAgentUrl = agentUrl || (typeof agentCard === 'string' ? agentCard : agentCard?.url);
 
   const {
     isConnected,
@@ -65,6 +70,7 @@ export function useChatWidget({
           auth,
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
+          agentUrl: derivedAgentUrl,
           onAuthRequired: (event: AuthRequiredEvent) => {
             setAuthRequired(event, contextIdRef.current);
             return onAuthRequired?.(event);
@@ -75,6 +81,7 @@ export function useChatWidget({
       : {
           persistSession: true,
           sessionKey: sessionKey || 'a2a-chat-session',
+          agentUrl: derivedAgentUrl,
           onAuthRequired: (event: AuthRequiredEvent) => {
             setAuthRequired(event, contextIdRef.current);
             return onAuthRequired?.(event);

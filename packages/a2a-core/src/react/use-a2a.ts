@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { A2AClient } from '../client/a2a-client';
 import type { AgentCard, Part as A2APart } from '../types';
 import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../client/types';
+import { getAgentMessagesStorageKey, getAgentContextStorageKey } from '../utils/storage-keys';
 
 export interface ChatMessage {
   id: string;
@@ -23,6 +24,7 @@ export interface UseA2AOptions {
   auth?: AuthConfig;
   persistSession?: boolean;
   sessionKey?: string;
+  agentUrl?: string; // Added to generate agent-specific storage keys
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
@@ -63,11 +65,31 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
   const contextIdRef = useRef<string | undefined>(undefined);
   const authMessageIdRef = useRef<string | undefined>(undefined);
   const authTaskIdRef = useRef<string | undefined>(undefined);
+  const currentAgentUrlRef = useRef<string | undefined>(undefined);
+
+  // Helper functions for storage keys
+  const getMessagesStorageKey = useCallback(() => {
+    if (!options.sessionKey) return null;
+    return currentAgentUrlRef.current
+      ? getAgentMessagesStorageKey(currentAgentUrlRef.current, options.sessionKey)
+      : `a2a-messages-${options.sessionKey}`;
+  }, [options.sessionKey]);
+
+  const getContextStorageKey = useCallback(() => {
+    if (!options.sessionKey) return null;
+    return currentAgentUrlRef.current
+      ? getAgentContextStorageKey(currentAgentUrlRef.current, options.sessionKey)
+      : `a2a-context-${options.sessionKey}`;
+  }, [options.sessionKey]);
 
   const connect = useCallback(
     async (card: AgentCard) => {
       try {
         setError(undefined);
+
+        // Get agent URL from card
+        const agentUrl = typeof card === 'string' ? card : card.url;
+        currentAgentUrlRef.current = options.agentUrl || agentUrl;
 
         // Create A2A client
         const clientConfig: any = {
@@ -115,10 +137,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
             // Persist messages
             if (options.persistSession && options.sessionKey) {
-              localStorage.setItem(
-                `a2a-messages-${options.sessionKey}`,
-                JSON.stringify(newMessages)
-              );
+              const storageKey = getMessagesStorageKey();
+              if (storageKey) {
+                localStorage.setItem(storageKey, JSON.stringify(newMessages));
+              }
             }
 
             return newMessages;
@@ -149,8 +171,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         // Load session if persistence is enabled
         if (options.persistSession && options.sessionKey) {
-          const savedMessages = localStorage.getItem(`a2a-messages-${options.sessionKey}`);
-          const savedContextId = localStorage.getItem(`a2a-context-${options.sessionKey}`);
+          const messagesKey = getMessagesStorageKey();
+          const contextKey = getContextStorageKey();
+          const savedMessages = messagesKey ? localStorage.getItem(messagesKey) : null;
+          const savedContextId = contextKey ? localStorage.getItem(contextKey) : null;
 
           if (savedMessages) {
             try {
@@ -184,7 +208,14 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         throw err;
       }
     },
-    [options.auth, options.persistSession, options.sessionKey]
+    [
+      options.auth,
+      options.persistSession,
+      options.sessionKey,
+      options.agentUrl,
+      getMessagesStorageKey,
+      getContextStorageKey,
+    ]
   );
 
   const disconnect = useCallback(() => {
@@ -219,7 +250,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         // Persist messages immediately when user message is added
         if (options.persistSession && options.sessionKey) {
-          localStorage.setItem(`a2a-messages-${options.sessionKey}`, JSON.stringify(newMessages));
+          const storageKey = getMessagesStorageKey();
+          if (storageKey) {
+            localStorage.setItem(storageKey, JSON.stringify(newMessages));
+          }
         }
 
         return newMessages;
@@ -258,7 +292,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
               // Persist context ID immediately when captured
               if (options.persistSession && options.sessionKey) {
-                localStorage.setItem(`a2a-context-${options.sessionKey}`, contextIdRef.current);
+                const contextKey = getContextStorageKey();
+                if (contextKey) {
+                  localStorage.setItem(contextKey, contextIdRef.current);
+                }
               }
             }
           }
@@ -315,10 +352,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                       // Persist messages when content is updated
                       if (options.persistSession && options.sessionKey) {
-                        localStorage.setItem(
-                          `a2a-messages-${options.sessionKey}`,
-                          JSON.stringify(updatedMessages)
-                        );
+                        const storageKey = getMessagesStorageKey();
+                        if (storageKey) {
+                          localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+                        }
                       }
 
                       return updatedMessages;
@@ -343,10 +380,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                     // Persist messages when assistant message is added
                     if (options.persistSession && options.sessionKey) {
-                      localStorage.setItem(
-                        `a2a-messages-${options.sessionKey}`,
-                        JSON.stringify(newMessages)
-                      );
+                      const storageKey = getMessagesStorageKey();
+                      if (storageKey) {
+                        localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                      }
                     }
 
                     return newMessages;
@@ -385,10 +422,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                           // Persist messages when artifact message is added
                           if (options.persistSession && options.sessionKey) {
-                            localStorage.setItem(
-                              `a2a-messages-${options.sessionKey}`,
-                              JSON.stringify(newMessages)
-                            );
+                            const storageKey = getMessagesStorageKey();
+                            if (storageKey) {
+                              localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                            }
                           }
 
                           return newMessages;
@@ -414,10 +451,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                       // Persist messages when artifact message is added
                       if (options.persistSession && options.sessionKey) {
-                        localStorage.setItem(
-                          `a2a-messages-${options.sessionKey}`,
-                          JSON.stringify(newMessages)
-                        );
+                        const storageKey = getMessagesStorageKey();
+                        if (storageKey) {
+                          localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                        }
                       }
 
                       return newMessages;
@@ -437,10 +474,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
               // Persist messages when streaming state updates
               if (options.persistSession && options.sessionKey) {
-                localStorage.setItem(
-                  `a2a-messages-${options.sessionKey}`,
-                  JSON.stringify(newMessages)
-                );
+                const storageKey = getMessagesStorageKey();
+                if (storageKey) {
+                  localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                }
               }
 
               return newMessages;
@@ -454,7 +491,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         setIsLoading(false);
       }
     },
-    [options.persistSession, options.sessionKey]
+    [options.persistSession, options.sessionKey, getMessagesStorageKey]
   );
 
   const clearMessages = useCallback(() => {
@@ -462,10 +499,12 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     contextIdRef.current = undefined; // Clear context ID for new session
 
     if (options.persistSession && options.sessionKey) {
-      localStorage.removeItem(`a2a-messages-${options.sessionKey}`);
-      localStorage.removeItem(`a2a-context-${options.sessionKey}`);
+      const messagesKey = getMessagesStorageKey();
+      const contextKey = getContextStorageKey();
+      if (messagesKey) localStorage.removeItem(messagesKey);
+      if (contextKey) localStorage.removeItem(contextKey);
     }
-  }, [options.persistSession, options.sessionKey]);
+  }, [options.persistSession, options.sessionKey, getMessagesStorageKey, getContextStorageKey]);
 
   const sendAuthenticationCompleted = useCallback(async () => {
     if (!clientRef.current) {
@@ -505,10 +544,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
           // Persist messages
           if (options.persistSession && options.sessionKey) {
-            localStorage.setItem(
-              `a2a-messages-${options.sessionKey}`,
-              JSON.stringify(updatedMessages)
-            );
+            const storageKey = getMessagesStorageKey();
+            if (storageKey) {
+              localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+            }
           }
 
           return updatedMessages;
@@ -525,7 +564,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
             // Persist context ID
             if (options.persistSession && options.sessionKey) {
-              localStorage.setItem(`a2a-context-${options.sessionKey}`, contextIdRef.current);
+              const contextKey = getContextStorageKey();
+              if (contextKey) {
+                localStorage.setItem(contextKey, contextIdRef.current);
+              }
             }
           }
         }
@@ -571,10 +613,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                   // Persist messages
                   if (options.persistSession && options.sessionKey) {
-                    localStorage.setItem(
-                      `a2a-messages-${options.sessionKey}`,
-                      JSON.stringify(updatedMessages)
-                    );
+                    const storageKey = getMessagesStorageKey();
+                    if (storageKey) {
+                      localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+                    }
                   }
 
                   return updatedMessages;
@@ -595,10 +637,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
                   // Persist messages
                   if (options.persistSession && options.sessionKey) {
-                    localStorage.setItem(
-                      `a2a-messages-${options.sessionKey}`,
-                      JSON.stringify(newMessages)
-                    );
+                    const storageKey = getMessagesStorageKey();
+                    if (storageKey) {
+                      localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                    }
                   }
 
                   return newMessages;
@@ -641,10 +683,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
           // Persist messages
           if (options.persistSession && options.sessionKey) {
-            localStorage.setItem(
-              `a2a-messages-${options.sessionKey}`,
-              JSON.stringify(updatedMessages)
-            );
+            const storageKey = getMessagesStorageKey();
+            if (storageKey) {
+              localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+            }
           }
 
           return updatedMessages;
@@ -656,7 +698,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       // Always clear loading state
       setIsLoading(false);
     }
-  }, [options.persistSession, options.sessionKey]);
+  }, [options.persistSession, options.sessionKey, getMessagesStorageKey, getContextStorageKey]);
 
   return {
     isConnected,

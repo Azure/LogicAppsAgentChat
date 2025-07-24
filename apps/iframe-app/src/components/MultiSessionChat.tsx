@@ -11,7 +11,9 @@ import {
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { useChatSessions } from '../hooks/useChatSessions';
+import { useStorageSync } from '../hooks/useStorageSync';
 import { SessionList } from './SessionList';
+import { SessionManager } from '../utils/sessionManager';
 
 const useStyles = makeStyles({
   multiSessionContainer: {
@@ -112,8 +114,7 @@ export function MultiSessionChat({
     switchSession,
     renameSession,
     deleteSession,
-    updateSessionMessages,
-  } = useChatSessions();
+  } = useChatSessions(config.apiUrl);
 
   // Check screen size and auto-collapse on small screens
   useEffect(() => {
@@ -231,25 +232,42 @@ export function MultiSessionChat({
     };
   }, [config.apiUrl]);
 
-  const handleNewSession = useCallback(() => {
-    createNewSession();
+  const handleNewSession = useCallback(async () => {
+    try {
+      await createNewSession();
+    } catch (error) {
+      console.error('Error creating new session:', error);
+    }
   }, [createNewSession]);
 
   const handleSessionClick = useCallback(
-    (sessionId: string) => {
-      switchSession(sessionId);
+    async (sessionId: string) => {
+      try {
+        await switchSession(sessionId);
+      } catch (error) {
+        console.error('Error switching session:', error);
+      }
     },
     [switchSession]
   );
 
+  // Use storage sync for IndexedDB
+  const sessionStorageKey = activeSessionId ? `a2a-chat-session-${activeSessionId}` : '';
+  useStorageSync(config.apiUrl, sessionStorageKey);
+
   const handleContextIdChange = useCallback(
-    (contextId: string) => {
+    async (contextId: string) => {
       if (activeSessionId) {
         // Update the session with the new contextId
-        updateSessionMessages([], contextId);
+        try {
+          const sessionManager = SessionManager.getInstance(config.apiUrl);
+          await sessionManager.updateSessionContextId(activeSessionId, contextId);
+        } catch (error) {
+          console.error('Error updating contextId:', error);
+        }
       }
     },
-    [activeSessionId, updateSessionMessages]
+    [activeSessionId, config.apiUrl]
   );
 
   // Show loading state while fetching agent card
@@ -304,8 +322,20 @@ export function MultiSessionChat({
             activeSessionId={activeSessionId}
             onSessionClick={handleSessionClick}
             onNewSession={handleNewSession}
-            onRenameSession={renameSession}
-            onDeleteSession={deleteSession}
+            onRenameSession={async (id, name) => {
+              try {
+                await renameSession(id, name);
+              } catch (error) {
+                console.error('Error renaming session:', error);
+              }
+            }}
+            onDeleteSession={async (id) => {
+              try {
+                await deleteSession(id);
+              } catch (error) {
+                console.error('Error deleting session:', error);
+              }
+            }}
             logoUrl={chatWidgetProps.theme?.branding?.logoUrl}
             logoSize={chatWidgetProps.theme?.branding?.logoSize}
             themeColors={chatWidgetProps.theme?.colors}
@@ -332,6 +362,7 @@ export function MultiSessionChat({
               agentCard={agentCard}
               apiKey={config.apiKey}
               sessionKey={`a2a-chat-session-${activeSessionId}`}
+              agentUrl={config.apiUrl}
               metadata={{
                 ...chatWidgetProps.metadata,
                 sessionId: activeSessionId,

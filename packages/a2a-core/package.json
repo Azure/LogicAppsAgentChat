@@ -88,6 +88,7 @@
     "@fluentui/react-components": "^9.66.7",
     "@fluentui/react-icons": "^2.0.306",
     "eventemitter3": "^5.0.1",
+    "idb": "^8.0.3",
     "immer": "^10.1.1",
     "marked": "^9.0.0",
     "marked-highlight": "^2.0.0",

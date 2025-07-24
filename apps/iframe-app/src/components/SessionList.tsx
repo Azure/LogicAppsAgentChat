@@ -158,10 +158,10 @@ const useStyles = makeStyles({
 interface SessionListProps {
   sessions: SessionMetadata[];
   activeSessionId: string | null;
-  onSessionClick: (sessionId: string) => void;
-  onNewSession: () => void;
-  onRenameSession: (sessionId: string, newName: string) => void;
-  onDeleteSession: (sessionId: string) => void;
+  onSessionClick: (sessionId: string) => void | Promise<void>;
+  onNewSession: () => void | Promise<void>;
+  onRenameSession: (sessionId: string, newName: string) => void | Promise<void>;
+  onDeleteSession: (sessionId: string) => void | Promise<void>;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   themeColors?: ChatTheme['colors'];

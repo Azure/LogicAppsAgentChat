@@ -108,13 +108,24 @@ describe('SessionManager', () => {
       const manager = new SessionManager();
       manager.set('test', 'value');
 
-      // Wait for async save
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Manually save since auto-save might be debounced
+      await manager.save();
 
       expect(mockLocalStorage.setItem).toHaveBeenCalled();
-      const lastCall =
-        mockLocalStorage.setItem.mock.calls[mockLocalStorage.setItem.mock.calls.length - 1];
-      const [key, value] = lastCall;
+
+      // Find the call that contains our test data
+      const calls = mockLocalStorage.setItem.mock.calls;
+      const dataCall = calls.find(([key, value]) => {
+        try {
+          const parsed = JSON.parse(value);
+          return parsed.data && parsed.data.test === 'value';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(dataCall).toBeDefined();
+      const [key, value] = dataCall!;
       expect(key).toContain('a2a-session');
 
       const stored = JSON.parse(value);
@@ -122,13 +133,17 @@ describe('SessionManager', () => {
     });
 
     it('should use sessionStorage when specified', async () => {
+      // Clear mocks before this test to avoid interference
+      vi.clearAllMocks();
+
       const manager = new SessionManager({
         storage: 'session',
+        autoSave: false, // Disable auto-save to prevent initial save
       });
-      manager.set('test', 'value');
 
-      // Wait for async save
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Now manually trigger a save with data
+      manager.set('test', 'value');
+      await manager.save();
 
       expect(mockSessionStorage.setItem).toHaveBeenCalled();
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
@@ -141,13 +156,13 @@ describe('SessionManager', () => {
       });
       manager.set('test', 'value');
 
-      // Wait for async save
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Manually save
+      await manager.save();
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(customKey, expect.any(String));
     });
 
-    it('should load existing session from storage', () => {
+    it('should load existing session from storage', async () => {
       const existingSession: SessionData = {
         id: 'existing-123',
         createdAt: new Date('2024-01-01'),
@@ -167,6 +182,7 @@ describe('SessionManager', () => {
       );
 
       const manager = new SessionManager();
+      await manager.waitForInit();
       const session = manager.getSession();
 
       expect(session.id).toBe('existing-123');
@@ -214,7 +230,7 @@ describe('SessionManager', () => {
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
 
-    it('should manually save when auto-save is disabled', () => {
+    it('should manually save when auto-save is disabled', async () => {
       const manager = new SessionManager({
         autoSave: false,
       });
@@ -222,7 +238,7 @@ describe('SessionManager', () => {
       manager.set('test', 'value');
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
 
-      manager.save();
+      await manager.save();
       expect(mockLocalStorage.setItem).toHaveBeenCalled();
     });
   });
@@ -268,11 +284,11 @@ describe('SessionManager', () => {
   });
 
   describe('session lifecycle', () => {
-    it('should destroy session', () => {
+    it('should destroy session', async () => {
       const manager = new SessionManager();
       manager.set('data', 'value');
 
-      manager.destroy();
+      await manager.destroy();
 
       expect(mockLocalStorage.removeItem).toHaveBeenCalled();
       expect(manager.get('data')).toBeUndefined();
@@ -314,12 +330,12 @@ describe('SessionManager', () => {
       });
     });
 
-    it('should emit destroy event', () => {
+    it('should emit destroy event', async () => {
       const manager = new SessionManager();
       const destroyHandler = vi.fn();
 
       manager.on('destroy', destroyHandler);
-      manager.destroy();
+      await manager.destroy();
 
       expect(destroyHandler).toHaveBeenCalled();
     });

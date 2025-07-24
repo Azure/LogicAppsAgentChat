@@ -1,11 +1,37 @@
 import { EventEmitter } from 'eventemitter3';
-import type { SessionData, SessionOptions, SessionEventMap } from './types';
+import type { SessionData, SessionOptions, SessionEventMap, SessionStoragePlugin } from './types';
+
+// Default localStorage plugin implementation
+export class LocalStoragePlugin implements SessionStoragePlugin {
+  private storage: Storage;
+
+  constructor(type: 'local' | 'session' = 'local') {
+    this.storage = type === 'local' ? localStorage : sessionStorage;
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    return this.storage.getItem(key);
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    this.storage.setItem(key, value);
+  }
+
+  async removeItem(key: string): Promise<void> {
+    this.storage.removeItem(key);
+  }
+
+  async clear(): Promise<void> {
+    this.storage.clear();
+  }
+}
 
 export class SessionManager extends EventEmitter<SessionEventMap> {
-  private session: SessionData;
+  private session!: SessionData; // Will be initialized in constructor or initializeSession
   private options: Required<SessionOptions>;
-  private storage: Storage;
+  private storagePlugin: SessionStoragePlugin;
   private saveDebounceTimer?: NodeJS.Timeout;
+  private initPromise: Promise<void>;
 
   constructor(options: SessionOptions = {}) {
     super();
@@ -17,21 +43,31 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       autoSave: true,
       ttl: 0, // No expiration by default
       ...options,
-    };
+    } as Required<SessionOptions>;
 
-    this.storage = this.options.storage === 'local' ? localStorage : sessionStorage;
+    // Use provided storage plugin or create default one
+    this.storagePlugin = options.storagePlugin || new LocalStoragePlugin(this.options.storage);
 
-    // Load existing session or create new one
-    this.session = this.loadSession() || this.createSession();
+    // Create initial session synchronously
+    this.session = this.createSession();
 
-    // Save initial session if it's new and auto-save is enabled
-    if (!this.loadSession() && this.options.autoSave) {
-      this.persistSession();
-    }
+    // Initialize session asynchronously to load from storage
+    this.initPromise = this.initializeSession();
 
     // Listen for storage events from other tabs
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', this.handleStorageEvent);
+    }
+  }
+
+  private async initializeSession(): Promise<void> {
+    // Load existing session or create new one
+    const loadedSession = await this.loadSession();
+    this.session = loadedSession || this.createSession();
+
+    // Save initial session if it's new and auto-save is enabled
+    if (!loadedSession && this.options.autoSave) {
+      await this.persistSession();
     }
   }
 
@@ -55,9 +91,9 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     return session;
   }
 
-  private loadSession(): SessionData | null {
+  private async loadSession(): Promise<SessionData | null> {
     try {
-      const stored = this.storage.getItem(this.options.storageKey);
+      const stored = await this.storagePlugin.getItem(this.options.storageKey);
       if (!stored) return null;
 
       const parsed = JSON.parse(stored);
@@ -80,7 +116,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     }
   }
 
-  private persistSession(): void {
+  private async persistSession(): Promise<void> {
     const toStore = {
       ...this.session,
       createdAt: this.session.createdAt.toISOString(),
@@ -88,7 +124,7 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       expiresAt: this.session.expiresAt?.toISOString(),
     };
 
-    this.storage.setItem(this.options.storageKey, JSON.stringify(toStore));
+    await this.storagePlugin.setItem(this.options.storageKey, JSON.stringify(toStore));
   }
 
   private debouncedSave(): void {
@@ -127,6 +163,10 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
       // Ignore invalid data
     }
   };
+
+  async waitForInit(): Promise<void> {
+    await this.initPromise;
+  }
 
   getSession(): SessionData {
     return { ...this.session };
@@ -179,8 +219,8 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     }
   }
 
-  save(): void {
-    this.persistSession();
+  async save(): Promise<void> {
+    await this.persistSession();
   }
 
   rotate(preserveKeys: string[] = []): void {
@@ -202,8 +242,8 @@ export class SessionManager extends EventEmitter<SessionEventMap> {
     }
   }
 
-  destroy(): void {
-    this.storage.removeItem(this.options.storageKey);
+  async destroy(): Promise<void> {
+    await this.storagePlugin.removeItem(this.options.storageKey);
     this.session = this.createSession();
     this.emit('destroy');
   }
