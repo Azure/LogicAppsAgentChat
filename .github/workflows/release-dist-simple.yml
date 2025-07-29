@@ -45,7 +45,7 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
-      - name: Create iframe-app dist zip
+      - name: Create iframe-app dist files
         run: |
           cd apps/iframe-app
           # Ensure dist directory exists
@@ -65,6 +65,8 @@ jobs:
           cd ../..
           echo "Created distribution files:"
           ls -la a2achat-iframe-*.zip
+          echo "Contents of apps/iframe-app/dist:"
+          ls -la apps/iframe-app/dist/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -77,27 +79,40 @@ jobs:
             ## A2A Chat IFrame Distribution v${{ github.event.inputs.version }}
             
             ### Downloads
-            - `a2achat-iframe-${{ github.event.inputs.version }}.zip` - Versioned distribution
+            
+            #### Archive Files
+            - `a2achat-iframe-${{ github.event.inputs.version }}.zip` - Versioned distribution (ZIP)
             - `a2achat-iframe-latest.zip` - Same as above (for stable URLs)
             
+            #### Individual Files
+            All iframe distribution files are also available as individual downloads below.
+            
             ### Installation
+            
+            #### Option 1: Using ZIP file
             1. Download the zip file
             2. Extract to your web server
             3. Embed using an iframe:
             
             ```html
             <iframe 
-              src="path/to/dist/index.html?agentCard=YOUR_AGENT_URL" 
+              src="path/to/dist/iframe.html?agentCard=YOUR_AGENT_URL" 
               width="400" 
               height="600">
             </iframe>
             ```
+            
+            #### Option 2: Using individual files
+            1. Download all individual files (HTML, JS, CSS) from the assets below
+            2. Place them in the same directory on your web server
+            3. Embed using the iframe.html file
             
             ### Configuration
             See the [IFrame documentation](https://github.com/${{ github.repository }}/tree/main/apps/iframe-app) for all available configuration options.
           files: |
             a2achat-iframe-${{ github.event.inputs.version }}.zip
             a2achat-iframe-latest.zip
+            apps/iframe-app/dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -111,5 +126,6 @@ jobs:
           echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- a2achat-iframe-${{ github.event.inputs.version }}.zip" >> $GITHUB_STEP_SUMMARY
           echo "- a2achat-iframe-latest.zip" >> $GITHUB_STEP_SUMMARY
+          echo "- Individual files from apps/iframe-app/dist/" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "View the release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY

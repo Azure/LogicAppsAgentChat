@@ -95,7 +95,7 @@ jobs:
           echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
           echo "previous_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
-      - name: Create iframe-app dist zip
+      - name: Create iframe-app dist files
         run: |
           cd apps/iframe-app
           # Ensure dist directory exists
@@ -105,9 +105,12 @@ jobs:
           fi
           # Create zip file
           zip -r ../../iframe-app-dist-${{ steps.version.outputs.version }}.zip dist/
+          
           cd ../..
-          echo "Created iframe-app-dist-${{ steps.version.outputs.version }}.zip"
+          echo "Created distribution files:"
           ls -la iframe-app-dist-*.zip
+          echo "Contents of apps/iframe-app/dist:"
+          ls -la apps/iframe-app/dist/
 
       - name: Generate release notes
         id: release_notes
@@ -137,18 +140,32 @@ jobs:
           
           ${COMMITS:-No changes in iframe-app since last release}
           
+          ### Downloads
+          
+          #### Archive File
+          - \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\` - Distribution files (ZIP)
+          
+          #### Individual Files
+          All iframe distribution files are also available as individual downloads below.
+          
           ### Installation
           
+          #### Option 1: Using ZIP file
           1. Download \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\`
           2. Extract the contents to your web server
           3. The \`dist\` folder contains all necessary files to embed the chat widget
+          
+          #### Option 2: Using individual files
+          1. Download all individual files (HTML, JS, CSS) from the assets below
+          2. Place them in the same directory on your web server
+          3. Ensure all files are in the same directory to maintain proper references
           
           ### Usage
           
           Include the IFrame in your HTML:
           \`\`\`html
           <iframe 
-            src="path/to/dist/index.html?agentCard=YOUR_AGENT_URL" 
+            src="path/to/iframe.html?agentCard=YOUR_AGENT_URL" 
             width="400" 
             height="600">
           </iframe>
@@ -170,6 +187,7 @@ jobs:
           prerelease: false
           files: |
             iframe-app-dist-${{ steps.version.outputs.version }}.zip
+            apps/iframe-app/dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -184,7 +202,8 @@ jobs:
           echo "- **Previous Tag**: ${{ steps.version.outputs.previous_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\` - IFrame application distribution" >> $GITHUB_STEP_SUMMARY
+          echo "- \`iframe-app-dist-${{ steps.version.outputs.version }}.zip\` - IFrame application distribution (ZIP)" >> $GITHUB_STEP_SUMMARY
+          echo "- Individual files from apps/iframe-app/dist/" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Release Notes Preview" >> $GITHUB_STEP_SUMMARY
           cat release_notes.md >> $GITHUB_STEP_SUMMARY
