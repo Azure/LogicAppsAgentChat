@@ -10,10 +10,8 @@ import {
   mergeClasses,
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
-import { useChatSessions } from '../hooks/useChatSessions';
-import { useStorageSync } from '../hooks/useStorageSync';
+import { useServerSessions } from '../hooks/useServerSessions';
 import { SessionList } from './SessionList';
-import { SessionManager } from '../utils/sessionManager';
 
 const useStyles = makeStyles({
   multiSessionContainer: {
@@ -106,6 +104,10 @@ export function MultiSessionChat({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Only initialize server sessions after agent card is loaded
+  // Use the service endpoint from the agent card, not the agent card URL itself
+  const sessionApiUrl = agentCard?.url || '';
+
   const {
     sessions,
     activeSessionId,
@@ -114,7 +116,8 @@ export function MultiSessionChat({
     switchSession,
     renameSession,
     deleteSession,
-  } = useChatSessions(config.apiUrl);
+    updateSessionMessages,
+  } = useServerSessions(sessionApiUrl);
 
   // Check screen size and auto-collapse on small screens
   useEffect(() => {
@@ -251,23 +254,14 @@ export function MultiSessionChat({
     [switchSession]
   );
 
-  // Use storage sync for IndexedDB
-  const sessionStorageKey = activeSessionId ? `a2a-chat-session-${activeSessionId}` : '';
-  useStorageSync(config.apiUrl, sessionStorageKey);
-
   const handleContextIdChange = useCallback(
     async (contextId: string) => {
-      if (activeSessionId) {
-        // Update the session with the new contextId
-        try {
-          const sessionManager = SessionManager.getInstance(config.apiUrl);
-          await sessionManager.updateSessionContextId(activeSessionId, contextId);
-        } catch (error) {
-          console.error('Error updating contextId:', error);
-        }
+      if (activeSessionId && contextId) {
+        // Context ID updates are handled by the server
+        await updateSessionMessages([], contextId);
       }
     },
-    [activeSessionId, config.apiUrl]
+    [activeSessionId, updateSessionMessages]
   );
 
   // Show loading state while fetching agent card
@@ -361,7 +355,6 @@ export function MultiSessionChat({
               key={activeSessionId}
               agentCard={agentCard}
               apiKey={config.apiKey}
-              sessionKey={`a2a-chat-session-${activeSessionId}`}
               agentUrl={config.apiUrl}
               metadata={{
                 ...chatWidgetProps.metadata,

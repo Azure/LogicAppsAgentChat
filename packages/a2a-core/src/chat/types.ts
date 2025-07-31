@@ -14,7 +14,6 @@ export type ChatMessage = {
 
 export type ChatOptions = {
   conversationId?: string;
-  persistMessages?: boolean;
   context?: Record<string, unknown>;
   streamingEnabled?: boolean;
   maxHistorySize?: number;

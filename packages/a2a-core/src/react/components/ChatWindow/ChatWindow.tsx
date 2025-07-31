@@ -87,8 +87,6 @@ export function ChatWindow(props: ChatWindowProps) {
     onMessage,
     onConnectionChange,
     userName,
-    sessionKey,
-    agentUrl,
     onToggleSidebar,
     isSidebarCollapsed,
     apiKey,
@@ -114,8 +112,6 @@ export function ChatWindow(props: ChatWindowProps) {
     onMessage,
     onConnectionChange,
     onUnauthorized,
-    sessionKey,
-    agentUrl,
     apiKey,
   });
 

@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from 'react';
 import { A2AClient } from '../client/a2a-client';
 import type { AgentCard, Part as A2APart } from '../types';
 import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../client/types';
-import { getAgentMessagesStorageKey, getAgentContextStorageKey } from '../utils/storage-keys';
 
 export interface ChatMessage {
   id: string;
@@ -22,9 +21,7 @@ export interface ChatMessage {
 
 export interface UseA2AOptions {
   auth?: AuthConfig;
-  persistSession?: boolean;
-  sessionKey?: string;
-  agentUrl?: string; // Added to generate agent-specific storage keys
+  agentUrl?: string;
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
@@ -66,21 +63,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
   const authMessageIdRef = useRef<string | undefined>(undefined);
   const authTaskIdRef = useRef<string | undefined>(undefined);
   const currentAgentUrlRef = useRef<string | undefined>(undefined);
-
-  // Helper functions for storage keys
-  const getMessagesStorageKey = useCallback(() => {
-    if (!options.sessionKey) return null;
-    return currentAgentUrlRef.current
-      ? getAgentMessagesStorageKey(currentAgentUrlRef.current, options.sessionKey)
-      : `a2a-messages-${options.sessionKey}`;
-  }, [options.sessionKey]);
-
-  const getContextStorageKey = useCallback(() => {
-    if (!options.sessionKey) return null;
-    return currentAgentUrlRef.current
-      ? getAgentContextStorageKey(currentAgentUrlRef.current, options.sessionKey)
-      : `a2a-context-${options.sessionKey}`;
-  }, [options.sessionKey]);
 
   const connect = useCallback(
     async (card: AgentCard) => {
@@ -132,19 +114,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             },
           };
 
-          setMessages((prev) => {
-            const newMessages = [...prev, authMessage];
-
-            // Persist messages
-            if (options.persistSession && options.sessionKey) {
-              const storageKey = getMessagesStorageKey();
-              if (storageKey) {
-                localStorage.setItem(storageKey, JSON.stringify(newMessages));
-              }
-            }
-
-            return newMessages;
-          });
+          setMessages((prev) => [...prev, authMessage]);
 
           setAuthState({
             isRequired: true,
@@ -168,54 +138,12 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         setAgentCard(card);
         setIsConnected(true);
-
-        // Load session if persistence is enabled
-        if (options.persistSession && options.sessionKey) {
-          const messagesKey = getMessagesStorageKey();
-          const contextKey = getContextStorageKey();
-          const savedMessages = messagesKey ? localStorage.getItem(messagesKey) : null;
-          const savedContextId = contextKey ? localStorage.getItem(contextKey) : null;
-
-          if (savedMessages) {
-            try {
-              const parsedMessages = JSON.parse(savedMessages);
-              setMessages(parsedMessages);
-
-              // Find any auth messages (pending or completed) and update the ref
-              const authMessage = parsedMessages.find(
-                (msg: ChatMessage) =>
-                  msg.authEvent &&
-                  (msg.authEvent.status === 'pending' || msg.authEvent.status === 'completed')
-              );
-              if (authMessage) {
-                authMessageIdRef.current = authMessage.id;
-              }
-            } catch (e) {
-              console.error('Failed to load saved messages:', e);
-            }
-          }
-
-          if (savedContextId) {
-            try {
-              contextIdRef.current = savedContextId;
-            } catch (e) {
-              console.error('Failed to load saved context ID:', e);
-            }
-          }
-        }
       } catch (err) {
         setError(err as Error);
         throw err;
       }
     },
-    [
-      options.auth,
-      options.persistSession,
-      options.sessionKey,
-      options.agentUrl,
-      getMessagesStorageKey,
-      getContextStorageKey,
-    ]
+    [options.auth, options.agentUrl, options.onAuthRequired, options.apiKey, options.onUnauthorized]
   );
 
   const disconnect = useCallback(() => {
@@ -227,284 +155,202 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     setError(undefined);
   }, []);
 
-  const sendMessage = useCallback(
-    async (content: string) => {
-      if (!clientRef.current) {
-        throw new Error('Not connected to agent');
-      }
+  const sendMessage = useCallback(async (content: string) => {
+    if (!clientRef.current) {
+      throw new Error('Not connected to agent');
+    }
 
-      setIsLoading(true);
-      setError(undefined);
+    setIsLoading(true);
+    setError(undefined);
 
-      // Add user message with unique ID
-      const userMessageId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const userMessage: ChatMessage = {
-        id: userMessageId,
-        role: 'user',
-        content,
-        timestamp: new Date(),
+    // Add user message with unique ID
+    const userMessageId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const userMessage: ChatMessage = {
+      id: userMessageId,
+      role: 'user',
+      content,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      // Create message request with context ID if available
+      const messageRequest = {
+        message: {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'text' as const,
+              content: content,
+            },
+          ],
+        },
+        // Include context ID if we have one (for continuation of conversation)
+        context: contextIdRef.current ? { contextId: contextIdRef.current } : undefined,
       };
 
-      setMessages((prev) => {
-        const newMessages = [...prev, userMessage];
+      // Stream response
+      const stream = clientRef.current.message.stream(messageRequest);
 
-        // Persist messages immediately when user message is added
-        if (options.persistSession && options.sessionKey) {
-          const storageKey = getMessagesStorageKey();
-          if (storageKey) {
-            localStorage.setItem(storageKey, JSON.stringify(newMessages));
+      // Track which messages we've added
+      const addedMessageIds = new Set<string>();
+
+      for await (const task of stream) {
+        // Note: Task received from stream
+
+        // Capture context ID from the server response - check both locations
+        if (!contextIdRef.current) {
+          const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
+          if (serverContextId) {
+            contextIdRef.current = serverContextId as string;
           }
         }
 
-        return newMessages;
-      });
+        // Process messages from the task
+        if (task.messages && task.messages.length > 0) {
+          // Process all messages but check for duplicates
+          for (let i = 0; i < task.messages.length; i++) {
+            const message = task.messages[i];
+            if (!message) continue; // Skip if message is undefined
 
-      try {
-        // Create message request with context ID if available
-        const messageRequest = {
-          message: {
-            role: 'user' as const,
-            content: [
-              {
-                type: 'text' as const,
-                content: content,
-              },
-            ],
-          },
-          // Include context ID if we have one (for continuation of conversation)
-          context: contextIdRef.current ? { contextId: contextIdRef.current } : undefined,
-        };
+            const contentParts = message.content || [];
 
-        // Stream response
-        const stream = clientRef.current.message.stream(messageRequest);
+            const textContent = contentParts
+              .filter((part: A2APart) => part.type === 'text')
+              .map((part: A2APart) => (part.type === 'text' ? part.content : ''))
+              .join('');
 
-        // Track which messages we've added
-        const addedMessageIds = new Set<string>();
+            if (textContent) {
+              // Each message should be its own separate UI message
+              const messageId = `${message.role}-${task.id}-${i}`;
+              const isStreaming = task.state === 'running' || task.state === 'pending';
 
-        for await (const task of stream) {
-          // Note: Task received from stream
-
-          // Capture context ID from the server response - check both locations
-          if (!contextIdRef.current) {
-            const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
-            if (serverContextId) {
-              contextIdRef.current = serverContextId as string;
-
-              // Persist context ID immediately when captured
-              if (options.persistSession && options.sessionKey) {
-                const contextKey = getContextStorageKey();
-                if (contextKey) {
-                  localStorage.setItem(contextKey, contextIdRef.current);
+              setMessages((prev) => {
+                // Skip if this is a user message that we already have
+                if (message.role === 'user') {
+                  const isDuplicate = prev.some(
+                    (msg) => msg.role === 'user' && msg.content === textContent
+                  );
+                  if (isDuplicate) {
+                    return prev; // Return unchanged messages
+                  }
                 }
-              }
+                // Check if this specific message already exists
+                const existingIndex = prev.findIndex((msg) => msg.id === messageId);
+
+                if (existingIndex !== -1) {
+                  // Message already exists - always update it during streaming to show real-time updates
+                  const existingMessage = prev[existingIndex];
+
+                  if (existingMessage) {
+                    // Always update content to ensure real-time streaming display
+                    const updatedMessages = [...prev];
+                    updatedMessages[existingIndex] = {
+                      id: existingMessage.id,
+                      role: existingMessage.role,
+                      content: textContent, // Updated with latest accumulated content
+                      timestamp: new Date(),
+                      isStreaming,
+                      metadata: existingMessage.metadata || {
+                        taskId: task.id,
+                      },
+                    };
+
+                    return updatedMessages;
+                  }
+
+                  return prev;
+                } else {
+                  // Create new message for first chunk
+
+                  const chatMessage: ChatMessage = {
+                    id: messageId,
+                    role: message.role === 'assistant' ? 'assistant' : 'user',
+                    content: textContent,
+                    timestamp: new Date(),
+                    isStreaming,
+                    metadata: {
+                      taskId: task.id,
+                    },
+                  };
+
+                  return [...prev, chatMessage];
+                }
+              });
             }
           }
 
-          // Process messages from the task
-          if (task.messages && task.messages.length > 0) {
-            // Process all messages but check for duplicates
-            for (let i = 0; i < task.messages.length; i++) {
-              const message = task.messages[i];
-              if (!message) continue; // Skip if message is undefined
+          // Handle artifacts
+          if (task.artifacts && task.artifacts.length > 0) {
+            const artifactMessageKey = `artifacts-${task.artifacts.length}`;
 
-              const contentParts = message.content || [];
+            if (!addedMessageIds.has(artifactMessageKey)) {
+              addedMessageIds.add(artifactMessageKey);
 
-              const textContent = contentParts
-                .filter((part: A2APart) => part.type === 'text')
-                .map((part: A2APart) => (part.type === 'text' ? part.content : ''))
-                .join('');
-
-              if (textContent) {
-                // Each message should be its own separate UI message
-                const messageId = `${message.role}-${task.id}-${i}`;
-                const isStreaming = task.state === 'running' || task.state === 'pending';
-
-                setMessages((prev) => {
-                  // Skip if this is a user message that we already have
-                  if (message.role === 'user') {
-                    const isDuplicate = prev.some(
-                      (msg) => msg.role === 'user' && msg.content === textContent
-                    );
-                    if (isDuplicate) {
-                      return prev; // Return unchanged messages
-                    }
-                  }
-                  // Check if this specific message already exists
-                  const existingIndex = prev.findIndex((msg) => msg.id === messageId);
-
-                  if (existingIndex !== -1) {
-                    // Message already exists - always update it during streaming to show real-time updates
-                    const existingMessage = prev[existingIndex];
-
-                    if (existingMessage) {
-                      // Always update content to ensure real-time streaming display
-                      const updatedMessages = [...prev];
-                      updatedMessages[existingIndex] = {
-                        id: existingMessage.id,
-                        role: existingMessage.role,
-                        content: textContent, // Updated with latest accumulated content
+              for (const artifact of task.artifacts) {
+                // Handle artifacts based on their structure - they may come in different formats
+                const artifactAny = artifact as any;
+                if (artifactAny.parts && artifactAny.parts.length > 0) {
+                  for (const part of artifactAny.parts) {
+                    if (part.kind === 'text' && part.text) {
+                      const artifactMessage: ChatMessage = {
+                        id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
+                        role: 'assistant',
+                        content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
                         timestamp: new Date(),
-                        isStreaming,
-                        metadata: existingMessage.metadata || {
+                        isStreaming: false,
+                        metadata: {
                           taskId: task.id,
+                          artifacts: [artifact],
                         },
                       };
 
-                      // Persist messages when content is updated
-                      if (options.persistSession && options.sessionKey) {
-                        const storageKey = getMessagesStorageKey();
-                        if (storageKey) {
-                          localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-                        }
-                      }
-
-                      return updatedMessages;
+                      setMessages((prev) => [...prev, artifactMessage]);
                     }
-
-                    return prev;
-                  } else {
-                    // Create new message for first chunk
-
-                    const chatMessage: ChatMessage = {
-                      id: messageId,
-                      role: message.role === 'assistant' ? 'assistant' : 'user',
-                      content: textContent,
-                      timestamp: new Date(),
-                      isStreaming,
-                      metadata: {
-                        taskId: task.id,
-                      },
-                    };
-
-                    const newMessages = [...prev, chatMessage];
-
-                    // Persist messages when assistant message is added
-                    if (options.persistSession && options.sessionKey) {
-                      const storageKey = getMessagesStorageKey();
-                      if (storageKey) {
-                        localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                      }
-                    }
-
-                    return newMessages;
                   }
-                });
-              }
-            }
+                } else if (artifactAny.content) {
+                  // Handle older format with direct content
+                  const artifactMessage: ChatMessage = {
+                    id: `artifact-${Date.now()}-${artifactAny.id}`,
+                    role: 'assistant',
+                    content: `📄 ${artifactAny.title || artifactAny.id}:\n\`\`\`\n${artifactAny.content}\n\`\`\``,
+                    timestamp: new Date(),
+                    isStreaming: false,
+                    metadata: {
+                      taskId: task.id,
+                      artifacts: [artifact],
+                    },
+                  };
 
-            // Handle artifacts
-            if (task.artifacts && task.artifacts.length > 0) {
-              const artifactMessageKey = `artifacts-${task.artifacts.length}`;
-
-              if (!addedMessageIds.has(artifactMessageKey)) {
-                addedMessageIds.add(artifactMessageKey);
-
-                for (const artifact of task.artifacts) {
-                  // Handle artifacts based on their structure - they may come in different formats
-                  const artifactAny = artifact as any;
-                  if (artifactAny.parts && artifactAny.parts.length > 0) {
-                    for (const part of artifactAny.parts) {
-                      if (part.kind === 'text' && part.text) {
-                        const artifactMessage: ChatMessage = {
-                          id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
-                          role: 'assistant',
-                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
-                          timestamp: new Date(),
-                          isStreaming: false,
-                          metadata: {
-                            taskId: task.id,
-                            artifacts: [artifact],
-                          },
-                        };
-
-                        setMessages((prev) => {
-                          const newMessages = [...prev, artifactMessage];
-
-                          // Persist messages when artifact message is added
-                          if (options.persistSession && options.sessionKey) {
-                            const storageKey = getMessagesStorageKey();
-                            if (storageKey) {
-                              localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                            }
-                          }
-
-                          return newMessages;
-                        });
-                      }
-                    }
-                  } else if (artifactAny.content) {
-                    // Handle older format with direct content
-                    const artifactMessage: ChatMessage = {
-                      id: `artifact-${Date.now()}-${artifactAny.id}`,
-                      role: 'assistant',
-                      content: `📄 ${artifactAny.title || artifactAny.id}:\n\`\`\`\n${artifactAny.content}\n\`\`\``,
-                      timestamp: new Date(),
-                      isStreaming: false,
-                      metadata: {
-                        taskId: task.id,
-                        artifacts: [artifact],
-                      },
-                    };
-
-                    setMessages((prev) => {
-                      const newMessages = [...prev, artifactMessage];
-
-                      // Persist messages when artifact message is added
-                      if (options.persistSession && options.sessionKey) {
-                        const storageKey = getMessagesStorageKey();
-                        if (storageKey) {
-                          localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                        }
-                      }
-
-                      return newMessages;
-                    });
-                  }
+                  setMessages((prev) => [...prev, artifactMessage]);
                 }
               }
             }
-          }
-
-          // Update streaming state when complete
-          if (task.state === 'completed' || task.state === 'failed') {
-            setMessages((prev) => {
-              const newMessages = prev.map((msg) =>
-                msg.metadata?.taskId === task.id ? { ...msg, isStreaming: false } : msg
-              );
-
-              // Persist messages when streaming state updates
-              if (options.persistSession && options.sessionKey) {
-                const storageKey = getMessagesStorageKey();
-                if (storageKey) {
-                  localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                }
-              }
-
-              return newMessages;
-            });
           }
         }
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsLoading(false);
+
+        // Update streaming state when complete
+        if (task.state === 'completed' || task.state === 'failed') {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.metadata?.taskId === task.id ? { ...msg, isStreaming: false } : msg
+            )
+          );
+        }
       }
-    },
-    [options.persistSession, options.sessionKey, getMessagesStorageKey]
-  );
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     contextIdRef.current = undefined; // Clear context ID for new session
-
-    if (options.persistSession && options.sessionKey) {
-      const messagesKey = getMessagesStorageKey();
-      const contextKey = getContextStorageKey();
-      if (messagesKey) localStorage.removeItem(messagesKey);
-      if (contextKey) localStorage.removeItem(contextKey);
-    }
-  }, [options.persistSession, options.sessionKey, getMessagesStorageKey, getContextStorageKey]);
+  }, []);
 
   const sendAuthenticationCompleted = useCallback(async () => {
     if (!clientRef.current) {
@@ -529,7 +375,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       // Update the auth message to completed status immediately
       if (authMessageIdRef.current) {
         setMessages((prev) => {
-          const updatedMessages = prev.map((msg) => {
+          return prev.map((msg) => {
             if (msg.id === authMessageIdRef.current && msg.authEvent) {
               return {
                 ...msg,
@@ -541,16 +387,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             }
             return msg;
           });
-
-          // Persist messages
-          if (options.persistSession && options.sessionKey) {
-            const storageKey = getMessagesStorageKey();
-            if (storageKey) {
-              localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-            }
-          }
-
-          return updatedMessages;
         });
       }
 
@@ -561,14 +397,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
           const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
           if (serverContextId) {
             contextIdRef.current = serverContextId as string;
-
-            // Persist context ID
-            if (options.persistSession && options.sessionKey) {
-              const contextKey = getContextStorageKey();
-              if (contextKey) {
-                localStorage.setItem(contextKey, contextIdRef.current);
-              }
-            }
           }
         }
 
@@ -611,14 +439,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     isStreaming,
                   };
 
-                  // Persist messages
-                  if (options.persistSession && options.sessionKey) {
-                    const storageKey = getMessagesStorageKey();
-                    if (storageKey) {
-                      localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-                    }
-                  }
-
                   return updatedMessages;
                 } else {
                   // Create new message
@@ -633,17 +453,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                     },
                   };
 
-                  const newMessages = [...prev, chatMessage];
-
-                  // Persist messages
-                  if (options.persistSession && options.sessionKey) {
-                    const storageKey = getMessagesStorageKey();
-                    if (storageKey) {
-                      localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                    }
-                  }
-
-                  return newMessages;
+                  return [...prev, chatMessage];
                 }
               });
             }
@@ -668,7 +478,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       // Update the auth message to failed status
       if (authMessageIdRef.current) {
         setMessages((prev) => {
-          const updatedMessages = prev.map((msg) => {
+          return prev.map((msg) => {
             if (msg.id === authMessageIdRef.current && msg.authEvent) {
               return {
                 ...msg,
@@ -680,16 +490,6 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             }
             return msg;
           });
-
-          // Persist messages
-          if (options.persistSession && options.sessionKey) {
-            const storageKey = getMessagesStorageKey();
-            if (storageKey) {
-              localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-            }
-          }
-
-          return updatedMessages;
         });
       }
 
@@ -698,7 +498,7 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       // Always clear loading state
       setIsLoading(false);
     }
-  }, [options.persistSession, options.sessionKey, getMessagesStorageKey, getContextStorageKey]);
+  }, []);
 
   return {
     isConnected,

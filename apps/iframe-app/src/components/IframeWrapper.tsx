@@ -39,27 +39,8 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
       console.log('Chat history received:', history);
       chatHistoryRef.current = history;
 
-      // If we're in single-session mode and received a contextId, store it
-      if (!multiSession && history.contextId) {
-        const sessionKey = props.sessionKey || 'default';
-        const storageKey = `a2a-context-${sessionKey}`;
-        localStorage.setItem(storageKey, history.contextId);
-
-        // Also store the messages if provided
-        if (history.messages && history.messages.length > 0) {
-          const messagesKey = `a2a-messages-${sessionKey}`;
-          // Convert messages to the format expected by the chat widget
-          const formattedMessages = history.messages.map((msg) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            timestamp: new Date(msg.timestamp).toISOString(),
-            metadata: msg.metadata,
-          }));
-          localStorage.setItem(messagesKey, JSON.stringify(formattedMessages));
-          console.log(`Stored ${history.messages.length} messages in localStorage`);
-        }
-      }
+      // Context ID and messages are now managed server-side
+      // No local storage needed
     },
     [multiSession, props.sessionKey]
   );
@@ -134,32 +115,10 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
     );
   }
 
-  // For single-session mode with contextId, we need to ensure it's stored properly
-  // The ChatWidget uses sessionKey for persistence, defaulting to 'default' if not provided
-  const sessionKey = propsWithAuth.sessionKey || 'default';
-
-  // Pre-populate localStorage with contextId if provided for single-session mode
-  // Skip this if we already received chat history via postMessage
-  if (contextId && !multiSession && !chatHistoryRef.current) {
-    const storageKey = `a2a-context-${sessionKey}`;
-    const existingContextId = localStorage.getItem(storageKey);
-
-    // Only set if not already present to avoid overwriting active sessions
-    if (!existingContextId) {
-      localStorage.setItem(storageKey, contextId);
-      console.log(`Set contextId in localStorage: ${storageKey} = ${contextId}`);
-    } else {
-      console.log(`Existing contextId found: ${storageKey} = ${existingContextId}`);
-    }
-  }
+  // Context ID is now managed server-side
+  // No local storage needed for single-session mode
 
   return (
-    <ChatWidget
-      {...propsWithAuth}
-      mode={mode}
-      fluentTheme={mode}
-      onUnauthorized={onUnauthorized}
-      sessionKey={sessionKey}
-    />
+    <ChatWidget {...propsWithAuth} mode={mode} fluentTheme={mode} onUnauthorized={onUnauthorized} />
   );
 }

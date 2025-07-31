@@ -15,16 +15,33 @@
  */
 
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { IframeWrapper } from '../components/IframeWrapper';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { useIframeConfig } from './hooks/useIframeConfig';
 import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
+// Create a query client instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000, // 30 seconds
+      gcTime: 5 * 60 * 1000, // 5 minutes (was cacheTime in v4)
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
+
 // Main application component that uses the configuration
 function App() {
   const config = useIframeConfig();
-  return <IframeWrapper config={config} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <IframeWrapper config={config} />
+    </QueryClientProvider>
+  );
 }
 
 // Initialize the widget

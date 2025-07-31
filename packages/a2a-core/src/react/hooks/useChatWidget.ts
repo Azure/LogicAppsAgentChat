@@ -19,8 +19,6 @@ interface UseChatWidgetProps {
   onConnectionChange?: (connected: boolean) => void;
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
-  sessionKey?: string;
-  agentUrl?: string;
   apiKey?: string;
 }
 
@@ -31,8 +29,6 @@ export function useChatWidget({
   onConnectionChange,
   onAuthRequired,
   onUnauthorized,
-  sessionKey,
-  agentUrl,
   apiKey,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
@@ -50,9 +46,6 @@ export function useChatWidget({
     clearMessages: clearLocalMessages,
   } = useChatStore();
 
-  // Get agent URL from props or derive from agentCard
-  const derivedAgentUrl = agentUrl || (typeof agentCard === 'string' ? agentCard : agentCard?.url);
-
   const {
     isConnected,
     isLoading,
@@ -64,32 +57,15 @@ export function useChatWidget({
     sendMessage: sdkSendMessage,
     clearMessages,
     sendAuthenticationCompleted,
-  } = useA2A(
-    auth
-      ? {
-          auth,
-          persistSession: true,
-          sessionKey: sessionKey || 'a2a-chat-session',
-          agentUrl: derivedAgentUrl,
-          onAuthRequired: (event: AuthRequiredEvent) => {
-            setAuthRequired(event, contextIdRef.current);
-            return onAuthRequired?.(event);
-          },
-          onUnauthorized,
-          apiKey,
-        }
-      : {
-          persistSession: true,
-          sessionKey: sessionKey || 'a2a-chat-session',
-          agentUrl: derivedAgentUrl,
-          onAuthRequired: (event: AuthRequiredEvent) => {
-            setAuthRequired(event, contextIdRef.current);
-            return onAuthRequired?.(event);
-          },
-          onUnauthorized,
-          apiKey,
-        }
-  );
+  } = useA2A({
+    auth,
+    onAuthRequired: (event: AuthRequiredEvent) => {
+      setAuthRequired(event, contextIdRef.current);
+      return onAuthRequired?.(event);
+    },
+    onUnauthorized,
+    apiKey,
+  });
 
   // Update contextIdRef when contextId changes
   useEffect(() => {

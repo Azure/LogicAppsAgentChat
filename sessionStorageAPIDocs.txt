@@ -1,0 +1,198 @@
+
+Overview
+This document outlines the design for server-side chat history APIs that eliminate the need for browser-side storage in the A2A Chat SDK. The design follows the A2A protocol specification while providing efficient history retrieval and management capabilities using A2A terminology (contexts and tasks).
+Goals
+
+Zero Browser Storage: All chat history is stored server-side
+Seamless Experience: Users can refresh or switch devices without losing context
+Performance: Efficient retrieval with pagination and filtering
+A2A Compliance: Follow A2A protocol patterns and conventions
+Core Concepts
+In alignment with A2A protocol: - Context: A logical grouping of related interactions (conversation thread) - Task: Individual message exchanges within a context - Message: The actual content exchanged between user and agent
+A2A Chat History APIs
+List Context 
+Retrieve all contexts/runs for the authenticated user.
+POST http://localhost:7071/api/agents/<AgentName>
+REQUEST BODY
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "method": "contexts/list",
+  "params": {
+      "limit": "" //number (default: 20, max: 100),
+      "before": "" string (contextId for pagination)
+      "after": "" //string (contextId for pagination)
+      "includeLastTask": //bool (true or false depending on whether last task is needed)            
+  }
+}
+
+note: pagination currently does not work, all contexts will be returned regardless, also always set "includeLastTask" to false for now.
+ 
+RESPONSE
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "result": [
+  {
+    "id": "08584476871511635744903629119CU00",
+    "isArchived": false,
+  },
+  {
+    "id": "08584476871517386146796885486CU00",
+    "isArchived": false,
+    "name": "Thread/Context Name", //This will only be sent back if the user set it using the update context API below
+  }
+]
+}
+
+
+
+List Tasks
+
+Retrieve all tasks a given context.
+POST http://localhost:7071/api/agents/<AgentName>
+REQUEST BODY
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "method": "tasks/list",
+  "params": {
+      "Id": "<context-id>"            
+  }
+}
+RESPONSE
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "result": [
+  {
+    "id": "08584476871376035536911125579_08584476871517386146796885486CU00",
+    "contextId": "08584476871517386146796885486CU00",
+    "taskStatus": {
+      "state": "Completed",
+      "message": {
+        "messageId": "114205c9a4854c7dad95f09e97172371",
+        "taskId": "08584476871376035536911125579_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "Agent",
+        "parts": [
+          {
+            "text": "The current weather in Portland is as follows:\n- Temperature: 32°F\n- Feels like: 29°F\n- Mostly sunny with a few clouds\n- Wind speed: 10 mph\n- Wind direction: 304°\n- Visibility: 9.9 miles\n- UV index: 2 (Low)\n- Air quality index: 35 (Good air quality)\n\nIt seems that the weather information for Portland is the same as Seattle. If you have any more questions or need further assistance, feel free to ask.",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      },
+      "timestamp": "0001-01-01T08:00:00Z"
+    },
+    "history": [
+      {
+        "messageId": "114205c9a4854c7dad95f09e97172371",
+        "taskId": "08584476871376035536911125579_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "Agent",
+        "parts": [
+          {
+            "text": "The current weather in Portland is as follows:\n- Temperature: 32°F\n- Feels like: 29°F\n- Mostly sunny with a few clouds\n- Wind speed: 10 mph\n- Wind direction: 304°\n- Visibility: 9.9 miles\n- UV index: 2 (Low)\n- Air quality index: 35 (Good air quality)\n\nIt seems that the weather information for Portland is the same as Seattle. If you have any more questions or need further assistance, feel free to ask.",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      },
+      {
+        "messageId": "a77e9946-9379-4d63-b2b8-761df0daa533",
+        "taskId": "08584476871376035536911125579_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "User",
+        "parts": [
+          {
+            "text": "How about the weather in Portland?",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      }
+    ],
+    "kind": "Task"
+  },
+  {
+    "id": "08584476871518304559506965982_08584476871517386146796885486CU00",
+    "contextId": "08584476871517386146796885486CU00",
+    "taskStatus": {
+      "state": "Completed",
+      "message": {
+        "messageId": "2cc3ac35615e4a758c8f7cbfc780eb2f",
+        "taskId": "08584476871518304559506965982_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "Agent",
+        "parts": [
+          {
+            "text": "The current weather in Seattle is as follows:\n- Temperature: 32°F\n- Feels like: 29°F\n- Mostly sunny with a few clouds\n- Wind speed: 10 mph\n- Wind direction: 304°\n- Visibility: 9.9 miles\n- UV index: 2 (Low)\n- Air quality index: 35 (Good air quality)\n\nPlease let me know if you need more information.",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      },
+      "timestamp": "0001-01-01T08:00:00Z"
+    },
+    "history": [
+      {
+        "messageId": "2cc3ac35615e4a758c8f7cbfc780eb2f",
+        "taskId": "08584476871518304559506965982_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "Agent",
+        "parts": [
+          {
+            "text": "The current weather in Seattle is as follows:\n- Temperature: 32°F\n- Feels like: 29°F\n- Mostly sunny with a few clouds\n- Wind speed: 10 mph\n- Wind direction: 304°\n- Visibility: 9.9 miles\n- UV index: 2 (Low)\n- Air quality index: 35 (Good air quality)\n\nPlease let me know if you need more information.",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      },
+      {
+        "messageId": "3e0895c6-7c78-4ae0-8c5d-bd0e36c56950",
+        "taskId": "08584476871518304559506965982_08584476871517386146796885486CU00",
+        "contextId": "08584476871517386146796885486CU00",
+        "role": "User",
+        "parts": [
+          {
+            "text": "What is the weather in Seattle?",
+            "kind": "Text"
+          }
+        ],
+        "kind": "Message"
+      }
+    ],
+    "kind": "Task"
+  }
+] 
+}
+
+
+
+Update Context
+Updates a given context.
+POST http://localhost:7071/api/agents/<AgentName>
+REQUEST BODY
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "method": "contexts/update",
+  "params": {
+      "Id": "<context-id>",
+      "Name": "<session-name>",
+      "IsArchived": "<true or false>"                        
+  }
+}
+RESPONSE
+{
+  "jsonrpc": "2.0",
+  "id": "<requestId>",
+  "result":{
+  "id": "08584476814808626128665696620CU00",
+  "name": "New session",
+  "isArchived": true
+}
+  }
+
+

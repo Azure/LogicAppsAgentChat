@@ -91,8 +91,6 @@ export interface ChatWidgetProps {
   maxFileSize?: number; // in bytes
   allowedFileTypes?: string[];
   userName?: string; // Custom display name for the user, defaults to "You"
-  sessionKey?: string; // Optional session key for multi-session support
-  agentUrl?: string; // Optional agent URL for proper session isolation
   onToggleSidebar?: () => void; // Callback for toggling sidebar
   isSidebarCollapsed?: boolean; // Current sidebar state
   apiKey?: string; // Optional API key for authentication

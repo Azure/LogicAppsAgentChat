@@ -18,10 +18,12 @@
     "@fluentui/react-components": "^9.66.7",
     "@fluentui/react-icons": "^2.0.306",
     "@microsoft/a2achat-core": "workspace:*",
+    "@tanstack/react-query": "^5.83.0",
     "idb": "^8.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "vite-plugin-mkcert": "^1.17.8"
+    "vite-plugin-mkcert": "^1.17.8",
+    "zod": "^4.0.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
