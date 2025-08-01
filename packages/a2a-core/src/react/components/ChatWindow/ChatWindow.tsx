@@ -94,6 +94,7 @@ export function ChatWindow(props: ChatWindowProps) {
     apiKey,
     onUnauthorized,
     onContextIdChange,
+    contextId: propsContextId,
     mode = 'light',
   } = props;
 
@@ -117,6 +118,7 @@ export function ChatWindow(props: ChatWindowProps) {
     sessionKey,
     agentUrl,
     apiKey,
+    contextId: propsContextId,
   });
 
   // Notify parent when contextId changes

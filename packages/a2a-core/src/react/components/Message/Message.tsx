@@ -725,7 +725,7 @@ function MessageComponent({
 export const Message = memo(MessageComponent);
 
 function formatTime(date: Date | string): string {
-  // Handle both Date objects and date strings (from localStorage)
+  // Handle both Date objects and date strings
   const dateObject = date instanceof Date ? date : new Date(date);
 
   // Check if the date is valid

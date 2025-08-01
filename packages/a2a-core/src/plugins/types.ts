@@ -1,10 +1,8 @@
 import type { A2AClient } from '../client/a2a-client';
-import type { SessionManager } from '../session/session-manager';
 import type { Message } from '../types';
 
 export type PluginContext = {
   client: A2AClient;
-  session?: SessionManager;
   config: Record<string, unknown>;
 };
 

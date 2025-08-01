@@ -12,9 +12,6 @@ export * from './client';
 // Export streaming
 export * from './streaming';
 
-// Export session
-export * from './session';
-
 // Export plugins
 export * from './plugins';
 
@@ -28,10 +25,10 @@ export {
 
 // Re-export commonly used items at top level for convenience
 export { A2AClient } from './client/a2a-client';
+export { A2AClientWithAutoHistory } from './client/a2a-client-with-auto-history';
 export { AgentDiscovery } from './discovery/agent-discovery';
 export { HttpClient } from './client/http-client';
 export { SSEClient } from './streaming/sse-client';
-export { SessionManager, LocalStoragePlugin } from './session/session-manager';
 export { ChatInterface } from './chat/chat-interface';
 export { PluginManager } from './plugins/plugin-manager';
 export { AnalyticsPlugin, LoggerPlugin } from './plugins';

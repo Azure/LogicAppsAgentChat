@@ -11,6 +11,7 @@ import {
   tokens,
   mergeClasses,
   Tooltip,
+  Checkbox,
 } from '@fluentui/react-components';
 import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
@@ -25,13 +26,21 @@ const useStyles = makeStyles({
     overflow: 'hidden',
   },
   header: {
-    height: '60px',
     ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
     display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalS),
+  },
+  headerTop: {
+    display: 'flex',
     alignItems: 'center',
     ...shorthands.gap(tokens.spacingHorizontalM),
+  },
+  headerBottom: {
+    display: 'flex',
+    alignItems: 'center',
   },
   logo: {
     height: '32px',
@@ -159,12 +168,16 @@ interface SessionListProps {
   sessions: SessionMetadata[];
   activeSessionId: string | null;
   onSessionClick: (sessionId: string) => void | Promise<void>;
+  onSessionHover?: (sessionId: string) => void;
   onNewSession: () => void | Promise<void>;
   onRenameSession: (sessionId: string, newName: string) => void | Promise<void>;
   onDeleteSession: (sessionId: string) => void | Promise<void>;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   themeColors?: ChatTheme['colors'];
+  isCreatingSession?: boolean;
+  includeArchived?: boolean;
+  onToggleArchived?: () => void;
 }
 
 // Memoized session item component to prevent unnecessary re-renders
@@ -174,6 +187,7 @@ interface SessionItemProps {
   isEditing: boolean;
   editName: string;
   onSessionClick: (sessionId: string) => void;
+  onSessionHover?: (sessionId: string) => void;
   onStartEdit: (sessionId: string, currentName: string) => void;
   onDeleteSession: (sessionId: string) => void;
   onEditNameChange: (name: string) => void;
@@ -190,6 +204,7 @@ const SessionItem = memo(
     isEditing,
     editName,
     onSessionClick,
+    onSessionHover,
     onStartEdit,
     onDeleteSession,
     onEditNameChange,
@@ -250,12 +265,19 @@ const SessionItem = memo(
           }
         : {};
 
+    const handleMouseEnter = useCallback(() => {
+      if (onSessionHover) {
+        onSessionHover(session.id);
+      }
+    }, [onSessionHover, session.id]);
+
     return (
       <div className={styles.sessionItemWrapper}>
         <Card
           className={mergeClasses(styles.sessionItem, isActive && styles.sessionItemActive)}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
+          onMouseEnter={handleMouseEnter}
           appearance="subtle"
           style={activeStyle}
         >
@@ -320,12 +342,16 @@ export const SessionList = memo(
     sessions,
     activeSessionId,
     onSessionClick,
+    onSessionHover,
     onNewSession,
     onRenameSession,
     onDeleteSession,
     logoUrl,
     logoSize = 'medium',
     themeColors,
+    isCreatingSession,
+    includeArchived = false,
+    onToggleArchived,
   }: SessionListProps) => {
     const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -336,11 +362,19 @@ export const SessionList = memo(
       setEditName(currentName);
     }, []);
 
-    const handleSaveEdit = useCallback(() => {
+    const handleSaveEdit = useCallback(async () => {
       if (editingSessionId && editName.trim()) {
-        onRenameSession(editingSessionId, editName.trim());
+        // Clear editing state immediately for better UX
         setEditingSessionId(null);
         setEditName('');
+
+        // Call rename function (optimistic update happens in the parent)
+        try {
+          await onRenameSession(editingSessionId, editName.trim());
+        } catch (error) {
+          // Error handling is done by the parent component
+          console.error('Failed to rename session:', error);
+        }
       }
     }, [editingSessionId, editName, onRenameSession]);
 
@@ -395,18 +429,29 @@ export const SessionList = memo(
     return (
       <div className={styles.sessionList} style={themeStyle}>
         <div className={styles.header}>
-          {logoUrl && (
-            <img
-              src={logoUrl}
-              alt="Company Logo"
-              className={mergeClasses(
-                styles.logo,
-                logoSize === 'small' && styles.logoSmall,
-                logoSize === 'large' && styles.logoLarge
-              )}
-            />
+          <div className={styles.headerTop}>
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt="Company Logo"
+                className={mergeClasses(
+                  styles.logo,
+                  logoSize === 'small' && styles.logoSmall,
+                  logoSize === 'large' && styles.logoLarge
+                )}
+              />
+            )}
+            <h3 className={styles.title}>Chats</h3>
+          </div>
+          {onToggleArchived && (
+            <div className={styles.headerBottom}>
+              <Checkbox
+                checked={includeArchived}
+                onChange={onToggleArchived}
+                label="Show archived chats"
+              />
+            </div>
           )}
-          <h3 className={styles.title}>Chats</h3>
         </div>
         <div className={styles.sessions}>
           {safeSessions.length === 0 ? (
@@ -447,6 +492,7 @@ export const SessionList = memo(
                 isEditing={editingSessionId === session.id}
                 editName={editName}
                 onSessionClick={onSessionClick}
+                onSessionHover={onSessionHover}
                 onStartEdit={handleStartEdit}
                 onDeleteSession={onDeleteSession}
                 onEditNameChange={handleEditNameChange}
@@ -466,6 +512,7 @@ export const SessionList = memo(
               onClick={onNewSession}
               size="medium"
               title="New Chat"
+              disabled={isCreatingSession}
               style={{
                 width: '100%',
                 minHeight: '40px',
@@ -487,7 +534,7 @@ export const SessionList = memo(
                 }
               }}
             >
-              New Chat
+              {isCreatingSession ? 'Creating...' : 'New Chat'}
             </Button>
           </div>
         </div>

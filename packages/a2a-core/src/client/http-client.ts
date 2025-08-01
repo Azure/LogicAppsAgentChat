@@ -1,4 +1,4 @@
-import pRetry from 'p-retry';
+import pRetry, { AbortError } from 'p-retry';
 import type {
   AuthConfig,
   RequestConfig,
@@ -103,7 +103,7 @@ export class HttpClient {
         try {
           const options: RequestInit = {
             method: request.method,
-            headers: request.headers,
+            headers: new Headers(request.headers), // Clone headers
             signal: controller.signal,
             redirect: 'manual', // Prevent automatic redirect following
           };
@@ -113,9 +113,9 @@ export class HttpClient {
             options.credentials = request.credentials;
           }
 
-          // Add body and duplex option if needed
-          if (request.body) {
-            options.body = request.body;
+          // Add body if needed - regenerate for each retry
+          if (requestConfig.body) {
+            options.body = JSON.stringify(requestConfig.body);
             // Required for streaming bodies in some environments
             (options as any).duplex = 'half';
           }
@@ -164,6 +164,17 @@ export class HttpClient {
         minTimeout: this.options.retryDelay,
         onFailedAttempt: (error) => {
           console.warn(`Request failed, attempt ${error.attemptNumber}: ${error.message}`);
+          // Special handling for H2/QUIC errors - don't retry
+          if (error.message?.includes('ERR_H2_OR_QUIC_REQUIRED')) {
+            console.error(
+              'Server requires HTTP/2 or QUIC protocol which is not supported in the current environment'
+            );
+            throw new AbortError('Protocol error - cannot retry');
+          }
+          // Also handle stream locked errors - regenerate body
+          if (error.message?.includes('ReadableStream is locked')) {
+            console.warn('Request body stream was locked, will retry with fresh body');
+          }
         },
       }
     );

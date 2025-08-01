@@ -1,4 +1,5 @@
 export * from './schemas';
+export * from './history-schemas';
 
 // Re-export schemas for convenience
 export {
@@ -13,3 +14,9 @@ export {
   TaskCancelRequestSchema,
   PushSubscribeRequestSchema,
 } from './schemas';
+
+export {
+  ListContextsParamsSchema,
+  ListTasksParamsSchema,
+  UpdateContextParamsSchema,
+} from './history-schemas';

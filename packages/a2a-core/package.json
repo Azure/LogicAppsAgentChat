@@ -87,6 +87,7 @@
   "dependencies": {
     "@fluentui/react-components": "^9.66.7",
     "@fluentui/react-icons": "^2.0.306",
+    "@tanstack/react-query": "^5.84.0",
     "eventemitter3": "^5.0.1",
     "idb": "^8.0.3",
     "immer": "^10.1.1",

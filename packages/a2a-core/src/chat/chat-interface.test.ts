@@ -1,17 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChatInterface } from './chat-interface';
 import { A2AClient } from '../client/a2a-client';
-import { SessionManager } from '../session/session-manager';
 import type { Message, Task, AgentCard } from '../types';
 import type { ChatOptions, ChatMessage, ChatEventMap } from './types';
 
 // Mock dependencies
 vi.mock('../client/a2a-client');
-vi.mock('../session/session-manager');
 
 describe('ChatInterface', () => {
   let mockClient: A2AClient;
-  let mockSession: SessionManager;
   let mockAgentCard: AgentCard;
 
   beforeEach(() => {
@@ -26,7 +23,6 @@ describe('ChatInterface', () => {
     };
 
     mockClient = new A2AClient({ agentCard: mockAgentCard });
-    mockSession = new SessionManager();
 
     // Mock client methods
     mockClient.message = {
@@ -39,11 +35,6 @@ describe('ChatInterface', () => {
       cancel: vi.fn(),
       waitForCompletion: vi.fn(),
     };
-
-    // Mock session methods
-    mockSession.get = vi.fn();
-    mockSession.set = vi.fn();
-    mockSession.on = vi.fn();
   });
 
   describe('initialization', () => {
@@ -54,51 +45,24 @@ describe('ChatInterface', () => {
       expect(chat.getConversationId()).toBeDefined();
     });
 
-    it('should use existing conversation ID from session', () => {
+    it('should use provided conversation ID', () => {
       const existingId = 'existing-conv-123';
-      mockSession.get.mockReturnValue(existingId);
 
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
+        conversationId: existingId,
       });
 
       expect(chat.getConversationId()).toBe(existingId);
     });
 
-    it('should restore conversation history from session', () => {
-      const history: ChatMessage[] = [
-        {
-          id: 'msg-1',
-          role: 'user',
-          content: 'Hello',
-          timestamp: new Date('2024-01-01'),
-          conversationId: 'conv-123',
-        },
-        {
-          id: 'msg-2',
-          role: 'assistant',
-          content: 'Hi there!',
-          timestamp: new Date('2024-01-01'),
-          conversationId: 'conv-123',
-        },
-      ];
-
-      mockSession.get.mockImplementation((key: string) => {
-        if (key === 'a2a-chat-history-conv-123') return history;
-        if (key === 'a2a-conversation-id') return 'conv-123';
-        return undefined;
-      });
-
+    it('should start with empty message history', () => {
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
       });
 
       const messages = chat.getMessages();
-      expect(messages).toHaveLength(2);
-      expect(messages[0].content).toBe('Hello');
-      expect(messages[1].content).toBe('Hi there!');
+      expect(messages).toHaveLength(0);
     });
   });
 
@@ -176,42 +140,19 @@ describe('ChatInterface', () => {
       expect(messages[1].content).toBe('Hi!');
     });
 
-    it('should persist messages to session when enabled', async () => {
-      const mockTask: Task = {
-        id: 'task-123',
-        state: 'completed',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', content: 'Test' }],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Response' }],
-          },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockClient.message.send.mockResolvedValue(mockTask);
-      mockClient.task.waitForCompletion.mockResolvedValue(mockTask);
+    it('should handle errors gracefully', async () => {
+      const error = new Error('Network error');
+      mockClient.message.send.mockRejectedValue(error);
 
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
-        persistMessages: true,
       });
 
-      await chat.send('Test');
+      const errorHandler = vi.fn();
+      chat.on('error', errorHandler);
 
-      expect(mockSession.set).toHaveBeenCalledWith(
-        expect.stringContaining('a2a-chat-history'),
-        expect.arrayContaining([
-          expect.objectContaining({ role: 'user', content: 'Test' }),
-          expect.objectContaining({ role: 'assistant', content: 'Response' }),
-        ])
-      );
+      await expect(chat.send('Test')).rejects.toThrow('Network error');
+      expect(errorHandler).toHaveBeenCalledWith(error);
     });
 
     it('should handle multi-part messages', async () => {
@@ -377,7 +318,6 @@ describe('ChatInterface', () => {
     it('should clear conversation', () => {
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
       });
 
       // Add some mock history
@@ -389,16 +329,14 @@ describe('ChatInterface', () => {
       chat.clearConversation();
 
       expect(chat.getMessages()).toHaveLength(0);
-      expect(mockSession.set).toHaveBeenCalledWith(expect.stringContaining('a2a-chat-history'), []);
     });
 
     it('should start new conversation', () => {
       const oldId = 'old-conv-123';
-      mockSession.get.mockReturnValue(oldId);
 
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
+        conversationId: oldId,
       });
 
       expect(chat.getConversationId()).toBe(oldId);
@@ -492,7 +430,6 @@ describe('ChatInterface', () => {
     it('should clean up resources', () => {
       const chat = new ChatInterface({
         client: mockClient,
-        session: mockSession,
       });
 
       chat.destroy();

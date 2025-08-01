@@ -102,4 +102,5 @@ export interface ChatWidgetProps {
     statusText?: string;
   }) => Promise<void> | void; // Called on 401 errors
   onContextIdChange?: (contextId: string) => void; // Callback when context ID changes
+  contextId?: string; // Optional context ID to use for the conversation
 }

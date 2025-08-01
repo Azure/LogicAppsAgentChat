@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { ChatWidget, ChatWidgetProps, ChatThemeProvider } from '@microsoft/a2achat-core/react';
+import {
+  ChatWidget,
+  ChatWidgetProps,
+  ChatThemeProvider,
+  A2AClientProvider,
+} from '@microsoft/a2achat-core/react';
 import { AgentCard } from '@microsoft/a2achat-core';
 import {
   FluentProvider,
@@ -10,7 +15,7 @@ import {
   mergeClasses,
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
-import { useChatSessionsServer } from '../hooks/useChatSessionsServer';
+import { useChatSessionsServerQuery } from '../hooks/useChatSessionsServerQuery';
 import { SessionList } from './SessionList';
 
 const useStyles = makeStyles({
@@ -81,7 +86,7 @@ const useStyles = makeStyles({
   },
 });
 
-interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
+interface MultiSessionChatQueryProps extends Omit<ChatWidgetProps, 'agentCard'> {
   config: {
     apiUrl: string;
     apiKey?: string;
@@ -90,11 +95,11 @@ interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
   mode?: 'light' | 'dark';
 }
 
-export function MultiSessionChat({
+export function MultiSessionChatQuery({
   config,
   mode = 'light',
   ...chatWidgetProps
-}: MultiSessionChatProps) {
+}: MultiSessionChatQueryProps) {
   const styles = useStyles();
   const [agentCard, setAgentCard] = useState<AgentCard | undefined>();
   const [isLoadingAgent, setIsLoadingAgent] = useState(true);
@@ -108,11 +113,18 @@ export function MultiSessionChat({
     sessions,
     activeSessionId,
     activeSession,
+    isLoading,
+    isCreatingSession,
     createNewSession,
     switchSession,
     renameSession,
     deleteSession,
-  } = useChatSessionsServer(config.apiUrl, config.apiKey);
+    onSessionHover,
+    includeArchived,
+    toggleIncludeArchived,
+    hasAnyContexts,
+    client,
+  } = useChatSessionsServerQuery(config.apiUrl, config.apiKey);
 
   // Check screen size and auto-collapse on small screens
   useEffect(() => {
@@ -228,7 +240,7 @@ export function MultiSessionChat({
     return () => {
       cancelled = true;
     };
-  }, [config.apiUrl]);
+  }, [config.apiUrl, config.apiKey]);
 
   const handleNewSession = useCallback(async () => {
     try {
@@ -249,13 +261,30 @@ export function MultiSessionChat({
     [switchSession]
   );
 
-  // Server-side history is now the default - no storage sync needed
-  // Sessions are managed entirely through the server API
+  const handleSessionHover = useCallback(
+    (sessionId: string) => {
+      // Prefetch session data on hover for better UX
+      onSessionHover(sessionId);
+    },
+    [onSessionHover]
+  );
 
   const handleContextIdChange = useCallback(async (contextId: string) => {
-    // Context ID is now managed by the server - no local updates needed
+    // Context ID is managed by React Query
     console.log('Context ID changed:', contextId);
   }, []);
+
+  // Create new session automatically ONLY if no sessions exist at all
+  useEffect(() => {
+    // Only create a new session if:
+    // 1. We're completely done loading
+    // 2. There are NO contexts at all on the server (active or archived)
+    // 3. We're not already creating a session
+    if (!isLoading && !isLoadingAgent && !hasAnyContexts && !isCreatingSession) {
+      console.log('[MultiSessionChatQuery] No contexts found on server, creating first session');
+      handleNewSession();
+    }
+  }, [isLoading, isLoadingAgent, hasAnyContexts, isCreatingSession, handleNewSession]);
 
   // Show loading state while fetching agent card
   if (isLoadingAgent) {
@@ -280,9 +309,6 @@ export function MultiSessionChat({
     );
   }
 
-  // If no active session, the session list will show as empty and allow creating a new one
-  // No need for a loading state here since useChatSessionsServer handles empty contexts
-
   return (
     <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
       <div className={mergeClasses(styles.multiSessionContainer, isResizing && styles.resizing)}>
@@ -299,6 +325,7 @@ export function MultiSessionChat({
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSessionClick={handleSessionClick}
+            onSessionHover={handleSessionHover}
             onNewSession={handleNewSession}
             onRenameSession={async (id, name) => {
               try {
@@ -317,6 +344,9 @@ export function MultiSessionChat({
             logoUrl={chatWidgetProps.theme?.branding?.logoUrl}
             logoSize={chatWidgetProps.theme?.branding?.logoSize}
             themeColors={chatWidgetProps.theme?.colors}
+            isCreatingSession={isCreatingSession}
+            includeArchived={includeArchived}
+            onToggleArchived={toggleIncludeArchived}
           />
           {!isCollapsed && (
             <div
@@ -335,35 +365,36 @@ export function MultiSessionChat({
         </div>
         <div className={styles.chatArea}>
           <ChatThemeProvider theme={mode}>
-            {activeSessionId ? (
-              <ChatWidget
-                key={activeSessionId}
-                agentCard={agentCard}
-                apiKey={config.apiKey}
-                // Server manages session/context, no local session key needed
-                agentUrl={config.apiUrl}
-                metadata={{
-                  ...chatWidgetProps.metadata,
-                  sessionId: activeSessionId,
-                }}
-                theme={chatWidgetProps.theme}
-                userName={chatWidgetProps.userName}
-                placeholder={chatWidgetProps.placeholder}
-                welcomeMessage={chatWidgetProps.welcomeMessage}
-                allowFileUpload={false}
-                onToggleSidebar={toggleSidebar}
-                isSidebarCollapsed={isCollapsed}
-                mode={mode}
-                fluentTheme={mode}
-                onUnauthorized={config.onUnauthorized}
-                onContextIdChange={handleContextIdChange}
-                contextId={activeSessionId}
-              />
-            ) : (
-              <div className={styles.loadingContainer}>
-                <div>Select or create a conversation to get started</div>
-              </div>
-            )}
+            <A2AClientProvider client={client}>
+              {activeSessionId ? (
+                <ChatWidget
+                  agentCard={agentCard}
+                  apiKey={config.apiKey}
+                  agentUrl={config.apiUrl}
+                  metadata={{
+                    ...chatWidgetProps.metadata,
+                    sessionId: activeSessionId,
+                  }}
+                  theme={chatWidgetProps.theme}
+                  userName={chatWidgetProps.userName}
+                  placeholder={chatWidgetProps.placeholder}
+                  welcomeMessage={chatWidgetProps.welcomeMessage}
+                  allowFileUpload={false}
+                  onToggleSidebar={toggleSidebar}
+                  isSidebarCollapsed={isCollapsed}
+                  mode={mode}
+                  fluentTheme={mode}
+                  onUnauthorized={config.onUnauthorized}
+                  onContextIdChange={handleContextIdChange}
+                  contextId={activeSessionId}
+                />
+              ) : (
+                <div className={styles.loadingContainer}>
+                  <Spinner size="medium" />
+                  <div>Creating new conversation...</div>
+                </div>
+              )}
+            </A2AClientProvider>
           </ChatThemeProvider>
         </div>
       </div>

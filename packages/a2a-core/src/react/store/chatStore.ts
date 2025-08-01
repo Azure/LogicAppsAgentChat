@@ -18,6 +18,9 @@ interface ChatState {
   typingByContext: Map<string, boolean>;
   authRequiredByContext: Map<string, AuthRequiredEvent | null>;
 
+  // Current context ID for message sending
+  currentContextId: string | null;
+
   // Actions
   addMessage: (message: Message) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
@@ -26,6 +29,7 @@ interface ChatState {
   setConnected: (connected: boolean) => void;
   setTyping: (typing: boolean, contextId?: string) => void;
   setAuthRequired: (event: AuthRequiredEvent | null, contextId?: string) => void;
+  setCurrentContextId: (contextId: string | null) => void;
 
   // File upload actions
   addPendingUpload: (attachment: Attachment) => void;
@@ -49,6 +53,7 @@ export const useChatStore = create<ChatState>()(
     authRequired: null,
     typingByContext: new Map(),
     authRequiredByContext: new Map(),
+    currentContextId: null,
 
     addMessage: (message) =>
       set((state) => {
@@ -101,6 +106,11 @@ export const useChatStore = create<ChatState>()(
           authRequired: event,
           authRequiredByContext: newAuthRequiredByContext,
         };
+      }),
+
+    setCurrentContextId: (contextId) =>
+      set((state) => {
+        state.currentContextId = contextId;
       }),
 
     addPendingUpload: (attachment) =>

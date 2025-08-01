@@ -1,0 +1,20 @@
+.container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sidebar {
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.chatArea {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}

@@ -1,6 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
 import type { A2AClient } from '../client/a2a-client';
-import type { SessionManager } from '../session/session-manager';
 import type { Message, Part } from '../types';
 import type {
   ChatMessage,
@@ -12,9 +11,7 @@ import type {
 
 export interface ChatInterfaceConfig {
   client: A2AClient;
-  session?: SessionManager;
   conversationId?: string;
-  persistMessages?: boolean;
   context?: Record<string, unknown>;
   streamingEnabled?: boolean;
   maxHistorySize?: number;
@@ -22,7 +19,6 @@ export interface ChatInterfaceConfig {
 
 export class ChatInterface extends EventEmitter<ChatEventMap> {
   private client: A2AClient;
-  private session: SessionManager | undefined;
   private conversationId: string;
   private messages: ChatMessage[] = [];
   private options: Required<ChatOptions>;
@@ -32,61 +28,22 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
     super();
 
     this.client = config.client;
-    this.session = config.session;
     this.context = config.context || {};
 
     // Set up options with defaults
     this.options = {
       conversationId: config.conversationId || this.generateConversationId(),
-      persistMessages: config.persistMessages ?? !!config.session,
+      persistMessages: false,
       context: this.context,
       streamingEnabled: config.streamingEnabled ?? true,
       maxHistorySize: config.maxHistorySize ?? 100,
     };
 
-    // Load or set conversation ID
-    if (this.session) {
-      const existingId = this.session.get('a2a-conversation-id') as string;
-      this.conversationId = existingId || this.options.conversationId;
-
-      if (!existingId) {
-        this.session.set('a2a-conversation-id', this.conversationId);
-      }
-
-      // Load conversation history
-      this.loadConversationHistory();
-    } else {
-      this.conversationId = this.options.conversationId;
-    }
+    this.conversationId = this.options.conversationId;
   }
 
   private generateConversationId(): string {
     return `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private loadConversationHistory(): void {
-    if (!this.session) return;
-
-    const historyKey = `a2a-chat-history-${this.conversationId}`;
-    const history = this.session.get(historyKey) as ChatMessage[];
-
-    if (history && Array.isArray(history)) {
-      this.messages = history.map((msg) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      }));
-    }
-  }
-
-  private saveConversationHistory(): void {
-    if (!this.session || !this.options.persistMessages) return;
-
-    const historyKey = `a2a-chat-history-${this.conversationId}`;
-
-    // Limit history size
-    const messagesToSave = this.messages.slice(-this.options.maxHistorySize);
-
-    this.session.set(historyKey, messagesToSave);
   }
 
   private extractTextContent(parts: Part[]): string {
@@ -134,7 +91,6 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       const userMessage = this.createChatMessage('user', parts);
       this.messages.push(userMessage);
       this.emit('message', userMessage);
-      this.saveConversationHistory();
 
       // Prepare A2A message
       const message: Message = {
@@ -170,7 +126,6 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
 
       this.messages.push(responseMessage);
       this.emit('message', responseMessage);
-      this.saveConversationHistory();
 
       return responseMessage;
     } catch (error) {
@@ -185,7 +140,6 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
       const userMessage = this.createChatMessage('user', [{ type: 'text', content }]);
       this.messages.push(userMessage);
       this.emit('message', userMessage);
-      this.saveConversationHistory();
 
       // Prepare message
       const message: Message = {
@@ -242,7 +196,6 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
 
       this.messages.push(finalMessage);
       this.emit('message', finalMessage);
-      this.saveConversationHistory();
 
       return finalMessage;
     } catch (error) {
@@ -253,19 +206,13 @@ export class ChatInterface extends EventEmitter<ChatEventMap> {
 
   clearConversation(): void {
     this.messages = [];
-    this.saveConversationHistory();
   }
 
   newConversation(): void {
     this.conversationId = this.generateConversationId();
     this.messages = [];
 
-    if (this.session) {
-      this.session.set('a2a-conversation-id', this.conversationId);
-    }
-
     this.emit('conversationStarted', { conversationId: this.conversationId });
-    this.saveConversationHistory();
   }
 
   exportConversation(): ConversationExport {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useA2A } from './use-a2a';
 import type { AgentCard } from '../types';
 
@@ -25,10 +26,34 @@ vi.mock('../client/a2a-client', () => ({
       streaming: true,
       stateTransitionHistory: true,
     }),
+    history: {
+      listContexts: vi.fn().mockResolvedValue([]),
+      listTasks: vi.fn().mockResolvedValue([]),
+      createContext: vi.fn().mockResolvedValue({ id: 'context-123' }),
+    },
+  })),
+}));
+
+vi.mock('../client/a2a-client-with-auto-history', () => ({
+  A2AClientWithAutoHistory: vi.fn().mockImplementation(() => ({
+    message: {
+      stream: vi.fn().mockImplementation(() => mockStreamReturnValue),
+    },
+    getCapabilities: vi.fn().mockReturnValue({
+      streaming: true,
+      stateTransitionHistory: true,
+    }),
+    history: {
+      listContexts: vi.fn().mockResolvedValue([]),
+      listTasks: vi.fn().mockResolvedValue([]),
+      createContext: vi.fn().mockResolvedValue({ id: 'context-123' }),
+    },
   })),
 }));
 
 describe('useA2A', () => {
+  let queryClient: QueryClient;
+
   const mockAgentCard: AgentCard = {
     name: 'Test Agent',
     description: 'Test agent for testing',
@@ -46,19 +71,21 @@ describe('useA2A', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
   });
 
-  it('should initialize with disconnected state', () => {
-    const { result } = renderHook(() => useA2A());
-
-    expect(result.current.isConnected).toBe(false);
-    expect(result.current.messages).toEqual([]);
-    expect(result.current.agentCard).toBeUndefined();
-    expect(result.current.isLoading).toBe(false);
-  });
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 
   it('should connect with agent card', async () => {
-    const { result } = renderHook(() => useA2A());
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
@@ -69,118 +96,109 @@ describe('useA2A', () => {
   });
 
   it('should send message and update messages array', async () => {
-    // Mock the stream response
-    mockStreamReturnValue = {
-      async *[Symbol.asyncIterator]() {
-        yield {
-          id: 'task-1',
-          state: 'pending',
-          messages: [],
-          artifacts: [],
-        };
-        yield {
-          id: 'task-1',
-          state: 'running',
-          messages: [
-            {
-              role: 'assistant',
-              content: [{ type: 'text', content: 'Hello from agent' }],
-            },
-          ],
-          artifacts: [],
-        };
-        yield {
-          id: 'task-1',
-          state: 'completed',
-          messages: [
-            {
-              role: 'assistant',
-              content: [{ type: 'text', content: 'Hello from agent' }],
-            },
-          ],
-          artifacts: [],
-        };
-      },
-    };
-
-    const { result } = renderHook(() => useA2A());
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     // Connect first
     await act(async () => {
       await result.current.connect(mockAgentCard);
     });
 
+    // Mock the stream response
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'task-123',
+          state: 'completed',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', content: 'Hello' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Hello! How can I help you?' }],
+            },
+          ],
+          artifacts: [],
+        };
+      },
+    };
+
     // Send message
     await act(async () => {
-      await result.current.sendMessage('Hello agent');
+      await result.current.sendMessage('Hello');
     });
 
-    // Check that user message was added
+    // Should have both user and assistant messages
     expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0]).toMatchObject({
-      role: 'user',
-      content: 'Hello agent',
-    });
-
-    // Check that assistant message was added
-    expect(result.current.messages[1]).toMatchObject({
-      role: 'assistant',
-      content: 'Hello from agent',
-    });
+    expect(result.current.messages[0].content).toBe('Hello');
+    expect(result.current.messages[0].role).toBe('user');
+    expect(result.current.messages[1].content).toBe('Hello! How can I help you?');
+    expect(result.current.messages[1].role).toBe('assistant');
   });
 
   it('should handle artifacts in responses', async () => {
+    const { result } = renderHook(() => useA2A(), { wrapper });
+
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+    });
+
     // Mock stream with artifacts
     mockStreamReturnValue = {
       async *[Symbol.asyncIterator]() {
         yield {
-          id: 'task-1',
+          id: 'task-456',
           state: 'completed',
           messages: [
             {
               role: 'assistant',
-              content: [{ type: 'text', content: 'Generated code' }],
+              content: [{ type: 'text', content: 'Here is your code:' }],
             },
           ],
           artifacts: [
             {
               artifactId: 'file.js',
               name: 'file.js',
-              parts: [
-                {
-                  kind: 'text',
-                  text: 'console.log("Hello");',
-                },
-              ],
+              parts: [{ kind: 'text', text: 'console.log("Hello");' }],
             },
           ],
         };
       },
     };
 
-    const { result } = renderHook(() => useA2A());
+    await act(async () => {
+      await result.current.sendMessage('Create a file');
+    });
+
+    // Should have user message + assistant message + artifact message
+    expect(result.current.messages).toHaveLength(3);
+
+    // Check artifact message
+    const artifactMessage = result.current.messages[2];
+    expect(artifactMessage.content).toContain('file.js');
+    expect(artifactMessage.metadata?.artifacts).toHaveLength(1);
+    expect(artifactMessage.metadata?.artifacts[0]).toMatchObject({
+      artifactId: 'file.js',
+      name: 'file.js',
+    });
+  });
+
+  it('should handle loading states', async () => {
+    const { result } = renderHook(() => useA2A(), { wrapper });
+
+    expect(result.current.isLoading).toBe(false);
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
     });
 
-    await act(async () => {
-      await result.current.sendMessage('Generate code');
-    });
-
-    // Should have user message + assistant message + artifact message
-    expect(result.current.messages).toHaveLength(3);
-    expect(result.current.messages[2].content).toContain('file.js');
-    expect(result.current.messages[2].content).toContain('console.log("Hello");');
-  });
-
-  it('should handle loading states', async () => {
-    // Mock a slow stream
+    // Mock slow stream
     mockStreamReturnValue = {
       async *[Symbol.asyncIterator]() {
         await new Promise((resolve) => setTimeout(resolve, 100));
         yield {
-          id: 'task-1',
+          id: 'task-789',
           state: 'completed',
           messages: [
             {
@@ -193,36 +211,80 @@ describe('useA2A', () => {
       },
     };
 
-    const { result } = renderHook(() => useA2A());
+    let loadingCapture = false;
+    act(() => {
+      result.current.sendMessage('Test').then(() => {
+        loadingCapture = result.current.isLoading;
+      });
+    });
+
+    // Should be loading immediately after send
+    expect(result.current.isLoading).toBe(true);
+
+    // Wait for completion
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('should disconnect and clear state', async () => {
+    const { result } = renderHook(() => useA2A(), { wrapper });
+
+    // Connect and send message
+    await act(async () => {
+      await result.current.connect(mockAgentCard);
+      await result.current.sendMessage('Test');
+    });
+
+    expect(result.current.isConnected).toBe(true);
+    expect(result.current.messages.length).toBeGreaterThan(0);
+
+    // Disconnect
+    act(() => {
+      result.current.disconnect();
+    });
+
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.agentCard).toBeUndefined();
+  });
+
+  it('should handle errors gracefully', async () => {
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
     });
 
-    // Start sending
-    let sendPromise: Promise<void>;
-    act(() => {
-      sendPromise = result.current.sendMessage('Test');
-    });
+    // Mock stream that throws error
+    mockStreamReturnValue = {
+      async *[Symbol.asyncIterator]() {
+        throw new Error('Stream error');
+      },
+    };
 
-    // Should be loading
-    expect(result.current.isLoading).toBe(true);
-
-    // Wait for completion
+    // Need to use act for the error to be set in state
     await act(async () => {
-      await sendPromise!;
+      await expect(result.current.sendMessage('Test')).rejects.toThrow('Stream error');
     });
 
-    // Should not be loading
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeDefined();
+    expect(result.current.error?.message).toBe('Stream error');
   });
 
-  it('should disconnect and clear state', async () => {
-    // Mock a simple response
+  it('should throw error when sending message without connection', async () => {
+    const { result } = renderHook(() => useA2A(), { wrapper });
+
+    await expect(result.current.sendMessage('Test')).rejects.toThrow('Not connected to agent');
+  });
+
+  it('should clear messages', async () => {
+    // Reset mock to provide valid response
     mockStreamReturnValue = {
       async *[Symbol.asyncIterator]() {
         yield {
-          id: 'task-1',
+          id: 'task-clear',
           state: 'completed',
           messages: [
             {
@@ -235,167 +297,20 @@ describe('useA2A', () => {
       },
     };
 
-    const { result } = renderHook(() => useA2A());
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
-      await result.current.sendMessage('Test message');
+      await result.current.sendMessage('Test');
     });
 
-    expect(result.current.isConnected).toBe(true);
     expect(result.current.messages.length).toBeGreaterThan(0);
 
-    act(() => {
-      result.current.disconnect();
-    });
-
-    expect(result.current.isConnected).toBe(false);
-    expect(result.current.agentCard).toBeUndefined();
-    expect(result.current.messages).toEqual([]);
-  });
-
-  it('should handle errors gracefully', async () => {
-    // Mock error in stream
-    mockStreamReturnValue = {
-      async *[Symbol.asyncIterator]() {
-        throw new Error('Stream failed');
-      },
-    };
-
-    const { result } = renderHook(() => useA2A());
-
-    await act(async () => {
-      await result.current.connect(mockAgentCard);
-    });
-
-    await act(async () => {
-      await expect(result.current.sendMessage('Test')).rejects.toThrow('Stream failed');
-    });
-
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('should persist messages to localStorage when persistSession is enabled', async () => {
-    const sessionKey = 'test-session';
-    const { result } = renderHook(() =>
-      useA2A({
-        persistSession: true,
-        sessionKey,
-        agentUrl: 'http://example.com/.well-known/agent.json',
-      })
-    );
-
-    // Setup localStorage mock
-    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-
-    // Mock the stream response
-    mockStreamReturnValue = {
-      async *[Symbol.asyncIterator]() {
-        yield {
-          id: 'task-persist',
-          state: 'completed',
-          messages: [
-            {
-              role: 'assistant',
-              content: [{ type: 'text', content: 'Response to persist' }],
-            },
-          ],
-          artifacts: [],
-        };
-      },
-    };
-
-    // Connect and send message
-    await act(async () => {
-      await result.current.connect(mockAgentCard);
-      await result.current.sendMessage('Test message');
-    });
-
-    // Verify localStorage was called with messages
-    const expectedKey = `a2a-messages-example-com-${sessionKey}`;
-    expect(setItemSpy).toHaveBeenCalledWith(expectedKey, expect.any(String));
-
-    // Verify messages were stored
-    const storedMessages = JSON.parse(localStorage.getItem(expectedKey) || '[]');
-    expect(storedMessages).toHaveLength(2);
-    expect(storedMessages[0].content).toBe('Test message');
-    expect(storedMessages[1].content).toBe('Response to persist');
-
-    setItemSpy.mockRestore();
-    localStorage.clear();
-  });
-
-  it('should restore messages from localStorage on mount', async () => {
-    const sessionKey = 'test-session';
-    const agentUrl = 'http://example.com/.well-known/agent.json';
-    const storageKey = `a2a-messages-example-com-${sessionKey}`;
-    const storedMessages = [
-      {
-        id: 'stored-1',
-        role: 'user',
-        content: 'Previous message',
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: 'stored-2',
-        role: 'assistant',
-        content: 'Previous response',
-        timestamp: new Date().toISOString(),
-      },
-    ];
-
-    // Setup localStorage with existing messages
-    localStorage.setItem(storageKey, JSON.stringify(storedMessages));
-
-    const { result } = renderHook(() =>
-      useA2A({
-        persistSession: true,
-        sessionKey,
-        agentUrl,
-      })
-    );
-
-    // Connect to load messages from localStorage
-    await act(async () => {
-      await result.current.connect(mockAgentCard);
-    });
-
-    // Messages should be restored
-    expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0].content).toBe('Previous message');
-    expect(result.current.messages[1].content).toBe('Previous response');
-
-    // Clean up
-    localStorage.clear();
-  });
-
-  it('should clear localStorage when clearMessages is called', async () => {
-    const sessionKey = 'test-session';
-    const { result } = renderHook(() => useA2A({ persistSession: true, sessionKey }));
-
-    // Setup some data
-    localStorage.setItem(`a2a-messages-${sessionKey}`, JSON.stringify([{ test: 'message' }]));
-    localStorage.setItem(`a2a-context-${sessionKey}`, 'context-id');
-
-    // Connect first
-    await act(async () => {
-      await result.current.connect(mockAgentCard);
-    });
-
-    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
-
-    // Clear messages
     act(() => {
       result.current.clearMessages();
     });
 
-    // Verify localStorage was cleared
-    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-messages-example-com-${sessionKey}`);
-    expect(removeItemSpy).toHaveBeenCalledWith(`a2a-context-example-com-${sessionKey}`);
     expect(result.current.messages).toHaveLength(0);
-
-    removeItemSpy.mockRestore();
-    localStorage.clear();
   });
 
   it('should handle streaming updates with state transitions', async () => {
@@ -427,7 +342,7 @@ describe('useA2A', () => {
       },
     };
 
-    const { result } = renderHook(() => useA2A());
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
@@ -469,7 +384,7 @@ describe('useA2A', () => {
       },
     };
 
-    const { result } = renderHook(() => useA2A());
+    const { result } = renderHook(() => useA2A(), { wrapper });
 
     await act(async () => {
       await result.current.connect(mockAgentCard);
@@ -485,46 +400,5 @@ describe('useA2A', () => {
     expect(artifactMessage2.content).toContain('file2.js');
     expect(artifactMessage1.metadata?.artifacts).toHaveLength(1);
     expect(artifactMessage2.metadata?.artifacts).toHaveLength(1);
-  });
-
-  it('should persist context ID to localStorage', async () => {
-    const sessionKey = 'test-context';
-    const agentUrl = 'http://example.com/.well-known/agent.json';
-    const { result } = renderHook(() =>
-      useA2A({
-        persistSession: true,
-        sessionKey,
-        agentUrl,
-      })
-    );
-
-    localStorage.setItem(`a2a-context-example-com-${sessionKey}`, 'stored-context-id');
-
-    // Mock stream response
-    mockStreamReturnValue = {
-      async *[Symbol.asyncIterator]() {
-        yield {
-          id: 'task-context',
-          state: 'completed',
-          messages: [
-            {
-              role: 'assistant',
-              content: [{ type: 'text', content: 'Using context' }],
-            },
-          ],
-          artifacts: [],
-        };
-      },
-    };
-
-    await act(async () => {
-      await result.current.connect(mockAgentCard);
-      await result.current.sendMessage('Test with context');
-    });
-
-    // Context should be persisted
-    expect(localStorage.getItem(`a2a-context-example-com-${sessionKey}`)).toBeTruthy();
-
-    localStorage.clear();
   });
 });

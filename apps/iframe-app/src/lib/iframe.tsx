@@ -16,15 +16,19 @@
 
 import { createRoot } from 'react-dom/client';
 import { IframeWrapper } from '../components/IframeWrapper';
+import { IframeWrapperWithHistory } from '../components/IframeWrapperWithHistory';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { useIframeConfig } from './hooks/useIframeConfig';
+import { A2AQueryProvider } from '@microsoft/a2achat-core/react';
 import '@microsoft/a2achat-core/react/styles.css';
 import '../styles/base.css';
 
 // Main application component that uses the configuration
 function App() {
   const config = useIframeConfig();
-  return <IframeWrapper config={config} />;
+
+  // Server history is now the default - use MultiSessionChatQuery
+  return <IframeWrapperWithHistory config={config} />;
 }
 
 // Initialize the widget
@@ -36,7 +40,11 @@ function init() {
     }
 
     const root = createRoot(container);
-    root.render(<App />);
+    root.render(
+      <A2AQueryProvider>
+        <App />
+      </A2AQueryProvider>
+    );
   } catch (error) {
     console.error('Failed to initialize chat widget:', error);
 

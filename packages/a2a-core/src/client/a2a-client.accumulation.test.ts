@@ -85,7 +85,9 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
 
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
         result: {
           kind: 'task',
           id: 'task-123',
@@ -94,7 +96,7 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             timestamp: new Date().toISOString(),
           },
         },
-      },
+      }),
     });
     const task1 = await task1Promise;
     updates.push(task1.value);
@@ -106,7 +108,9 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
     const task2Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
         result: {
           kind: 'status-update',
           taskId: 'task-123',
@@ -119,15 +123,18 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             },
           },
         },
-      },
+      }),
     });
     const task2 = await task2Promise;
     updates.push(task2.value);
 
     // 3. Artifact update
+    const task3Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
         result: {
           kind: 'artifact-update',
           taskId: 'task-123',
@@ -138,16 +145,18 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             content: 'Console.WriteLine("Hello, World!");',
           },
         },
-      },
+      }),
     });
-    // Note: artifact updates should be accumulated but not trigger a new task update
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const task3 = await task3Promise;
+    updates.push(task3.value);
 
     // 4. Second status update with another message
     const task4Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 4,
         result: {
           kind: 'status-update',
           taskId: 'task-123',
@@ -160,7 +169,7 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             },
           },
         },
-      },
+      }),
     });
     const task4 = await task4Promise;
     updates.push(task4.value);
@@ -169,7 +178,9 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
     const task5Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 5,
         result: {
           kind: 'status-update',
           taskId: 'task-123',
@@ -179,13 +190,13 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
           },
           final: true,
         },
-      },
+      }),
     });
     const task5 = await task5Promise;
     updates.push(task5.value);
 
     // Verify accumulation
-    expect(updates).toHaveLength(4); // task creation + 3 status updates (artifact update doesn't emit)
+    expect(updates).toHaveLength(5); // task creation + status update + artifact update + status update + final
 
     // Check first update (task creation)
     expect(updates[0].id).toBe('task-123');
@@ -201,18 +212,10 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
       content: 'Generating code...',
     });
 
-    // Check third update (after artifact, second status with message)
+    // Check third update (artifact update)
     expect(updates[2].id).toBe('task-123');
     expect(updates[2].state).toBe('running');
-    expect(updates[2].messages).toHaveLength(2); // Should have BOTH messages
-    expect(updates[2].messages[0].content[0]).toEqual({
-      type: 'text',
-      content: 'Generating code...',
-    });
-    expect(updates[2].messages[1].content[0]).toEqual({
-      type: 'text',
-      content: 'Generated files: Program.cs',
-    });
+    expect(updates[2].messages).toHaveLength(1); // Still has the first message
     expect(updates[2].artifacts).toBeDefined();
     expect(updates[2].artifacts).toHaveLength(1);
     expect(updates[2].artifacts![0]).toEqual({
@@ -222,11 +225,26 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
       content: 'Console.WriteLine("Hello, World!");',
     });
 
-    // Check final update
+    // Check fourth update (second status with message)
     expect(updates[3].id).toBe('task-123');
-    expect(updates[3].state).toBe('completed');
-    expect(updates[3].messages).toHaveLength(2); // Should still have both messages
+    expect(updates[3].state).toBe('running');
+    expect(updates[3].messages).toHaveLength(2); // Should have BOTH messages
+    expect(updates[3].messages[0].content[0]).toEqual({
+      type: 'text',
+      content: 'Generating code...',
+    });
+    expect(updates[3].messages[1].content[0]).toEqual({
+      type: 'text',
+      content: 'Generated files: Program.cs',
+    });
+    expect(updates[3].artifacts).toBeDefined();
     expect(updates[3].artifacts).toHaveLength(1); // Should still have the artifact
+
+    // Check final update
+    expect(updates[4].id).toBe('task-123');
+    expect(updates[4].state).toBe('completed');
+    expect(updates[4].messages).toHaveLength(2); // Should still have both messages
+    expect(updates[4].artifacts).toHaveLength(1); // Should still have the artifact
   });
 
   it('should handle multiple artifacts properly', async () => {
@@ -248,7 +266,9 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
     const sseClient = (client as any).sseClient;
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
         result: {
           kind: 'task',
           id: 'task-456',
@@ -257,14 +277,17 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             timestamp: new Date().toISOString(),
           },
         },
-      },
+      }),
     });
     await task1Promise;
 
     // Add multiple artifacts
+    const artifact1Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
         result: {
           kind: 'artifact-update',
           taskId: 'task-456',
@@ -275,13 +298,16 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             content: '<html>...</html>',
           },
         },
-      },
+      }),
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await artifact1Promise;
 
+    const artifact2Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
         result: {
           kind: 'artifact-update',
           taskId: 'task-456',
@@ -292,15 +318,17 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
             content: 'body { margin: 0; }',
           },
         },
-      },
+      }),
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await artifact2Promise;
 
     // Get final status
     const finalPromise = iterator.next();
     sseClient?.simulateMessage({
       event: 'message',
-      data: {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 4,
         result: {
           kind: 'status-update',
           taskId: 'task-456',
@@ -314,7 +342,7 @@ describe('A2AClient - Message and Artifact Accumulation', () => {
           },
           final: true,
         },
-      },
+      }),
     });
     const finalUpdate = await finalPromise;
 

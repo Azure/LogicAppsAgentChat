@@ -126,14 +126,17 @@ describe('A2AClient - Stream', () => {
 
     // 1. Simulate initial pending update
     sseClient?.simulateMessage({
-      event: 'task.created',
-      data: {
-        id: 'task-123',
-        state: 'pending',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          id: 'task-123',
+          state: 'pending',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const pendingUpdate = await pendingPromise;
     updates.push(pendingUpdate.value);
@@ -142,13 +145,17 @@ describe('A2AClient - Stream', () => {
     const processingPromise = iterator.next();
     sseClient?.simulateMessage({
       event: 'task.update',
-      data: {
-        id: 'task-123',
-        state: 'running',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        result: {
+          id: 'task-123',
+          state: 'running',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const processingUpdate = await processingPromise;
     updates.push(processingUpdate.value);
@@ -157,22 +164,26 @@ describe('A2AClient - Stream', () => {
     const completedPromise = iterator.next();
     sseClient?.simulateMessage({
       event: 'task.update',
-      data: {
-        id: 'task-123',
-        state: 'completed',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', content: 'Tell me a story' }],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time...' }],
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
+        result: {
+          id: 'task-123',
+          state: 'completed',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', content: 'Tell me a story' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Once upon a time...' }],
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const completedUpdate = await completedPromise;
     updates.push(completedUpdate.value);
@@ -207,13 +218,17 @@ describe('A2AClient - Stream', () => {
     // First send an initial task to complete the first promise
     sseClient?.simulateMessage({
       event: 'task.created',
-      data: {
-        id: 'task-123',
-        state: 'pending',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          id: 'task-123',
+          state: 'pending',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
 
     // Wait for first task
@@ -326,13 +341,17 @@ describe('A2AClient - Stream', () => {
     // Send initial task to complete first promise
     sseClient?.simulateMessage({
       event: 'task.created',
-      data: {
-        id: 'task-123',
-        state: 'pending',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          id: 'task-123',
+          state: 'pending',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
 
     await firstPromise;
@@ -366,13 +385,17 @@ describe('A2AClient - Stream', () => {
     // Send initial task
     sseClient?.simulateMessage({
       event: 'task.created',
-      data: {
-        id: 'task-123',
-        state: 'pending',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          id: 'task-123',
+          state: 'pending',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const initial = await initialPromise;
     updates.push(initial.value);
@@ -383,22 +406,26 @@ describe('A2AClient - Stream', () => {
     const update1Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'task.update',
-      data: {
-        id: 'task-123',
-        state: 'running',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a' }],
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        result: {
+          id: 'task-123',
+          state: 'running',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', content: 'Write a long story' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Once upon a' }],
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const update1 = await update1Promise;
     updates.push(update1.value);
@@ -407,22 +434,26 @@ describe('A2AClient - Stream', () => {
     const update2Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'task.update',
-      data: {
-        id: 'task-123',
-        state: 'running',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time, in a' }],
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
+        result: {
+          id: 'task-123',
+          state: 'running',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', content: 'Write a long story' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Once upon a time, in a' }],
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const update2 = await update2Promise;
     updates.push(update2.value);
@@ -431,22 +462,26 @@ describe('A2AClient - Stream', () => {
     const update3Promise = iterator.next();
     sseClient?.simulateMessage({
       event: 'task.update',
-      data: {
-        id: 'task-123',
-        state: 'completed',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', content: 'Write a long story' }],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'text', content: 'Once upon a time, in a land far away...' }],
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 4,
+        result: {
+          id: 'task-123',
+          state: 'completed',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', content: 'Write a long story' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', content: 'Once upon a time, in a land far away...' }],
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      }),
     });
     const update3 = await update3Promise;
     updates.push(update3.value);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ChatWindow } from '../ChatWindow';
 import type { ChatWindowProps } from '../ChatWindow';
 
@@ -29,6 +30,8 @@ vi.mock('../../CompanyLogo', () => ({
 }));
 
 describe('ChatWindow - Agent Name Display Fix', () => {
+  let queryClient: QueryClient;
+
   const defaultProps: ChatWindowProps = {
     agentCard: {
       id: 'test-agent',
@@ -44,7 +47,18 @@ describe('ChatWindow - Agent Name Display Fix', () => {
   beforeEach(() => {
     // Reset the mock before each test
     mockUseChatWidget.mockReset();
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
   });
+
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  };
 
   it('should pass agent name from useChatWidget to MessageList', () => {
     // Set up the mock to return the agent name
@@ -56,7 +70,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       handleAuthCompleted: vi.fn(),
     });
 
-    render(<ChatWindow {...defaultProps} />);
+    renderWithProviders(<ChatWindow {...defaultProps} />);
 
     // Check that the MessageList received the correct agentName prop
     const agentNameElement = screen.getByTestId('agent-name');
@@ -72,7 +86,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       handleAuthCompleted: vi.fn(),
     });
 
-    render(<ChatWindow {...defaultProps} />);
+    renderWithProviders(<ChatWindow {...defaultProps} />);
 
     // Check that the MessageList received "You" as default userName
     const userNameElement = screen.getByTestId('user-name');
@@ -93,7 +107,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       userName: 'John Doe',
     };
 
-    render(<ChatWindow {...propsWithUserName} />);
+    renderWithProviders(<ChatWindow {...propsWithUserName} />);
 
     // Check that the MessageList received the custom userName
     const userNameElement = screen.getByTestId('user-name');
@@ -117,7 +131,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       },
     };
 
-    render(<ChatWindow {...propsWithoutName} />);
+    renderWithProviders(<ChatWindow {...propsWithoutName} />);
 
     // Check that the MessageList received "Agent" (from the hook)
     const agentNameElement = screen.getByTestId('agent-name');
@@ -133,7 +147,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       handleAuthCompleted: vi.fn(),
     });
 
-    render(<ChatWindow {...defaultProps} />);
+    renderWithProviders(<ChatWindow {...defaultProps} />);
 
     // The user name should default to "You", not the agent name
     const userNameElement = screen.getByTestId('user-name');
@@ -160,7 +174,7 @@ describe('ChatWindow - Agent Name Display Fix', () => {
       },
     };
 
-    render(<ChatWindow {...propsWithTestAgent} />);
+    renderWithProviders(<ChatWindow {...propsWithTestAgent} />);
 
     // Before the fix, userName was receiving the agentName value
     // After the fix, userName should default to "You" when not provided
