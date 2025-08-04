@@ -67,9 +67,20 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
       });
 
       console.log(`[ServerSyncManager] Found ${serverContexts.length} contexts on server`);
+      console.log(
+        '[ServerSyncManager] Server contexts details:',
+        serverContexts.map((c) => ({
+          Id: c.Id || (c as any).id,
+          Name: c.Name || (c as any).name,
+          IsArchived: c.IsArchived,
+          isArchived: c.isArchived,
+          Status: c.Status,
+          status: c.status,
+        }))
+      );
 
-      // Get existing local sessions to avoid duplicates
-      const localSessions = await this.sessionManager.getAllSessions();
+      // Get existing local sessions to avoid duplicates - include archived to check all
+      const localSessions = await this.sessionManager.getAllSessions(true);
       const localContextIds = new Set(localSessions.map((s) => s.contextId).filter(Boolean));
 
       // Create minimal sessions for contexts that don't exist locally
@@ -95,7 +106,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           context.CreatedAt || (context as any).createdAt || (context as any).created_at;
         const updatedAtField =
           context.UpdatedAt || (context as any).updatedAt || (context as any).updated_at;
-        const isArchived = context.IsArchived || context.isArchived || false;
+        // Only consider it archived if explicitly set to true
+        const isArchived = context.IsArchived === true || context.isArchived === true;
         const status = context.Status || context.status || 'Running';
 
         let createdAt = Date.now();
@@ -276,9 +288,18 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
         `[ServerSyncManager] Fetched ${serverContexts.length} contexts from server:`,
         serverContexts
       );
+      console.log(
+        '[ServerSyncManager] Context archive status:',
+        serverContexts.map((c) => ({
+          Id: c.Id || (c as any).id,
+          Name: c.Name || (c as any).name,
+          IsArchived: c.IsArchived,
+          isArchived: c.isArchived,
+        }))
+      );
 
-      // Get existing local sessions
-      const localSessions = await this.sessionManager.getAllSessions();
+      // Get existing local sessions - include archived to check all
+      const localSessions = await this.sessionManager.getAllSessions(true);
       const localSessionsByContextId = new Map<string, SessionMetadata>();
 
       for (const session of localSessions) {
@@ -318,7 +339,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
               (context as any).title ||
               (context as any).name ||
               `Chat ${contextId.slice(0, 8)}`;
-            const isArchived = context.IsArchived || context.isArchived || false;
+            // Only consider it archived if explicitly set to true
+            const isArchived = context.IsArchived === true || context.isArchived === true;
             const status = context.Status || context.status || 'Running';
             // Create session without setting it as active to avoid interference
             localSession = await this.sessionManager.createSession(title, false);
@@ -541,7 +563,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           }
         }
 
-        const isArchived = serverContext.IsArchived || serverContext.isArchived || false;
+        // Only consider it archived if explicitly set to true
+        const isArchived = serverContext.IsArchived === true || serverContext.isArchived === true;
         const status = serverContext.Status || serverContext.status || 'Running';
 
         const basicSession: ChatSession = {
@@ -597,7 +620,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
       }
     }
 
-    const isArchived = context.IsArchived || context.isArchived || false;
+    // Only consider it archived if explicitly set to true
+    const isArchived = context.IsArchived === true || context.isArchived === true;
     const status = context.Status || context.status || 'Running';
 
     const session: ChatSession = {

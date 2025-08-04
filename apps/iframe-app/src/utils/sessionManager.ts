@@ -98,13 +98,30 @@ export class SessionManager {
 
     const sessionsData = await this.storage.getItem(this.sessionsKey);
     if (!sessionsData) {
+      console.log('[SessionManager] No sessions data found in storage');
       return [];
     }
 
     try {
       const sessions = JSON.parse(sessionsData) as Record<string, ChatSession>;
-      return Object.values(sessions)
-        .filter((session) => session && typeof session === 'object')
+      const allSessions = Object.values(sessions).filter(
+        (session) => session && typeof session === 'object'
+      );
+
+      console.log(
+        `[SessionManager] Found ${allSessions.length} total sessions, includeArchived: ${includeArchived}`
+      );
+      console.log(
+        '[SessionManager] Session archive status:',
+        allSessions.map((s) => ({
+          id: s.id,
+          name: s.name,
+          isArchived: s.isArchived,
+          willInclude: includeArchived || !s.isArchived,
+        }))
+      );
+
+      return allSessions
         .filter((session) => includeArchived || !session.isArchived)
         .map((session) => {
           // Ensure all required properties exist with defaults
