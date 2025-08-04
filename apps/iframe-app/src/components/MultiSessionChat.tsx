@@ -8,12 +8,17 @@ import {
   shorthands,
   Spinner,
   mergeClasses,
+  Button,
+  Tooltip,
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
+import { ArrowSyncRegular, ArrowSyncCheckmarkRegular } from '@fluentui/react-icons';
 import { useChatSessions } from '../hooks/useChatSessions';
 import { useStorageSync } from '../hooks/useStorageSync';
 import { SessionList } from './SessionList';
 import { SessionManager } from '../utils/sessionManager';
+// import { SyncStatus } from './SyncStatus'; // Temporarily disabled
+import { FeatureFlags } from '../config/storage-config';
 
 const useStyles = makeStyles({
   multiSessionContainer: {
@@ -104,7 +109,15 @@ export function MultiSessionChat({
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [messageUpdateKey, setMessageUpdateKey] = useState(0);
+  const [isInitialSyncComplete, setIsInitialSyncComplete] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Get storage configuration
+  const storageConfig = FeatureFlags.get();
+
+  // Extract the base agent URL without .well-known/agent.json for server sync
+  const agentBaseUrl = config.apiUrl.replace(/\/\.well-known\/agent\.json$/, '');
 
   const {
     sessions,
@@ -114,7 +127,55 @@ export function MultiSessionChat({
     switchSession,
     renameSession,
     deleteSession,
-  } = useChatSessions(config.apiUrl);
+    syncStatus,
+    isServerSyncEnabled,
+    syncCurrentThread,
+    // syncVersion, - currently unused
+  } = useChatSessions(agentBaseUrl, {
+    enableServerSync: storageConfig.enableServerSync,
+    syncInterval: storageConfig.syncInterval,
+    debugMode: storageConfig.debugMode,
+  });
+
+  // Debug logging
+  console.log(
+    '[MultiSessionChat] Rendering with sessions:',
+    sessions.length,
+    sessions.map((s) => ({
+      id: s.id,
+      name: s.name,
+    }))
+  );
+
+  // Track initial sync completion
+  useEffect(() => {
+    if (isServerSyncEnabled && syncStatus.status === 'idle' && syncStatus.lastSyncTime) {
+      // Initial sync is complete when we have an idle status with a sync time
+      setIsInitialSyncComplete(true);
+    }
+  }, [isServerSyncEnabled, syncStatus]);
+
+  // Listen for message updates from sync
+  useEffect(() => {
+    const handleMessagesUpdated = (event: CustomEvent) => {
+      const { sessionId, messageCount } = event.detail;
+      console.log(
+        `[MultiSessionChat] Messages updated for session ${sessionId}: ${messageCount} messages`
+      );
+
+      // Only update if it's for the current session
+      if (sessionId === activeSessionId) {
+        // Force ChatWidget to re-render by changing its key
+        setMessageUpdateKey((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener('chatMessagesUpdated', handleMessagesUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('chatMessagesUpdated', handleMessagesUpdated as EventListener);
+    };
+  }, [activeSessionId]);
 
   // Check screen size and auto-collapse on small screens
   useEffect(() => {
@@ -253,21 +314,21 @@ export function MultiSessionChat({
 
   // Use storage sync for IndexedDB
   const sessionStorageKey = activeSessionId ? `a2a-chat-session-${activeSessionId}` : '';
-  useStorageSync(config.apiUrl, sessionStorageKey);
+  useStorageSync(agentBaseUrl, sessionStorageKey);
 
   const handleContextIdChange = useCallback(
     async (contextId: string) => {
       if (activeSessionId) {
         // Update the session with the new contextId
         try {
-          const sessionManager = SessionManager.getInstance(config.apiUrl);
+          const sessionManager = SessionManager.getInstance(agentBaseUrl);
           await sessionManager.updateSessionContextId(activeSessionId, contextId);
         } catch (error) {
           console.error('Error updating contextId:', error);
         }
       }
     },
-    [activeSessionId, config.apiUrl]
+    [activeSessionId, agentBaseUrl]
   );
 
   // Show loading state while fetching agent card
@@ -293,13 +354,21 @@ export function MultiSessionChat({
     );
   }
 
-  // Show loading if no active session
-  if (!activeSessionId || !activeSession) {
+  // Show loading if no active session or during initial sync
+  if (
+    !activeSessionId ||
+    !activeSession ||
+    (isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing')
+  ) {
     return (
       <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
         <div className={styles.loadingContainer}>
           <Spinner size="medium" />
-          <div>Loading chat sessions...</div>
+          <div>
+            {isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing'
+              ? 'Syncing all conversations from server...'
+              : 'Loading chat sessions...'}
+          </div>
         </div>
       </FluentProvider>
     );
@@ -339,6 +408,7 @@ export function MultiSessionChat({
             logoUrl={chatWidgetProps.theme?.branding?.logoUrl}
             logoSize={chatWidgetProps.theme?.branding?.logoSize}
             themeColors={chatWidgetProps.theme?.colors}
+            syncStatus={isServerSyncEnabled ? syncStatus : undefined}
           />
           {!isCollapsed && (
             <div
@@ -356,9 +426,19 @@ export function MultiSessionChat({
           )}
         </div>
         <div className={styles.chatArea}>
+          {/* Temporarily disabled sync status indicator
+          {isServerSyncEnabled && (
+            <div className={styles.syncStatusContainer}>
+              <SyncStatus
+                syncStatus={syncStatus}
+                onTriggerSync={triggerSync}
+                isEnabled={isServerSyncEnabled}
+              />
+            </div>
+          )} */}
           <ChatThemeProvider theme={mode}>
             <ChatWidget
-              key={activeSessionId}
+              key={`${activeSessionId}-${messageUpdateKey}`}
               agentCard={agentCard}
               apiKey={config.apiKey}
               sessionKey={`a2a-chat-session-${activeSessionId}`}
@@ -378,6 +458,42 @@ export function MultiSessionChat({
               fluentTheme={mode}
               onUnauthorized={config.onUnauthorized}
               onContextIdChange={handleContextIdChange}
+              disabled={!!activeSession?.status && activeSession.status !== 'Running'}
+              disabledMessage={
+                activeSession?.status
+                  ? `This session is ${activeSession.status.toLowerCase()} and cannot accept new messages`
+                  : undefined
+              }
+              headerActions={
+                isServerSyncEnabled && activeSession?.contextId ? (
+                  <Tooltip
+                    content={
+                      syncStatus.status === 'syncing'
+                        ? 'Syncing...'
+                        : 'Sync this thread with server'
+                    }
+                    relationship="label"
+                  >
+                    <Button
+                      appearance="subtle"
+                      icon={
+                        syncStatus.status === 'syncing' ? (
+                          <Spinner size="tiny" />
+                        ) : syncStatus.lastSyncTime ? (
+                          <ArrowSyncCheckmarkRegular />
+                        ) : (
+                          <ArrowSyncRegular />
+                        )
+                      }
+                      onClick={syncCurrentThread}
+                      disabled={syncStatus.status === 'syncing' || !isInitialSyncComplete}
+                      size="small"
+                    >
+                      {syncStatus.status === 'syncing' ? 'Syncing' : 'Sync'}
+                    </Button>
+                  </Tooltip>
+                ) : null
+              }
             />
           </ChatThemeProvider>
         </div>

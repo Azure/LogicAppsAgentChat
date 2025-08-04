@@ -1,6 +1,7 @@
 import { Message } from '@microsoft/a2achat-core/react';
 import { IndexedDBStorageAdapter } from '../lib/storage/indexeddb-storage-adapter';
 import { getAgentStorageIdentifier } from '@microsoft/a2achat-core';
+import type { ServerSyncManager } from '../services/ServerSyncManager';
 
 export interface ChatSession {
   id: string;
@@ -9,6 +10,9 @@ export interface ChatSession {
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+  isLocalOnly?: boolean; // Track if session exists only locally
+  isArchived?: boolean; // Track if session is archived
+  status?: string; // Track session status (Running, Stopped, etc.)
 }
 
 export interface SessionMetadata {
@@ -18,6 +22,9 @@ export interface SessionMetadata {
   createdAt: number;
   updatedAt: number;
   lastMessage?: string;
+  syncStatus?: 'synced' | 'pending' | 'error'; // Track sync status
+  isArchived?: boolean; // Track archived status
+  status?: 'Running' | 'Paused' | 'Stopped' | 'Completed' | string; // Track context status
 }
 
 export class SessionManager {
@@ -27,6 +34,12 @@ export class SessionManager {
   private sessionsKey: string;
   private activeSessionKey: string;
   private agentUrl: string;
+
+  // Server sync properties
+  private syncManager?: ServerSyncManager;
+  private useServerStorage: boolean = false;
+  private syncQueue: Set<string> = new Set();
+  private syncPromises: Map<string, Promise<void>> = new Map();
 
   private constructor(agentUrl: string) {
     this.agentUrl = agentUrl;
@@ -80,7 +93,7 @@ export class SessionManager {
     await this.initPromise;
   }
 
-  async getAllSessions(): Promise<SessionMetadata[]> {
+  async getAllSessions(includeArchived: boolean = false): Promise<SessionMetadata[]> {
     await this.ensureInitialized();
 
     const sessionsData = await this.storage.getItem(this.sessionsKey);
@@ -92,6 +105,7 @@ export class SessionManager {
       const sessions = JSON.parse(sessionsData) as Record<string, ChatSession>;
       return Object.values(sessions)
         .filter((session) => session && typeof session === 'object')
+        .filter((session) => includeArchived || !session.isArchived)
         .map((session) => {
           // Ensure all required properties exist with defaults
           const safeSession: ChatSession = {
@@ -101,6 +115,8 @@ export class SessionManager {
             messages: Array.isArray(session.messages) ? session.messages : [],
             createdAt: session.createdAt || Date.now(),
             updatedAt: session.updatedAt || Date.now(),
+            isArchived: session.isArchived || false,
+            status: session.status,
           };
 
           const lastMessage =
@@ -115,6 +131,8 @@ export class SessionManager {
             createdAt: safeSession.createdAt,
             updatedAt: safeSession.updatedAt,
             lastMessage,
+            isArchived: safeSession.isArchived,
+            status: safeSession.status,
           };
         })
         .filter((session) => session.id) // Filter out any sessions without ID
@@ -146,6 +164,8 @@ export class SessionManager {
         messages: Array.isArray(session.messages) ? session.messages : [],
         createdAt: session.createdAt || Date.now(),
         updatedAt: session.updatedAt || Date.now(),
+        isArchived: session.isArchived || false,
+        status: session.status,
       };
     } catch (error) {
       console.error('Error getting session:', error);
@@ -186,7 +206,7 @@ export class SessionManager {
     return newSession;
   }
 
-  async saveSession(session: ChatSession): Promise<void> {
+  async saveSession(session: ChatSession, updateTimestamp: boolean = true): Promise<void> {
     await this.ensureInitialized();
 
     const sessionsData = await this.storage.getItem(this.sessionsKey);
@@ -197,10 +217,12 @@ export class SessionManager {
       Object.keys(sessions)
     );
 
-    sessions[session.id] = {
-      ...session,
-      updatedAt: Date.now(),
-    };
+    sessions[session.id] = updateTimestamp
+      ? {
+          ...session,
+          updatedAt: Date.now(),
+        }
+      : session;
 
     await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
 
@@ -254,33 +276,55 @@ export class SessionManager {
     await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
   }
 
-  async renameSession(sessionId: string, newName: string): Promise<void> {
+  async renameSession(sessionId: string, newName: string, historyService?: any): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session) return;
 
     session.name = newName;
     await this.saveSession(session);
+
+    // If server sync is enabled and we have a contextId, update on server
+    if (historyService && session.contextId) {
+      try {
+        await historyService.updateContext(session.contextId, { name: newName });
+        console.log(
+          `[SessionManager] Updated session name on server for context ${session.contextId}`
+        );
+      } catch (error) {
+        console.error('Error updating session name on server:', error);
+      }
+    }
   }
 
-  async deleteSession(sessionId: string): Promise<void> {
-    await this.ensureInitialized();
+  async updateSession(sessionId: string, updates: Partial<ChatSession>): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session) return;
 
-    const sessionsData = await this.storage.getItem(this.sessionsKey);
-    if (!sessionsData) return;
+    Object.assign(session, updates);
+    await this.saveSession(session);
+  }
 
-    try {
-      const sessions = JSON.parse(sessionsData);
-      delete sessions[sessionId];
-      await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
+  async archiveSession(sessionId: string, historyService?: any): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session) return;
 
-      // If this was the active session, clear it
-      const activeSessionId = await this.getActiveSessionId();
-      if (activeSessionId === sessionId) {
-        await this.storage.removeItem(this.activeSessionKey);
+    // Update the session to mark it as archived
+    await this.updateSession(sessionId, { isArchived: true });
+
+    // If server sync is enabled and we have a contextId, update on server
+    if (historyService && session.contextId) {
+      try {
+        await historyService.updateContext(session.contextId, { isArchived: true });
+        console.log(`[SessionManager] Archived session on server for context ${session.contextId}`);
+      } catch (error) {
+        console.error('Error archiving session on server:', error);
       }
-    } catch (error) {
-      console.error('Error deleting session:', error);
     }
+  }
+
+  // Keep deleteSession for backwards compatibility but have it call archiveSession
+  async deleteSession(sessionId: string, historyService?: any): Promise<void> {
+    return this.archiveSession(sessionId, historyService);
   }
 
   async getActiveSessionId(): Promise<string | null> {
@@ -290,11 +334,154 @@ export class SessionManager {
 
   async setActiveSession(sessionId: string): Promise<void> {
     await this.ensureInitialized();
+    // Just set the active session ID, don't update any timestamps
     await this.storage.setItem(this.activeSessionKey, sessionId);
   }
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Server sync methods
+
+  /**
+   * Enable server synchronization
+   */
+  enableServerSync(syncManager: ServerSyncManager): void {
+    this.syncManager = syncManager;
+    this.useServerStorage = true;
+
+    // Listen to sync events
+    syncManager.on('contextSynced', (contextId: string) => {
+      this.syncQueue.delete(contextId);
+    });
+
+    syncManager.on('syncComplete', () => {
+      this.syncQueue.clear();
+    });
+
+    // Start auto sync
+    syncManager.startAutoSync();
+  }
+
+  /**
+   * Disable server synchronization
+   */
+  disableServerSync(): void {
+    if (this.syncManager) {
+      this.syncManager.stopAutoSync();
+      this.syncManager.destroy();
+      this.syncManager = undefined;
+    }
+    this.useServerStorage = false;
+    this.syncQueue.clear();
+  }
+
+  /**
+   * Check if server sync is enabled
+   */
+  isServerSyncEnabled(): boolean {
+    return this.useServerStorage && !!this.syncManager;
+  }
+
+  /**
+   * Queue a session for server sync
+   */
+  private queueForServerSync(sessionId: string): void {
+    if (!this.useServerStorage || !this.syncManager) return;
+
+    this.syncQueue.add(sessionId);
+
+    // Debounce sync trigger
+    if (!this.syncPromises.has(sessionId)) {
+      const promise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (this.syncManager && this.syncQueue.has(sessionId)) {
+            this.syncManager.markForSync(sessionId);
+          }
+          this.syncPromises.delete(sessionId);
+          resolve();
+        }, 1000);
+      });
+
+      this.syncPromises.set(sessionId, promise);
+    }
+  }
+
+  /**
+   * Get sessions with server sync if enabled
+   */
+  async getAllSessionsWithSync(): Promise<SessionMetadata[]> {
+    // Trigger server sync if enabled
+    if (this.useServerStorage && this.syncManager) {
+      try {
+        console.log('[SessionManager] Triggering server sync before getting sessions...');
+        await this.syncManager.triggerSync();
+        console.log('[SessionManager] Server sync completed');
+      } catch (error) {
+        console.warn('[SessionManager] Server sync failed, using local data:', error);
+      }
+    }
+
+    // Get local sessions (which should now be updated by sync)
+    const sessions = await this.getAllSessions();
+    console.log(
+      '[SessionManager] Retrieved sessions after sync:',
+      sessions.map((s) => ({
+        id: s.id,
+        contextId: s.contextId,
+        name: s.name,
+      }))
+    );
+
+    // Add sync status to metadata
+    return sessions.map((session) => ({
+      ...session,
+      syncStatus: this.getSyncStatus(session.id),
+    }));
+  }
+
+  /**
+   * Get sync status for a session
+   */
+  private getSyncStatus(sessionId: string): 'synced' | 'pending' | 'error' {
+    if (!this.useServerStorage) return 'synced';
+
+    if (this.syncQueue.has(sessionId)) {
+      return 'pending';
+    }
+
+    return 'synced';
+  }
+
+  /**
+   * Save session with server sync
+   */
+  async saveSessionWithSync(session: ChatSession): Promise<void> {
+    // Save locally first
+    await this.saveSession(session);
+
+    // Queue for server sync if enabled
+    if (this.useServerStorage && session.contextId) {
+      this.queueForServerSync(session.contextId);
+    }
+  }
+
+  /**
+   * Update session messages with server sync
+   */
+  async updateSessionMessagesWithSync(
+    sessionId: string,
+    messages: Message[],
+    contextId?: string
+  ): Promise<void> {
+    // Update locally first
+    await this.updateSessionMessages(sessionId, messages, contextId);
+
+    // Queue for server sync if enabled
+    if (this.useServerStorage && contextId) {
+      this.queueForServerSync(contextId);
+    }
   }
 
   // For testing purposes only

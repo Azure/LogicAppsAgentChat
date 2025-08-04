@@ -1,0 +1,142 @@
+.syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: var(--chat-surface-secondary, #f5f5f5);
+  font-size: 12px;
+  color: var(--chat-text-secondary, #666);
+  transition: all 0.2s ease;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.statusIcon.syncing {
+  animation: spin 1s linear infinite;
+}
+
+.statusIcon.idle {
+  color: var(--chat-success, #4caf50);
+}
+
+.statusIcon.error {
+  color: var(--chat-error, #f44336);
+}
+
+.statusIcon.offline {
+  color: var(--chat-warning, #ff9800);
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.statusText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.pendingChanges {
+  padding: 2px 6px;
+  background-color: var(--chat-warning-light, #fff3e0);
+  color: var(--chat-warning, #ff9800);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.syncButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--chat-text-secondary, #666);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.syncButton:hover {
+  background-color: var(--chat-surface-tertiary, #e0e0e0);
+  color: var(--chat-text-primary, #000);
+}
+
+.syncButton:active {
+  transform: scale(0.95);
+}
+
+.syncButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorTooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px 12px;
+  background-color: var(--chat-error, #f44336);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .syncStatus {
+    background-color: var(--chat-surface-secondary, #2a2a2a);
+    color: var(--chat-text-secondary, #999);
+  }
+
+  .syncButton:hover {
+    background-color: var(--chat-surface-tertiary, #3a3a3a);
+    color: var(--chat-text-primary, #fff);
+  }
+
+  .pendingChanges {
+    background-color: var(--chat-warning-dark, #4a3200);
+  }
+}

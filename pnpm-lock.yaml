@@ -84,6 +84,12 @@ importers:
       '@microsoft/a2achat-core':
         specifier: workspace:*
         version: link:../../packages/a2a-core
+      '@types/eventemitter3':
+        specifier: ^2.0.4
+        version: 2.0.4
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.1
       idb:
         specifier: ^8.0.3
         version: 8.0.3
@@ -2664,6 +2670,10 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/eventemitter3@2.0.4':
+    resolution: {integrity: sha512-em+O0kpbHLUB4TAu49b674ERppsDT/PFghJYZ5ISP/BwehjNn2Brqs4jO3xb5FM5Tosmz6TUd2Yy2pRxTwTRmw==}
+    deprecated: This is a stub types definition. eventemitter3 provides its own type definitions, so you do not need this installed.
 
   '@types/events@3.0.3':
     resolution: {integrity: sha512-trOc4AAUThEz9hapPtSd7wf5tiQKvTtu5b371UxXdTuqzIh0ArcRspRP0i0Viu+LXstIQ1z96t1nsPxT9ol01g==}
@@ -11159,6 +11169,10 @@ snapshots:
       '@types/estree': 1.0.8
 
   '@types/estree@1.0.8': {}
+
+  '@types/eventemitter3@2.0.4':
+    dependencies:
+      eventemitter3: 5.0.1
 
   '@types/events@3.0.3': {}
 

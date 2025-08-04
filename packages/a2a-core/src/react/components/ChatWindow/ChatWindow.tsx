@@ -64,6 +64,11 @@ const useStyles = makeStyles({
   messageInputWrapper: {
     flexShrink: 0,
   },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalS),
+  },
 });
 
 export interface ChatWindowProps extends ChatWidgetProps {
@@ -93,7 +98,10 @@ export function ChatWindow(props: ChatWindowProps) {
     isSidebarCollapsed,
     apiKey,
     onUnauthorized,
+    headerActions,
     onContextIdChange,
+    disabled,
+    disabledMessage,
     mode = 'light',
   } = props;
 
@@ -156,6 +164,7 @@ export function ChatWindow(props: ChatWindowProps) {
             </div>
           )}
         </div>
+        {headerActions && <div className={styles.headerActions}>{headerActions}</div>}
       </div>
 
       <div className={styles.messageListContainer}>
@@ -177,11 +186,13 @@ export function ChatWindow(props: ChatWindowProps) {
       <div className={styles.messageInputWrapper}>
         <MessageInput
           onSendMessage={sendMessage}
-          placeholder={placeholder}
+          placeholder={
+            disabled ? disabledMessage || 'Messaging is disabled for this session' : placeholder
+          }
           allowFileUpload={allowFileUpload}
           maxFileSize={maxFileSize}
           allowedFileTypes={allowedFileTypes}
-          disabled={!isConnected}
+          disabled={disabled || !isConnected}
           contextId={contextId}
         />
       </div>

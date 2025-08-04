@@ -18,6 +18,8 @@
     "@fluentui/react-components": "^9.66.7",
     "@fluentui/react-icons": "^2.0.306",
     "@microsoft/a2achat-core": "workspace:*",
+    "@types/eventemitter3": "^2.0.4",
+    "eventemitter3": "^5.0.1",
     "idb": "^8.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

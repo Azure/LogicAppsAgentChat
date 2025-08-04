@@ -11,10 +11,12 @@ import {
   tokens,
   mergeClasses,
   Tooltip,
+  Spinner,
 } from '@fluentui/react-components';
-import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
+import { AddRegular, EditRegular, ArchiveRegular, InfoRegular } from '@fluentui/react-icons';
 import { SessionMetadata } from '../utils/sessionManager';
 import type { ChatTheme } from '@microsoft/a2achat-core/react';
+import type { SyncStatus } from '../services/types';
 
 const useStyles = makeStyles({
   sessionList: {
@@ -94,6 +96,13 @@ const useStyles = makeStyles({
       ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
     },
   },
+  sessionItemArchived: {
+    opacity: 0.6,
+    backgroundColor: tokens.colorNeutralBackground3,
+  },
+  sessionItemNotRunning: {
+    ...shorthands.border('1px', 'solid', tokens.colorPaletteYellowBorder1),
+  },
   sessionContent: {
     display: 'flex',
     flexDirection: 'column',
@@ -124,6 +133,16 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorNeutralForeground4,
   },
+  statusBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    ...shorthands.gap('2px'),
+    fontSize: tokens.fontSizeBase100,
+    ...shorthands.padding('2px', '6px'),
+    ...shorthands.borderRadius(tokens.borderRadiusSmall),
+    backgroundColor: tokens.colorPaletteYellowBackground1,
+    color: tokens.colorPaletteYellowForeground1,
+  },
   sessionActions: {
     display: 'flex',
     ...shorthands.gap(tokens.spacingHorizontalXS),
@@ -153,6 +172,14 @@ const useStyles = makeStyles({
   emptyStateText: {
     color: tokens.colorNeutralForeground3,
   },
+  syncIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('4px'),
+    marginLeft: 'auto',
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+  },
 });
 
 interface SessionListProps {
@@ -165,6 +192,7 @@ interface SessionListProps {
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   themeColors?: ChatTheme['colors'];
+  syncStatus?: SyncStatus;
 }
 
 // Memoized session item component to prevent unnecessary re-renders
@@ -250,10 +278,18 @@ const SessionItem = memo(
           }
         : {};
 
+    const isArchived = session.isArchived || false;
+    const isNotRunning = session.status && session.status !== 'Running';
+
     return (
       <div className={styles.sessionItemWrapper}>
         <Card
-          className={mergeClasses(styles.sessionItem, isActive && styles.sessionItemActive)}
+          className={mergeClasses(
+            styles.sessionItem,
+            isActive && styles.sessionItemActive,
+            isArchived && styles.sessionItemArchived,
+            isNotRunning && styles.sessionItemNotRunning
+          )}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           appearance="subtle"
@@ -274,9 +310,25 @@ const SessionItem = memo(
             ) : (
               <>
                 <div className={styles.sessionHeader}>
-                  <Tooltip content="Double-click to rename" relationship="label">
-                    <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
-                  </Tooltip>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacingHorizontalXS,
+                    }}
+                  >
+                    <Tooltip content="Double-click to rename" relationship="label">
+                      <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
+                    </Tooltip>
+                    {isNotRunning && (
+                      <Tooltip content={`Status: ${session.status}`} relationship="label">
+                        <div className={styles.statusBadge}>
+                          <InfoRegular fontSize={12} />
+                          {session.status}
+                        </div>
+                      </Tooltip>
+                    )}
+                  </div>
                   <div
                     className={mergeClasses(
                       styles.sessionActions,
@@ -293,10 +345,10 @@ const SessionItem = memo(
                     />
                     <Button
                       appearance="subtle"
-                      icon={<DeleteRegular />}
+                      icon={<ArchiveRegular />}
                       size="small"
                       onClick={handleDelete}
-                      title="Delete"
+                      title="Archive"
                     />
                   </div>
                 </div>
@@ -326,6 +378,7 @@ export const SessionList = memo(
     logoUrl,
     logoSize = 'medium',
     themeColors,
+    syncStatus,
   }: SessionListProps) => {
     const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -384,6 +437,16 @@ export const SessionList = memo(
     // Ensure sessions is an array
     const safeSessions = Array.isArray(sessions) ? sessions : [];
 
+    // Debug logging
+    console.log(
+      '[SessionList] Rendering with sessions:',
+      safeSessions.length,
+      safeSessions.map((s) => ({
+        id: s.id,
+        name: s.name,
+      }))
+    );
+
     // Apply theme colors if provided
     const themeStyle = themeColors
       ? ({
@@ -407,6 +470,12 @@ export const SessionList = memo(
             />
           )}
           <h3 className={styles.title}>Chats</h3>
+          {syncStatus && syncStatus.status === 'syncing' && (
+            <div className={styles.syncIndicator}>
+              <Spinner size="tiny" />
+              <span>Syncing</span>
+            </div>
+          )}
         </div>
         <div className={styles.sessions}>
           {safeSessions.length === 0 ? (

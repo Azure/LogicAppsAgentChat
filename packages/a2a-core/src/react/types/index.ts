@@ -102,4 +102,7 @@ export interface ChatWidgetProps {
     statusText?: string;
   }) => Promise<void> | void; // Called on 401 errors
   onContextIdChange?: (contextId: string) => void; // Callback when context ID changes
+  headerActions?: React.ReactNode; // Custom actions to display in the header
+  disabled?: boolean; // Whether messaging is disabled (e.g., for non-running contexts)
+  disabledMessage?: string; // Custom message to show when disabled
 }
