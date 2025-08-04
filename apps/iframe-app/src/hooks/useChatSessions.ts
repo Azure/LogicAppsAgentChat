@@ -32,6 +32,12 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
 
   // Initialize server sync if enabled
   useEffect(() => {
+    console.log('[useChatSessions] Server sync effect triggered:', {
+      enableServerSync: options.enableServerSync,
+      agentUrl: agentUrl,
+      willInitialize: options.enableServerSync && agentUrl,
+    });
+
     if (options.enableServerSync && agentUrl) {
       // agentUrl should be the base agent URL (e.g., /api/agents/wreport2)
       // not the .well-known/agent.json URL
@@ -44,11 +50,12 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
 
       // Set up event listeners
       syncManager.on('syncStart', () => {
+        console.log('[useChatSessions] Sync started');
         setSyncStatus((prev) => ({ ...prev, status: 'syncing' }));
       });
 
-      syncManager.on('syncComplete', () => {
-        console.log('[useChatSessions] Sync complete, refreshing sessions...');
+      syncManager.on('syncComplete', (result) => {
+        console.log('[useChatSessions] Sync complete, result:', result, 'refreshing sessions...');
         setSyncStatus((prev) => ({
           ...prev,
           status: 'idle',
@@ -57,11 +64,13 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
         }));
         // Refresh sessions after sync - use ref to get latest function
         if (loadSessionsRef.current) {
+          console.log('[useChatSessions] Calling loadSessions after sync complete');
           loadSessionsRef.current();
         }
       });
 
       syncManager.on('syncError', (error) => {
+        console.error('[useChatSessions] Sync error:', error);
         setSyncStatus((prev) => ({
           ...prev,
           status: 'error',
@@ -83,25 +92,31 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
       setIsServerSyncEnabled(true);
 
       // Perform a full sync of all contexts on initial mount
-      console.log('[useChatSessions] Starting full sync of all threads on initial load...');
-      syncManager
-        .syncAllThreads()
-        .then(() => {
-          console.log('[useChatSessions] Initial full sync completed successfully');
-          // Mark all synced threads as synced
-          sessionManager.current.getAllSessions().then((sessions) => {
-            sessions.forEach((session) => {
-              if (session.contextId) {
-                syncedThreadsRef.current.add(session.contextId);
-              }
+      // Use a small delay to ensure everything is initialized
+      console.log('[useChatSessions] Scheduling initial full sync...');
+      const syncTimer = setTimeout(() => {
+        console.log('[useChatSessions] Starting full sync of all threads on initial load...');
+        syncManager
+          .syncAllThreads()
+          .then(() => {
+            console.log('[useChatSessions] Initial full sync completed successfully');
+            // Mark all synced threads as synced
+            sessionManager.current.getAllSessions().then((sessions) => {
+              console.log('[useChatSessions] Marking', sessions.length, 'sessions as synced');
+              sessions.forEach((session) => {
+                if (session.contextId) {
+                  syncedThreadsRef.current.add(session.contextId);
+                }
+              });
             });
+          })
+          .catch((error) => {
+            console.error('[useChatSessions] Initial full sync failed:', error);
           });
-        })
-        .catch((error) => {
-          console.error('[useChatSessions] Initial full sync failed:', error);
-        });
+      }, 500); // Small delay to ensure everything is ready
 
       return () => {
+        clearTimeout(syncTimer);
         syncManager.destroy();
         // sessionManager.current.disableServerSync();
         syncManagerRef.current = null;
@@ -127,74 +142,75 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
       );
       setSessions(allSessions);
 
-      // Get active session or create one if none exists
+      // Get active session but DON'T create one automatically
       let currentActiveId = await sessionManager.current.getActiveSessionId();
 
-      if (!currentActiveId || !(await sessionManager.current.getSession(currentActiveId))) {
-        // Create a new session if none exists
-        if (allSessions.length === 0) {
-          const newSession = await sessionManager.current.createSession();
-          currentActiveId = newSession.id;
-          setSessions([
-            ...allSessions,
-            {
-              id: newSession.id,
-              contextId: newSession.contextId,
-              name: newSession.name,
-              createdAt: newSession.createdAt,
-              updatedAt: newSession.updatedAt,
-              lastMessage: '',
-            },
-          ]);
-        } else {
-          // Use the most recent session
-          currentActiveId = allSessions[0].id;
-          await sessionManager.current.setActiveSession(currentActiveId);
-        }
+      // Check if the active session still exists
+      if (currentActiveId && !(await sessionManager.current.getSession(currentActiveId))) {
+        currentActiveId = null; // Active session no longer exists
       }
 
+      // If no active session but we have sessions, use the most recent one
+      if (!currentActiveId && allSessions.length > 0) {
+        // Sessions are already sorted by creation date (newest first)
+        currentActiveId = allSessions[0].id;
+        await sessionManager.current.setActiveSession(currentActiveId);
+        console.log('[useChatSessions] No active session, selected newest:', currentActiveId);
+      }
+
+      // Set the active session (might be null if no sessions exist)
       setActiveSessionId(currentActiveId);
-      const session = await sessionManager.current.getSession(currentActiveId);
-      setActiveSession(session);
+
+      if (currentActiveId) {
+        const session = await sessionManager.current.getSession(currentActiveId);
+        setActiveSession(session);
+      } else {
+        // No sessions exist yet - user will need to click "New Chat"
+        setActiveSession(null);
+        console.log('[useChatSessions] No sessions available, waiting for user to create one');
+      }
 
       // Load IndexedDB messages into localStorage for the active session
-      if (session) {
-        const sessionKey = `a2a-chat-session-${currentActiveId}`;
-        const messagesStorageKey = getAgentMessagesStorageKey(agentUrl, sessionKey);
-        const contextStorageKey = getAgentContextStorageKey(agentUrl, sessionKey);
+      if (currentActiveId) {
+        const session = await sessionManager.current.getSession(currentActiveId);
+        if (session) {
+          const sessionKey = `a2a-chat-session-${currentActiveId}`;
+          const messagesStorageKey = getAgentMessagesStorageKey(agentUrl, sessionKey);
+          const contextStorageKey = getAgentContextStorageKey(agentUrl, sessionKey);
 
-        // Clear and reload from IndexedDB to avoid duplicates
-        localStorage.removeItem(messagesStorageKey);
-        localStorage.removeItem(contextStorageKey);
+          // Clear and reload from IndexedDB to avoid duplicates
+          localStorage.removeItem(messagesStorageKey);
+          localStorage.removeItem(contextStorageKey);
 
-        if (session.messages && session.messages.length > 0) {
-          console.log(
-            `[useChatSessions] Initial load: loading ${session.messages.length} messages from IndexedDB`
-          );
+          if (session.messages && session.messages.length > 0) {
+            console.log(
+              `[useChatSessions] Initial load: loading ${session.messages.length} messages from IndexedDB`
+            );
 
-          const transformedMessages = session.messages.map((msg) => ({
-            id: msg.id,
-            role:
-              msg.sender === 'assistant'
-                ? 'assistant'
-                : msg.sender === 'system'
-                  ? 'system'
-                  : 'user',
-            content: msg.content,
-            timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
-            isStreaming: false,
-            metadata: msg.metadata || {},
-          }));
+            const transformedMessages = session.messages.map((msg) => ({
+              id: msg.id,
+              role:
+                msg.sender === 'assistant'
+                  ? 'assistant'
+                  : msg.sender === 'system'
+                    ? 'system'
+                    : 'user',
+              content: msg.content,
+              timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+              isStreaming: false,
+              metadata: msg.metadata || {},
+            }));
 
-          localStorage.setItem(messagesStorageKey, JSON.stringify(transformedMessages));
+            localStorage.setItem(messagesStorageKey, JSON.stringify(transformedMessages));
 
-          if (session.contextId) {
-            localStorage.setItem(contextStorageKey, session.contextId);
+            if (session.contextId) {
+              localStorage.setItem(contextStorageKey, session.contextId);
+            }
+
+            console.log(
+              `[useChatSessions] Initial load: stored ${transformedMessages.length} messages`
+            );
           }
-
-          console.log(
-            `[useChatSessions] Initial load: stored ${transformedMessages.length} messages`
-          );
         }
       }
     } catch (error) {
@@ -209,9 +225,16 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
     loadSessionsRef.current = loadSessions;
   }, [loadSessions]);
 
-  // Load sessions on mount
+  // Load sessions on mount (but only if server sync is NOT enabled)
   useEffect(() => {
-    loadSessions();
+    // Only load sessions directly if server sync is disabled
+    // When server sync is enabled, sessions will be loaded after sync completes
+    if (!options.enableServerSync) {
+      console.log('[useChatSessions] Loading sessions directly (no server sync)');
+      loadSessions();
+    } else {
+      console.log('[useChatSessions] Skipping direct load - waiting for server sync to complete');
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchSession = useCallback(
@@ -384,8 +407,10 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
           if (remainingSessions.length > 0) {
             await switchSession(remainingSessions[0].id);
           } else {
-            // Create a new session if all were deleted
-            await createNewSession();
+            // No sessions left - clear the active session
+            setActiveSessionId(null);
+            setActiveSession(null);
+            console.log('[useChatSessions] All sessions deleted, no active session');
           }
         }
 

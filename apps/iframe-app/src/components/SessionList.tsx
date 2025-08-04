@@ -193,6 +193,7 @@ interface SessionListProps {
   logoSize?: 'small' | 'medium' | 'large';
   themeColors?: ChatTheme['colors'];
   syncStatus?: SyncStatus;
+  isInitialLoading?: boolean;
 }
 
 // Memoized session item component to prevent unnecessary re-renders
@@ -379,6 +380,7 @@ export const SessionList = memo(
     logoSize = 'medium',
     themeColors,
     syncStatus,
+    isInitialLoading = false,
   }: SessionListProps) => {
     const styles = useStyles();
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -478,34 +480,16 @@ export const SessionList = memo(
           )}
         </div>
         <div className={styles.sessions}>
-          {safeSessions.length === 0 ? (
+          {isInitialLoading ? (
+            <div className={styles.emptyState}>
+              <Spinner size="medium" />
+              <Caption1 className={styles.emptyStateText} style={{ marginTop: '12px' }}>
+                Loading conversations...
+              </Caption1>
+            </div>
+          ) : safeSessions.length === 0 ? (
             <div className={styles.emptyState}>
               <Body1 className={styles.emptyStateText}>No chats yet</Body1>
-              <Button
-                appearance="primary"
-                onClick={onNewSession}
-                style={
-                  themeColors
-                    ? {
-                        backgroundColor: themeColors.primary,
-                        color: themeColors.primaryText || '#fff',
-                        border: 'none',
-                      }
-                    : {}
-                }
-                onMouseEnter={(e) => {
-                  if (themeColors) {
-                    e.currentTarget.style.backgroundColor = themeColors.primary + 'dd';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (themeColors) {
-                    e.currentTarget.style.backgroundColor = themeColors.primary;
-                  }
-                }}
-              >
-                Start a new chat
-              </Button>
             </div>
           ) : (
             safeSessions.map((session) => (

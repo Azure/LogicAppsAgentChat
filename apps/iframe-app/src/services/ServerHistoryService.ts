@@ -33,16 +33,27 @@ export class ServerHistoryService {
     includeLastTask?: boolean;
     includeArchived?: boolean;
   }): Promise<ServerContext[]> {
+    console.log('[ServerHistoryService] fetchContexts called with params:', params);
+
     const cacheKey = `contexts-${JSON.stringify(params)}`;
     const cached = this.getFromCache<ServerContext[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('[ServerHistoryService] Returning cached contexts, count:', cached.length);
+      return cached;
+    }
 
     try {
-      const response = await this.makeRequest<ContextListResponse>('contexts/list', {
+      const requestParams = {
         limit: params?.limit || 20,
         includeLastTask: params?.includeLastTask !== false,
         includeArchived: params?.includeArchived || false,
-      });
+      };
+
+      console.log(
+        '[ServerHistoryService] Making contexts/list request with params:',
+        requestParams
+      );
+      const response = await this.makeRequest<ContextListResponse>('contexts/list', requestParams);
 
       console.log('[ServerHistoryService] Raw contexts response:', response);
 

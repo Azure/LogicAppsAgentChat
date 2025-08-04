@@ -10,9 +10,10 @@ import {
   mergeClasses,
   Button,
   Tooltip,
+  Text,
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
-import { ArrowSyncRegular, ArrowSyncCheckmarkRegular } from '@fluentui/react-icons';
+import { ArrowSyncRegular, ArrowSyncCheckmarkRegular, AddRegular } from '@fluentui/react-icons';
 import { useChatSessions } from '../hooks/useChatSessions';
 import { useStorageSync } from '../hooks/useStorageSync';
 import { SessionList } from './SessionList';
@@ -354,25 +355,20 @@ export function MultiSessionChat({
     );
   }
 
-  // Show loading if no active session or during initial sync
-  if (
-    !activeSessionId ||
-    !activeSession ||
-    (isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing')
-  ) {
+  // Show loading during initial sync
+  if (isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing') {
     return (
       <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
         <div className={styles.loadingContainer}>
           <Spinner size="medium" />
-          <div>
-            {isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing'
-              ? 'Syncing all conversations from server...'
-              : 'Loading chat sessions...'}
-          </div>
+          <div>Syncing all conversations from server...</div>
         </div>
       </FluentProvider>
     );
   }
+
+  // If sync is complete but no sessions exist, show the UI with empty state
+  // The SessionList component will show the "New Chat" button
 
   return (
     <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
@@ -409,6 +405,9 @@ export function MultiSessionChat({
             logoSize={chatWidgetProps.theme?.branding?.logoSize}
             themeColors={chatWidgetProps.theme?.colors}
             syncStatus={isServerSyncEnabled ? syncStatus : undefined}
+            isInitialLoading={
+              isServerSyncEnabled && !isInitialSyncComplete && syncStatus.status === 'syncing'
+            }
           />
           {!isCollapsed && (
             <div
@@ -436,66 +435,95 @@ export function MultiSessionChat({
               />
             </div>
           )} */}
-          <ChatThemeProvider theme={mode}>
-            <ChatWidget
-              key={`${activeSessionId}-${messageUpdateKey}`}
-              agentCard={agentCard}
-              apiKey={config.apiKey}
-              sessionKey={`a2a-chat-session-${activeSessionId}`}
-              agentUrl={config.apiUrl}
-              metadata={{
-                ...chatWidgetProps.metadata,
-                sessionId: activeSessionId,
-              }}
-              theme={chatWidgetProps.theme}
-              userName={chatWidgetProps.userName}
-              placeholder={chatWidgetProps.placeholder}
-              welcomeMessage={chatWidgetProps.welcomeMessage}
-              allowFileUpload={false}
-              onToggleSidebar={toggleSidebar}
-              isSidebarCollapsed={isCollapsed}
-              mode={mode}
-              fluentTheme={mode}
-              onUnauthorized={config.onUnauthorized}
-              onContextIdChange={handleContextIdChange}
-              disabled={!!activeSession?.status && activeSession.status !== 'Running'}
-              disabledMessage={
-                activeSession?.status
-                  ? `This session is ${activeSession.status.toLowerCase()} and cannot accept new messages`
-                  : undefined
-              }
-              headerActions={
-                isServerSyncEnabled && activeSession?.contextId ? (
-                  <Tooltip
-                    content={
-                      syncStatus.status === 'syncing'
-                        ? 'Syncing...'
-                        : 'Sync this thread with server'
-                    }
-                    relationship="label"
-                  >
-                    <Button
-                      appearance="subtle"
-                      icon={
-                        syncStatus.status === 'syncing' ? (
-                          <Spinner size="tiny" />
-                        ) : syncStatus.lastSyncTime ? (
-                          <ArrowSyncCheckmarkRegular />
-                        ) : (
-                          <ArrowSyncRegular />
-                        )
+          {activeSessionId ? (
+            <ChatThemeProvider theme={mode}>
+              <ChatWidget
+                key={`${activeSessionId}-${messageUpdateKey}`}
+                agentCard={agentCard}
+                apiKey={config.apiKey}
+                sessionKey={`a2a-chat-session-${activeSessionId}`}
+                agentUrl={config.apiUrl}
+                metadata={{
+                  ...chatWidgetProps.metadata,
+                  sessionId: activeSessionId,
+                }}
+                theme={chatWidgetProps.theme}
+                userName={chatWidgetProps.userName}
+                placeholder={chatWidgetProps.placeholder}
+                welcomeMessage={chatWidgetProps.welcomeMessage}
+                allowFileUpload={false}
+                onToggleSidebar={toggleSidebar}
+                isSidebarCollapsed={isCollapsed}
+                mode={mode}
+                fluentTheme={mode}
+                onUnauthorized={config.onUnauthorized}
+                onContextIdChange={handleContextIdChange}
+                disabled={!!activeSession?.status && activeSession.status !== 'Running'}
+                disabledMessage={
+                  activeSession?.status
+                    ? `This session is ${activeSession.status.toLowerCase()} and cannot accept new messages`
+                    : undefined
+                }
+                headerActions={
+                  isServerSyncEnabled && activeSession?.contextId ? (
+                    <Tooltip
+                      content={
+                        syncStatus.status === 'syncing'
+                          ? 'Syncing...'
+                          : 'Sync this thread with server'
                       }
-                      onClick={syncCurrentThread}
-                      disabled={syncStatus.status === 'syncing' || !isInitialSyncComplete}
-                      size="small"
+                      relationship="label"
                     >
-                      {syncStatus.status === 'syncing' ? 'Syncing' : 'Sync'}
-                    </Button>
-                  </Tooltip>
-                ) : null
-              }
-            />
-          </ChatThemeProvider>
+                      <Button
+                        appearance="subtle"
+                        icon={
+                          syncStatus.status === 'syncing' ? (
+                            <Spinner size="tiny" />
+                          ) : syncStatus.lastSyncTime ? (
+                            <ArrowSyncCheckmarkRegular />
+                          ) : (
+                            <ArrowSyncRegular />
+                          )
+                        }
+                        onClick={syncCurrentThread}
+                        disabled={syncStatus.status === 'syncing' || !isInitialSyncComplete}
+                        size="small"
+                      >
+                        {syncStatus.status === 'syncing' ? 'Syncing' : 'Sync'}
+                      </Button>
+                    </Tooltip>
+                  ) : null
+                }
+              />
+            </ChatThemeProvider>
+          ) : (
+            <div className={styles.loadingContainer}>
+              <div style={{ textAlign: 'center' }}>
+                <Text
+                  size={500}
+                  weight="semibold"
+                  style={{
+                    display: 'block',
+                    marginBottom: '16px',
+                    color: tokens.colorNeutralForeground2,
+                  }}
+                >
+                  No chats yet
+                </Text>
+                <Button
+                  appearance="primary"
+                  icon={<AddRegular />}
+                  size="large"
+                  onClick={handleNewSession}
+                  style={{
+                    minWidth: '200px',
+                  }}
+                >
+                  Start a new chat
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </FluentProvider>

@@ -8,7 +8,7 @@ import type { StorageConfig } from '../services/types';
  * Default storage configuration
  */
 export const defaultStorageConfig: StorageConfig = {
-  enableServerSync: false, // Start with disabled by default
+  enableServerSync: true, // Enable by default to ensure sync happens
   syncInterval: 30000, // 30 seconds
   maxRetries: 3,
   retryDelay: 5000, // 5 seconds

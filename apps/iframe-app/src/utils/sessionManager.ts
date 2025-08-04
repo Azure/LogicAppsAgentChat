@@ -173,7 +173,7 @@ export class SessionManager {
     }
   }
 
-  async createSession(name?: string): Promise<ChatSession> {
+  async createSession(name?: string, setAsActive: boolean = true): Promise<ChatSession> {
     await this.ensureInitialized();
 
     const sessionId = this.generateSessionId();
@@ -190,7 +190,11 @@ export class SessionManager {
 
     console.log(`[SessionManager] Creating new session for ${this.agentUrl}:`, sessionId);
     await this.saveSession(newSession);
-    await this.setActiveSession(sessionId);
+
+    // Only set as active if requested (default true for backward compatibility)
+    if (setAsActive) {
+      await this.setActiveSession(sessionId);
+    }
 
     // Debug: Log all sessions after creation
     const allSessions = await this.getAllSessions();

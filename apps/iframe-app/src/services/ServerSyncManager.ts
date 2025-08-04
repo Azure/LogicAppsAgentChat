@@ -253,6 +253,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
    * Sync all threads - fetches full conversation history for all contexts
    */
   async syncAllThreads(): Promise<void> {
+    console.log('[ServerSyncManager] syncAllThreads called, online status:', this.isOnline);
+
     if (!this.isOnline) {
       console.log('[ServerSyncManager] Cannot sync all threads - offline');
       return;
@@ -262,6 +264,7 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
     this.isSyncing = true;
 
     try {
+      console.log('[ServerSyncManager] Fetching contexts from server...');
       // First, get the list of all contexts
       const serverContexts = await this.historyService.fetchContexts({
         limit: 100, // Get more contexts for full sync
@@ -269,7 +272,10 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
         includeArchived: false,
       });
 
-      console.log(`[ServerSyncManager] Starting full sync of ${serverContexts.length} threads`);
+      console.log(
+        `[ServerSyncManager] Fetched ${serverContexts.length} contexts from server:`,
+        serverContexts
+      );
 
       // Get existing local sessions
       const localSessions = await this.sessionManager.getAllSessions();
@@ -314,7 +320,8 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
               `Chat ${contextId.slice(0, 8)}`;
             const isArchived = context.IsArchived || context.isArchived || false;
             const status = context.Status || context.status || 'Running';
-            localSession = await this.sessionManager.createSession(title);
+            // Create session without setting it as active to avoid interference
+            localSession = await this.sessionManager.createSession(title, false);
             await this.sessionManager.updateSessionContextId(localSession.id, contextId);
             // Update archived and status
             await this.sessionManager.updateSession(localSession.id, { isArchived, status });
