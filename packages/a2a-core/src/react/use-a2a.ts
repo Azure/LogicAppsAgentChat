@@ -28,6 +28,7 @@ export interface UseA2AOptions {
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
+  oboUserToken?: string;
 }
 
 export interface UseA2AReturn {
@@ -106,6 +107,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         if (options.apiKey) {
           clientConfig.apiKey = options.apiKey;
+        }
+
+        if (options.oboUserToken) {
+          clientConfig.oboUserToken = options.oboUserToken;
         }
 
         // Create a custom auth handler that adds auth messages to the UI

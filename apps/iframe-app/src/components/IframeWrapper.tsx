@@ -17,6 +17,7 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
     props,
     multiSession,
     apiKey,
+    oboUserToken,
     mode: initialMode = 'light',
     inPortal,
     trustedParentOrigin,
@@ -114,7 +115,11 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
   });
 
   // Add auth token if available from Frame Blade
-  const propsWithAuth = authToken && inPortal ? { ...finalProps, apiKey: authToken } : finalProps;
+  // Also include OBO token if provided via URL or dataset
+  const propsWithAuth =
+    authToken && inPortal
+      ? { ...finalProps, apiKey: authToken, oboUserToken: oboUserToken }
+      : { ...finalProps, oboUserToken: oboUserToken };
 
   // Render appropriate chat component
   if (multiSession) {
@@ -126,6 +131,7 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
               ? propsWithAuth.agentCard
               : propsWithAuth.agentCard.url,
           apiKey: apiKey || propsWithAuth.apiKey || '',
+          oboUserToken: oboUserToken || propsWithAuth.oboUserToken || '',
           onUnauthorized,
         }}
         {...propsWithAuth}

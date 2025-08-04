@@ -87,6 +87,7 @@ interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
   config: {
     apiUrl: string;
     apiKey?: string;
+    oboUserToken?: string;
     onUnauthorized?: () => void | Promise<void>;
   };
   mode?: 'light' | 'dark';
@@ -202,6 +203,9 @@ export function MultiSessionChat({
         const headers: HeadersInit = {};
         if (config.apiKey) {
           headers['X-API-Key'] = config.apiKey;
+        }
+        if (config.oboUserToken) {
+          headers['x-ms-obo-userToken'] = `Key ${config.oboUserToken}`;
         }
 
         const response = await fetch(url, { headers });
@@ -361,6 +365,7 @@ export function MultiSessionChat({
               key={activeSessionId}
               agentCard={agentCard}
               apiKey={config.apiKey}
+              oboUserToken={config.oboUserToken}
               sessionKey={`a2a-chat-session-${activeSessionId}`}
               agentUrl={config.apiUrl}
               metadata={{

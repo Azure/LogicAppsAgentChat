@@ -13,6 +13,7 @@ export class HttpClient {
   private readonly auth: AuthConfig | undefined;
   private readonly options: Required<HttpClientOptions>;
   private readonly apiKey?: string;
+  private readonly oboUserToken?: string;
   private readonly onUnauthorized?: UnauthorizedHandler;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
@@ -22,11 +23,13 @@ export class HttpClient {
     auth?: AuthConfig,
     options: HttpClientOptions = {},
     apiKey?: string,
-    onUnauthorized?: UnauthorizedHandler
+    onUnauthorized?: UnauthorizedHandler,
+    oboUserToken?: string
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
     this.auth = auth;
     this.apiKey = apiKey;
+    this.oboUserToken = oboUserToken;
     this.onUnauthorized = onUnauthorized;
     this.options = {
       timeout: 30000,
@@ -57,6 +60,11 @@ export class HttpClient {
     // Add API key header if provided
     if (this.apiKey) {
       headers.set('X-API-Key', this.apiKey);
+    }
+
+    // Add OBO user token header if provided
+    if (this.oboUserToken) {
+      headers.set('x-ms-obo-userToken', `Key ${this.oboUserToken}`);
     }
 
     // Create request config

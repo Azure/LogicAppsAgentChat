@@ -92,6 +92,7 @@ export function ChatWindow(props: ChatWindowProps) {
     onToggleSidebar,
     isSidebarCollapsed,
     apiKey,
+    oboUserToken,
     onUnauthorized,
     onContextIdChange,
     mode = 'light',
@@ -117,6 +118,7 @@ export function ChatWindow(props: ChatWindowProps) {
     sessionKey,
     agentUrl,
     apiKey,
+    oboUserToken,
   });
 
   // Notify parent when contextId changes

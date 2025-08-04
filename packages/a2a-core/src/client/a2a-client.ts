@@ -18,6 +18,7 @@ export interface A2AClientConfig {
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
+  oboUserToken?: string;
 }
 
 export interface WaitForCompletionOptions {
@@ -32,6 +33,7 @@ export class A2AClient {
   private readonly onAuthRequired?: AuthRequiredHandler;
   private readonly onUnauthorized?: UnauthorizedHandler;
   private readonly apiKey?: string;
+  private readonly oboUserToken?: string;
 
   constructor(config: A2AClientConfig) {
     this.agentCard = config.agentCard;
@@ -39,6 +41,7 @@ export class A2AClient {
     this.onAuthRequired = config.onAuthRequired;
     this.onUnauthorized = config.onUnauthorized;
     this.apiKey = config.apiKey;
+    this.oboUserToken = config.oboUserToken;
 
     // Initialize HTTP client with service endpoint from agent card
     this.httpClient = new HttpClient(
@@ -46,7 +49,8 @@ export class A2AClient {
       this.auth,
       config.httpOptions,
       this.apiKey,
-      this.onUnauthorized
+      this.onUnauthorized,
+      this.oboUserToken
     );
   }
 
@@ -232,6 +236,11 @@ export class A2AClient {
                   // Add API key header if provided
                   if (this.apiKey) {
                     headers['X-API-Key'] = this.apiKey;
+                  }
+
+                  // Add OBO user token header if provided
+                  if (this.oboUserToken) {
+                    headers['x-ms-obo-userToken'] = `Key ${this.oboUserToken}`;
                   }
 
                   if (this.auth.type === 'bearer') {

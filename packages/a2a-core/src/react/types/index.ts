@@ -96,6 +96,7 @@ export interface ChatWidgetProps {
   onToggleSidebar?: () => void; // Callback for toggling sidebar
   isSidebarCollapsed?: boolean; // Current sidebar state
   apiKey?: string; // Optional API key for authentication
+  oboUserToken?: string; // Optional OBO user token for authentication
   onUnauthorized?: (event: {
     url: string;
     method: string;

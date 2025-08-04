@@ -5,6 +5,7 @@ export interface IframeConfig {
   props: ChatWidgetProps;
   multiSession: boolean;
   apiKey?: string;
+  oboUserToken?: string;
   mode?: 'light' | 'dark';
   inPortal?: boolean;
   trustedParentOrigin?: string;
@@ -175,6 +176,9 @@ export function parseIframeConfig(): IframeConfig {
   // Get API key
   const apiKey = params.get('apiKey') || dataset.apiKey;
 
+  // Get OBO user token
+  const oboUserToken = params.get('oboUserToken') || dataset.oboUserToken;
+
   // Parse theme
   let theme = parseTheme(params, dataset);
 
@@ -208,6 +212,7 @@ export function parseIframeConfig(): IframeConfig {
       brandSubtitle || dataset.welcomeMessage || params.get('welcomeMessage') || undefined,
     metadata: parseMetadata(params, dataset),
     apiKey: apiKey || undefined,
+    oboUserToken: oboUserToken || undefined,
     ...fileUploadConfig,
   };
 
@@ -228,6 +233,7 @@ export function parseIframeConfig(): IframeConfig {
     props,
     multiSession,
     apiKey,
+    oboUserToken,
     mode,
     inPortal,
     trustedParentOrigin,

@@ -22,6 +22,7 @@ interface UseChatWidgetProps {
   sessionKey?: string;
   agentUrl?: string;
   apiKey?: string;
+  oboUserToken?: string;
 }
 
 export function useChatWidget({
@@ -34,6 +35,7 @@ export function useChatWidget({
   sessionKey,
   agentUrl,
   apiKey,
+  oboUserToken,
 }: UseChatWidgetProps) {
   const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -77,6 +79,7 @@ export function useChatWidget({
           },
           onUnauthorized,
           apiKey,
+          oboUserToken,
         }
       : {
           persistSession: true,
@@ -88,6 +91,7 @@ export function useChatWidget({
           },
           onUnauthorized,
           apiKey,
+          oboUserToken,
         }
   );
 
