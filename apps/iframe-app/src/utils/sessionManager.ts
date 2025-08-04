@@ -112,17 +112,17 @@ export class SessionManager {
         `[SessionManager] Found ${allSessions.length} total sessions, includeArchived: ${includeArchived}`
       );
       console.log(
-        '[SessionManager] Session archive status:',
+        '[SessionManager] Session archive status before normalization:',
         allSessions.map((s) => ({
           id: s.id,
           name: s.name,
           isArchived: s.isArchived,
-          willInclude: includeArchived || !s.isArchived,
+          willInclude: includeArchived || !(s.isArchived === true),
         }))
       );
 
       return allSessions
-        .filter((session) => includeArchived || !session.isArchived)
+        .filter((session) => includeArchived || !(session.isArchived === true))
         .map((session) => {
           // Ensure all required properties exist with defaults
           const safeSession: ChatSession = {
@@ -132,7 +132,7 @@ export class SessionManager {
             messages: Array.isArray(session.messages) ? session.messages : [],
             createdAt: session.createdAt || Date.now(),
             updatedAt: session.updatedAt || Date.now(),
-            isArchived: session.isArchived || false,
+            isArchived: session.isArchived === true, // Only true if explicitly set to true
             status: session.status,
           };
 
@@ -181,7 +181,7 @@ export class SessionManager {
         messages: Array.isArray(session.messages) ? session.messages : [],
         createdAt: session.createdAt || Date.now(),
         updatedAt: session.updatedAt || Date.now(),
-        isArchived: session.isArchived || false,
+        isArchived: session.isArchived === true, // Only true if explicitly set to true
         status: session.status,
       };
     } catch (error) {
@@ -233,10 +233,20 @@ export class SessionManager {
     const sessionsData = await this.storage.getItem(this.sessionsKey);
     const sessions = sessionsData ? JSON.parse(sessionsData) : {};
 
-    console.log(
-      `[SessionManager] Before save - existing sessions for ${this.agentUrl}:`,
-      Object.keys(sessions)
-    );
+    // Check if session already exists and log its current state
+    const existingSession = sessions[session.id];
+    if (existingSession) {
+      console.log(`[SessionManager] Existing session ${session.id} before save:`, {
+        isArchived: existingSession.isArchived,
+        name: existingSession.name,
+      });
+    }
+
+    console.log(`[SessionManager] Saving session ${session.id}:`, {
+      isArchived: session.isArchived,
+      name: session.name,
+      updateTimestamp,
+    });
 
     sessions[session.id] = updateTimestamp
       ? {
@@ -245,12 +255,12 @@ export class SessionManager {
         }
       : session;
 
-    await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
+    console.log(`[SessionManager] After assignment, session ${session.id} has:`, {
+      isArchived: sessions[session.id].isArchived,
+      name: sessions[session.id].name,
+    });
 
-    console.log(
-      `[SessionManager] After save - all sessions for ${this.agentUrl}:`,
-      Object.keys(sessions)
-    );
+    await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
   }
 
   async updateSessionMessages(
@@ -508,5 +518,41 @@ export class SessionManager {
   // For testing purposes only
   static clearAllSessions(): void {
     SessionManager.instances.clear();
+  }
+
+  /**
+   * Clean up sessions that may have incorrect archive status from old test data
+   * This is a one-time migration to fix sessions that were incorrectly marked as archived
+   */
+  async cleanupArchivedStatus(): Promise<void> {
+    await this.ensureInitialized();
+
+    const sessionsData = await this.storage.getItem(this.sessionsKey);
+    if (!sessionsData) return;
+
+    try {
+      const sessions = JSON.parse(sessionsData) as Record<string, ChatSession>;
+      let updated = false;
+
+      for (const sessionId in sessions) {
+        const session = sessions[sessionId];
+        // If a session has a contextId and is marked as archived but shouldn't be
+        // (i.e., it was incorrectly marked due to a bug), unarchive it
+        if (session && session.contextId && session.isArchived === true) {
+          console.log(
+            `[SessionManager] Cleaning up archive status for session ${sessionId} (context: ${session.contextId})`
+          );
+          session.isArchived = false;
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        await this.storage.setItem(this.sessionsKey, JSON.stringify(sessions));
+        console.log('[SessionManager] Cleaned up archived status for sessions');
+      }
+    } catch (error) {
+      console.error('[SessionManager] Error cleaning up archived status:', error);
+    }
   }
 }

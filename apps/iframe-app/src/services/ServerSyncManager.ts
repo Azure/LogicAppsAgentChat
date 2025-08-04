@@ -72,6 +72,9 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
         serverContexts.map((c) => ({
           Id: c.Id || (c as any).id,
           Name: c.Name || (c as any).name,
+          Title: c.Title || (c as any).title,
+          CreatedAt: c.CreatedAt || (c as any).createdAt,
+          UpdatedAt: c.UpdatedAt || (c as any).updatedAt,
           IsArchived: c.IsArchived,
           isArchived: c.isArchived,
           Status: c.Status,
@@ -83,33 +86,84 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
       const localSessions = await this.sessionManager.getAllSessions(true);
       const localContextIds = new Set(localSessions.map((s) => s.contextId).filter(Boolean));
 
+      console.log(`[ServerSyncManager] Existing local sessions:`, {
+        count: localSessions.length,
+        contextIds: Array.from(localContextIds),
+        sessions: localSessions.map((s) => ({
+          id: s.id,
+          contextId: s.contextId,
+          isArchived: s.isArchived,
+        })),
+      });
+
       // Create minimal sessions for contexts that don't exist locally
       for (const context of serverContexts) {
         const contextId = context.Id || (context as any).id || (context as any).ID;
 
         if (!contextId) continue;
 
-        // Skip if we already have this context locally
+        // Check if we already have this context locally
         if (localContextIds.has(contextId)) {
-          console.log(`[ServerSyncManager] Skipping context ${contextId} - already exists locally`);
+          console.log(
+            `[ServerSyncManager] Context ${contextId} already exists locally, updating metadata`
+          );
+
+          // Find the existing session and update its metadata (name, timestamps, etc.)
+          const existingSession = localSessions.find((s) => s.contextId === contextId);
+          if (existingSession) {
+            // Generate a better name if the existing one is generic
+            const createdAtField =
+              context.CreatedAt || (context as any).createdAt || (context as any).created_at;
+            const updatedAtField =
+              context.UpdatedAt || (context as any).updatedAt || (context as any).updated_at;
+
+            let title =
+              context.Name || context.Title || (context as any).title || (context as any).name;
+            if (!title && createdAtField) {
+              const date = new Date(createdAtField);
+              if (!isNaN(date.getTime())) {
+                title = `Chat ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+              }
+            }
+            if (!title) {
+              title = existingSession.name || `Chat ${contextId.slice(-8)}`;
+            }
+
+            // Update the session with better metadata
+            await this.sessionManager.updateSession(existingSession.id, {
+              name: title,
+              isArchived: context.IsArchived === true,
+              status: context.Status || context.status || 'Running',
+            });
+          }
           continue;
         }
 
         // Create a minimal session for display (messages will be loaded on demand)
-        const title =
-          context.Name ||
-          context.Title ||
-          (context as any).title ||
-          (context as any).name ||
-          `Chat ${contextId.slice(0, 8)}`;
         const createdAtField =
           context.CreatedAt || (context as any).createdAt || (context as any).created_at;
         const updatedAtField =
           context.UpdatedAt || (context as any).updatedAt || (context as any).updated_at;
+
+        // Generate a better default name using the date if available
+        let title =
+          context.Name || context.Title || (context as any).title || (context as any).name;
+        if (!title && createdAtField) {
+          const date = new Date(createdAtField);
+          if (!isNaN(date.getTime())) {
+            title = `Chat ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+          }
+        }
+        if (!title) {
+          // Last resort: use a substring of the context ID that's more unique
+          title = `Chat ${contextId.slice(-8)}`;
+        }
         // Only consider it archived if explicitly set to true
-        const isArchived = context.IsArchived === true || context.isArchived === true;
+        // Note: Server API uses uppercase 'IsArchived', ignore lowercase 'isArchived' which might be from cached/old data
+        const isArchived = context.IsArchived === true;
         const status = context.Status || context.status || 'Running';
 
+        // Parse timestamps from server
         let createdAt = Date.now();
         let updatedAt = Date.now();
 
@@ -117,6 +171,11 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           const parsed = new Date(createdAtField).getTime();
           if (!isNaN(parsed)) {
             createdAt = parsed;
+          } else {
+            console.warn(
+              `[ServerSyncManager] Invalid CreatedAt date for context ${contextId}:`,
+              createdAtField
+            );
           }
         }
 
@@ -124,8 +183,20 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           const parsed = new Date(updatedAtField).getTime();
           if (!isNaN(parsed)) {
             updatedAt = parsed;
+          } else {
+            console.warn(
+              `[ServerSyncManager] Invalid UpdatedAt date for context ${contextId}:`,
+              updatedAtField
+            );
           }
         }
+
+        console.log(`[ServerSyncManager] Creating session for context ${contextId} with:`, {
+          title,
+          createdAt: new Date(createdAt).toISOString(),
+          updatedAt: new Date(updatedAt).toISOString(),
+          isArchived,
+        });
 
         const minimalSession: ChatSession = {
           id: contextId, // Use contextId as session ID for server sessions
@@ -295,6 +366,9 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           Name: c.Name || (c as any).name,
           IsArchived: c.IsArchived,
           isArchived: c.isArchived,
+          hasIsArchivedLowercase: 'isArchived' in c,
+          hasIsArchivedUppercase: 'IsArchived' in c,
+          fullContext: c,
         }))
       );
 
@@ -329,28 +403,9 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
           }
 
           // Check if we have a local session for this context
-          let localSession = localSessionsByContextId.get(contextId);
+          const localSession = localSessionsByContextId.get(contextId);
 
-          if (!localSession) {
-            // Create a new session for this context
-            const title =
-              context.Name ||
-              context.Title ||
-              (context as any).title ||
-              (context as any).name ||
-              `Chat ${contextId.slice(0, 8)}`;
-            // Only consider it archived if explicitly set to true
-            const isArchived = context.IsArchived === true || context.isArchived === true;
-            const status = context.Status || context.status || 'Running';
-            // Create session without setting it as active to avoid interference
-            localSession = await this.sessionManager.createSession(title, false);
-            await this.sessionManager.updateSessionContextId(localSession.id, contextId);
-            // Update archived and status
-            await this.sessionManager.updateSession(localSession.id, { isArchived, status });
-            console.log(`[ServerSyncManager] Created new session for context ${contextId}`);
-          }
-
-          // Sync the conversation data to the local session using the context object and preloaded conversation
+          // Use the existing syncContext method which will create or update the session properly
           await this.syncContext(context, localSession, conversation);
 
           console.log(`[ServerSyncManager] Successfully synced thread ${contextId}`);
@@ -564,11 +619,13 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
         }
 
         // Only consider it archived if explicitly set to true
-        const isArchived = serverContext.IsArchived === true || serverContext.isArchived === true;
+        // Note: Server API uses uppercase 'IsArchived', ignore lowercase 'isArchived' which might be from cached/old data
+        const isArchived = serverContext.IsArchived === true;
         const status = serverContext.Status || serverContext.status || 'Running';
 
+        // IMPORTANT: Use contextId as the session ID to avoid duplicates
         const basicSession: ChatSession = {
-          id: contextId,
+          id: contextId, // Use context ID as session ID
           contextId: contextId,
           name: title || this.generateSessionName(serverContext),
           messages: [],
@@ -621,11 +678,22 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
     }
 
     // Only consider it archived if explicitly set to true
-    const isArchived = context.IsArchived === true || context.isArchived === true;
+    // Note: Server API uses uppercase 'IsArchived', ignore lowercase 'isArchived' which might be from cached/old data
+    const isArchived = context.IsArchived === true;
     const status = context.Status || context.status || 'Running';
 
+    console.log(`[ServerSyncManager] Context archive check for ${contextId}:`, {
+      'context.IsArchived': context.IsArchived,
+      'context.isArchived': context.isArchived,
+      'computed isArchived': isArchived,
+      'typeof context.IsArchived': typeof context.IsArchived,
+      'context.IsArchived === true': context.IsArchived === true,
+      'context.isArchived === true': context.isArchived === true,
+    });
+
+    // IMPORTANT: Use contextId as the session ID to avoid duplicates
     const session: ChatSession = {
-      id: contextId,
+      id: contextId, // Use context ID as session ID
       contextId: contextId,
       name: title || this.generateSessionName(context),
       messages: conversation.messages,
@@ -635,9 +703,12 @@ export class ServerSyncManager extends EventEmitter<SyncEvents> {
       status: status,
     };
 
-    console.log(
-      `[ServerSyncManager] Saving session ${contextId} with ${conversation.messages.length} messages, archived: ${isArchived}, status: ${status}`
-    );
+    console.log(`[ServerSyncManager] About to save session ${contextId}:`, {
+      'isArchived variable': isArchived,
+      'session.isArchived': session.isArchived,
+      messages: conversation.messages.length,
+      status: status,
+    });
     if (conversation.messages.length > 0) {
       console.log(`[ServerSyncManager] First message:`, conversation.messages[0]);
     }

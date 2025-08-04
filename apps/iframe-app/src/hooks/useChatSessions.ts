@@ -91,6 +91,11 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
       syncManagerRef.current = syncManager;
       setIsServerSyncEnabled(true);
 
+      // Clean up any sessions with incorrect archive status from old test data
+      sessionManager.current.cleanupArchivedStatus().catch((error) => {
+        console.warn('[useChatSessions] Failed to cleanup archived status:', error);
+      });
+
       // Perform a full sync of all contexts on initial mount
       // Use a small delay to ensure everything is initialized
       console.log('[useChatSessions] Scheduling initial full sync...');
@@ -164,15 +169,8 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
       if (currentActiveId) {
         const session = await sessionManager.current.getSession(currentActiveId);
         setActiveSession(session);
-      } else {
-        // No sessions exist yet - user will need to click "New Chat"
-        setActiveSession(null);
-        console.log('[useChatSessions] No sessions available, waiting for user to create one');
-      }
 
-      // Load IndexedDB messages into localStorage for the active session
-      if (currentActiveId) {
-        const session = await sessionManager.current.getSession(currentActiveId);
+        // Load IndexedDB messages into localStorage for the active session
         if (session) {
           const sessionKey = `a2a-chat-session-${currentActiveId}`;
           const messagesStorageKey = getAgentMessagesStorageKey(agentUrl, sessionKey);
@@ -184,7 +182,7 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
 
           if (session.messages && session.messages.length > 0) {
             console.log(
-              `[useChatSessions] Initial load: loading ${session.messages.length} messages from IndexedDB`
+              `[useChatSessions] Initial load: loading ${session.messages.length} messages from IndexedDB for session ${currentActiveId}`
             );
 
             const transformedMessages = session.messages.map((msg) => ({
@@ -208,10 +206,26 @@ export function useChatSessions(agentUrl: string, options: UseChatSessionsOption
             }
 
             console.log(
-              `[useChatSessions] Initial load: stored ${transformedMessages.length} messages`
+              `[useChatSessions] Initial load: stored ${transformedMessages.length} messages in localStorage`
             );
+
+            // Dispatch event to notify ChatWidget that messages are ready
+            // Use a small delay to ensure ChatWidget is mounted
+            setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent('chatMessagesUpdated', {
+                  detail: { sessionId: currentActiveId, messageCount: transformedMessages.length },
+                })
+              );
+            }, 100);
+          } else {
+            console.log('[useChatSessions] No messages to load for initial session');
           }
         }
+      } else {
+        // No sessions exist yet - user will need to click "New Chat"
+        setActiveSession(null);
+        console.log('[useChatSessions] No sessions available, waiting for user to create one');
       }
     } catch (error) {
       console.error('[useChatSessions] Error loading sessions:', error);
