@@ -222,7 +222,7 @@ export function useChatWidget({
           const discovery = new AgentDiscovery({ apiKey });
           let resolvedAgentCard: AgentCard;
 
-          if (agentCard.includes('/.well-known/agent.json') || agentCard.endsWith('.json')) {
+          if (agentCard.includes('/.well-known/agent-card.json') || agentCard.endsWith('.json')) {
             try {
               resolvedAgentCard = await discovery.fromDirect(agentCard);
             } catch (error) {

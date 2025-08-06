@@ -287,7 +287,7 @@ function App() {
 ```html
 <iframe
   src="https://cdn.example.com/chat-widget/index.html"
-  data-agent-card="https://my-a2a-agent.example.com/agent.json"
+  data-agent-card="https://my-a2a-agent.example.com/agent-card.json"
   data-theme-primary="#0066cc"
   data-theme-background="#f5f5f5"
   data-logo-url="https://example.com/logo.png"

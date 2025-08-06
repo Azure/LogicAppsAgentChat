@@ -42,7 +42,7 @@ describe('ChatWindow', () => {
   const mockClearSession = vi.fn();
 
   const defaultProps = {
-    agentCard: 'https://agent.example.com/agent.json',
+    agentCard: 'https://agent.example.com/agent-card.json',
     theme: {},
     placeholder: 'Type here...',
     welcomeMessage: 'Welcome!',
@@ -149,7 +149,7 @@ describe('ChatWindow', () => {
     render(<ChatWindow {...defaultProps} />);
 
     expect(vi.mocked(useChatWidget)).toHaveBeenCalledWith({
-      agentCard: 'https://agent.example.com/agent.json',
+      agentCard: 'https://agent.example.com/agent-card.json',
       auth: undefined,
       onMessage: undefined,
       onConnectionChange: undefined,
@@ -173,7 +173,7 @@ describe('ChatWindow', () => {
 
   it('should handle all props correctly', () => {
     const props = {
-      agentCard: 'https://agent.example.com/agent.json',
+      agentCard: 'https://agent.example.com/agent-card.json',
       auth: { token: 'test-token' },
       theme: {
         branding: {
@@ -211,7 +211,7 @@ describe('ChatWindow', () => {
     render(<ChatWindow {...props} />);
 
     expect(vi.mocked(useChatWidget)).toHaveBeenCalledWith({
-      agentCard: 'https://agent.example.com/agent.json',
+      agentCard: 'https://agent.example.com/agent-card.json',
       auth: undefined,
       onMessage,
       onConnectionChange,

@@ -36,7 +36,7 @@ Authentication handling is automatically configured when you embed the iframe. T
   <body>
     <!-- Iframe with agent card URL -->
     <iframe
-      src="https://your-app.azurewebsites.net/chat/iframe?agentCard=https://your-app.azurewebsites.net/api/agents/assistant/.well-known/agent.json"
+      src="https://your-app.azurewebsites.net/chat/iframe?agentCard=https://your-app.azurewebsites.net/api/agents/assistant/.well-known/agent-card.json"
       width="100%"
       height="600px"
       frameborder="0"
@@ -50,7 +50,7 @@ Authentication handling is automatically configured when you embed the iframe. T
 
 ```html
 <iframe
-  src="https://your-app.azurewebsites.net/chat/iframe?agentCard=https://your-app.azurewebsites.net/api/agents/assistant/.well-known/agent.json&multiSession=true"
+  src="https://your-app.azurewebsites.net/chat/iframe?agentCard=https://your-app.azurewebsites.net/api/agents/assistant/.well-known/agent-card.json&multiSession=true"
   width="100%"
   height="600px"
   frameborder="0"

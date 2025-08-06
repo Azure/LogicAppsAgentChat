@@ -22,7 +22,7 @@ function App() {
 
       <div style={{ height: '600px', maxWidth: '800px', margin: '0 auto' }}>
         <ChatWidget
-          agentCard="https://api.example.com/.well-known/agent.json"
+          agentCard="https://api.example.com/.well-known/agent-card.json"
           userName="John Doe"
           welcomeMessage="Hello! How can I help you today?"
         />
@@ -46,7 +46,7 @@ import './Chat.css';
 function CustomChat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage, isLoading, error, clearMessages } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
     welcomeMessage: 'Welcome! Ask me anything.',
   });
 
@@ -356,7 +356,7 @@ Using A2A Chat without React:
 
       // Initialize client
       const client = new A2AClient({
-        agentCard: 'https://api.example.com/.well-known/agent.json',
+        agentCard: 'https://api.example.com/.well-known/agent-card.json',
       });
 
       // DOM elements
@@ -481,7 +481,7 @@ import chalk from 'chalk';
 
 // Initialize client
 const client = new A2AClient({
-  agentCard: process.env.AGENT_CARD_URL || 'https://api.example.com/.well-known/agent.json',
+  agentCard: process.env.AGENT_CARD_URL || 'https://api.example.com/.well-known/agent-card.json',
 });
 
 // Create readline interface

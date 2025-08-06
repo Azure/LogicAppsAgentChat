@@ -33,7 +33,7 @@ describe('AgentDiscovery edge cases', () => {
       await discovery.fromWellKnownUri('test.com');
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(discovery.getCached('https://test.com/.well-known/agent.json')).toBeNull();
+      expect(discovery.getCached('https://test.com/.well-known/agent-card.json')).toBeNull();
     });
 
     it('should handle expired cache entries', async () => {
@@ -57,7 +57,7 @@ describe('AgentDiscovery edge cases', () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Should return null for expired cache
-      expect(discovery.getCached('https://test.com/.well-known/agent.json')).toBeNull();
+      expect(discovery.getCached('https://test.com/.well-known/agent-card.json')).toBeNull();
 
       // Second call should fetch again
       await discovery.fromWellKnownUri('test.com');

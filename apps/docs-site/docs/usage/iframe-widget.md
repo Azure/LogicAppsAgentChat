@@ -12,7 +12,7 @@ Add this code to your website:
 
 ```html
 <iframe
-  src="https://your-domain.com/chat/iframe?agentCard=https://api.example.com/.well-known/agent.json"
+  src="https://your-domain.com/chat/iframe?agentCard=https://api.example.com/.well-known/agent-card.json"
   width="400"
   height="600"
   frameborder="0"
@@ -58,7 +58,7 @@ Configure the widget using URL parameters:
 ```html
 <iframe
   src="https://chat.example.com/iframe?
-  agentCard=https://api.example.com/.well-known/agent.json&
+  agentCard=https://api.example.com/.well-known/agent-card.json&
   userId=user-123&
   userName=John%20Doe&
   theme=blue&
@@ -88,7 +88,7 @@ For static configuration, use data attributes:
 ```html
 <iframe
   src="https://chat.example.com/iframe"
-  data-agent-card="https://api.example.com/.well-known/agent.json"
+  data-agent-card="https://api.example.com/.well-known/agent-card.json"
   data-user-id="user-123"
   data-user-name="John Doe"
   data-theme-primary="#6200ea"

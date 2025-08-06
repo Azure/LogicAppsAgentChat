@@ -34,7 +34,7 @@ interface A2AClientConfig {
 
 ```typescript
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   auth: {
     type: 'bearer',
     token: 'your-api-token',

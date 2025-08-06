@@ -99,7 +99,7 @@ Use triple backticks with language specification for syntax highlighting:
 import { A2AClient } from '@microsoft/a2achat-core';
 
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
 });
 ```
 ````

@@ -17,7 +17,7 @@ When embedding the A2A Chat iframe in an Azure Portal blade, you can:
 ```html
 <iframe
   id="a2a-chat-frame"
-  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com/agent.json&inPortal=true&trustedAuthority=https://portal.azure.com&contextId=unique-context-123"
+  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com/agent-card.json&inPortal=true&trustedAuthority=https://portal.azure.com&contextId=unique-context-123"
   width="100%"
   height="600"
   frameborder="0"
@@ -144,7 +144,7 @@ class ChatIntegration {
 
     // Build URL with parameters
     const params = new URLSearchParams({
-      agentCard: 'https://api.example.com/agent.json',
+      agentCard: 'https://api.example.com/agent-card.json',
       inPortal: 'true',
       trustedAuthority: window.location.origin,
       contextId: this.generateContextId(),

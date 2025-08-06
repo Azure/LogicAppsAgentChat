@@ -23,12 +23,14 @@ describe('ChatWidget', () => {
 
   it('should render ChatWindow component', () => {
     render(
-      <ChatWidget agentCard="https://agent.example.com/agent.json" welcomeMessage="Welcome!" />
+      <ChatWidget agentCard="https://agent.example.com/agent-card.json" welcomeMessage="Welcome!" />
     );
 
     expect(screen.getByTestId('chat-window')).toBeInTheDocument();
     expect(screen.getByText('ChatWindow Component')).toBeInTheDocument();
-    expect(screen.getByText('Agent: https://agent.example.com/agent.json')).toBeInTheDocument();
+    expect(
+      screen.getByText('Agent: https://agent.example.com/agent-card.json')
+    ).toBeInTheDocument();
     expect(screen.getByText('Welcome!')).toBeInTheDocument();
   });
 
@@ -77,7 +79,7 @@ describe('ChatWidget', () => {
 
   it('should pass all props except theme to ChatWindow', () => {
     const props = {
-      agentCard: 'https://agent.example.com/agent.json',
+      agentCard: 'https://agent.example.com/agent-card.json',
       auth: { token: 'test-token' },
       theme: { primaryColor: '#007bff' },
       onMessage: vi.fn(),
@@ -100,7 +102,9 @@ describe('ChatWidget', () => {
     expect(themeData.primaryColor).toBe('#007bff');
 
     // Verify other props were passed
-    expect(screen.getByText('Agent: https://agent.example.com/agent.json')).toBeInTheDocument();
+    expect(
+      screen.getByText('Agent: https://agent.example.com/agent-card.json')
+    ).toBeInTheDocument();
     expect(screen.getByText('Hello!')).toBeInTheDocument();
   });
 

@@ -14,7 +14,7 @@ import { useA2A } from '@microsoft/a2achat-core/react';
 
 function ChatComponent() {
   const { messages, sendMessage, isLoading, error, clearMessages } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
   });
 
   const handleSubmit = (e: React.FormEvent) => {

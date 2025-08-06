@@ -18,7 +18,7 @@ function App() {
   return (
     <div style={{ height: '600px' }}>
       <ChatWidget
-        agentCard="https://api.example.com/.well-known/agent.json"
+        agentCard="https://api.example.com/.well-known/agent-card.json"
         userId="user-123"
         userName="John Doe"
         placeholder="Ask me anything..."

@@ -14,7 +14,7 @@ export function CustomUsernameExample() {
   // Example 1: Static custom username
   return (
     <ChatWidget
-      agentCard="https://agent.example.com/agent.json"
+      agentCard="https://agent.example.com/agent-card.json"
       userName="John Doe"
       welcomeMessage="Hello John! How can I help you today?"
     />
@@ -27,7 +27,7 @@ export function DynamicUsernameExample() {
 
   return (
     <ChatWidget
-      agentCard="https://agent.example.com/agent.json"
+      agentCard="https://agent.example.com/agent-card.json"
       userName={userName}
       welcomeMessage={`Hello ${userName}! How can I help you today?`}
     />
@@ -38,7 +38,7 @@ export function AuthenticatedUsernameExample({ user }: { user?: { name: string; 
   // Example 3: Username from authenticated user object
   return (
     <ChatWidget
-      agentCard="https://agent.example.com/agent.json"
+      agentCard="https://agent.example.com/agent-card.json"
       userName={user?.name || 'Guest'}
       userId={user?.email}
       welcomeMessage={

@@ -50,7 +50,7 @@ function App() {
   return (
     <div style={{ height: '600px' }}>
       <ChatWidget
-        agentCard="https://agent.example.com/agent.json"
+        agentCard="https://agent.example.com/agent-card.json"
         theme={{
           colors: {
             primary: '#007bff',

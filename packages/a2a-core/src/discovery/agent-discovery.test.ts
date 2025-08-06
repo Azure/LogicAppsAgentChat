@@ -31,9 +31,12 @@ describe('AgentDiscovery', () => {
 
       const result = await discovery.fromWellKnownUri('agent.example.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
-        headers: {},
-      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://agent.example.com/.well-known/agent-card.json',
+        {
+          headers: {},
+        }
+      );
       expect(result).toEqual(mockAgentCard);
     });
 
@@ -53,9 +56,12 @@ describe('AgentDiscovery', () => {
 
       await discovery.fromWellKnownUri('https://agent.example.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
-        headers: {},
-      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://agent.example.com/.well-known/agent-card.json',
+        {
+          headers: {},
+        }
+      );
     });
 
     it('should include API key header when provided', async () => {
@@ -75,9 +81,12 @@ describe('AgentDiscovery', () => {
       discovery = new AgentDiscovery({ apiKey: 'test-api-key-123' });
       const result = await discovery.fromWellKnownUri('agent.example.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://agent.example.com/.well-known/agent.json', {
-        headers: { 'X-API-Key': 'test-api-key-123' },
-      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://agent.example.com/.well-known/agent-card.json',
+        {
+          headers: { 'X-API-Key': 'test-api-key-123' },
+        }
+      );
       expect(result).toEqual(mockAgentCard);
     });
 
@@ -227,7 +236,7 @@ describe('AgentDiscovery', () => {
       await discovery.fromWellKnownUri('cached.example.com');
 
       // Check cache
-      const cached = discovery.getCached('https://cached.example.com/.well-known/agent.json');
+      const cached = discovery.getCached('https://cached.example.com/.well-known/agent-card.json');
       expect(cached).toEqual(mockAgentCard);
 
       // Second call should use cache
@@ -250,10 +259,10 @@ describe('AgentDiscovery', () => {
       } as Response);
 
       await discovery.fromWellKnownUri('test.com');
-      expect(discovery.getCached('https://test.com/.well-known/agent.json')).toBeTruthy();
+      expect(discovery.getCached('https://test.com/.well-known/agent-card.json')).toBeTruthy();
 
       discovery.clearCache();
-      expect(discovery.getCached('https://test.com/.well-known/agent.json')).toBeNull();
+      expect(discovery.getCached('https://test.com/.well-known/agent-card.json')).toBeNull();
     });
   });
 });

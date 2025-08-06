@@ -68,7 +68,7 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
     // Find the base URL by getting everything before the matched pattern
     const matchIndex = currentUrl.toLowerCase().indexOf('/api/agentschat/');
     const baseUrl = currentUrl.substring(0, matchIndex);
-    return `${baseUrl}/api/agents/${agentKind}/.well-known/agent.json`;
+    return `${baseUrl}/api/agents/${agentKind}/.well-known/agent-card.json`;
   }
 
   throw new Error(

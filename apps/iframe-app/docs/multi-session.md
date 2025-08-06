@@ -81,7 +81,7 @@ The multi-session UI uses CSS variables for theming and supports both light and 
   </head>
   <body>
     <iframe
-      src="https://your-domain.com/iframe.html?multiSession=true&agentCard=https://api.example.com/agent.json"
+      src="https://your-domain.com/iframe.html?multiSession=true&agentCard=https://api.example.com/agent-card.json"
       style="width: 100%; height: 600px; border: none;"
     >
     </iframe>

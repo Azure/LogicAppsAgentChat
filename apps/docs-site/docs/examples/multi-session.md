@@ -425,7 +425,7 @@ function ChatInterface({
   const [client] = useState(
     () =>
       new A2AClient({
-        agentCard: 'https://api.example.com/.well-known/agent.json',
+        agentCard: 'https://api.example.com/.well-known/agent-card.json',
       })
   );
 

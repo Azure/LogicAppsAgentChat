@@ -288,7 +288,7 @@ export class ChatComponent implements OnInit, OnDestroy {
           {
             type: 'configure',
             config: {
-              agentCard: 'https://api.example.com/.well-known/agent.json',
+              agentCard: 'https://api.example.com/.well-known/agent-card.json',
               userName: 'John Doe',
               theme: 'light',
             },
@@ -416,7 +416,7 @@ export class IframeManager {
 // Usage
 const chatManager = new IframeManager(document.getElementById('chat-container')!, {
   url: 'https://chat.example.com/iframe',
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   theme: 'light',
   userName: 'John Doe',
 });
@@ -593,7 +593,7 @@ Usage:
   </head>
   <body>
     <a2a-chat
-      agent-card="https://api.example.com/.well-known/agent.json"
+      agent-card="https://api.example.com/.well-known/agent-card.json"
       user-name="John Doe"
       theme="light"
     ></a2a-chat>
@@ -846,7 +846,7 @@ class _ChatScreenState extends State<ChatScreen> {
 import { A2AClient } from '@microsoft/a2achat-core';
 
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
 });
 
 // Initialize chat UI

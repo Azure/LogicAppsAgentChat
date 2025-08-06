@@ -33,7 +33,7 @@ describe('useA2A', () => {
     name: 'Test Agent',
     description: 'Test agent for testing',
     version: '1.0.0',
-    url: 'http://example.com/.well-known/agent.json',
+    url: 'http://example.com/.well-known/agent-card.json',
     serviceEndpoint: 'http://example.com/agent',
     capabilities: [
       {
@@ -281,7 +281,7 @@ describe('useA2A', () => {
       useA2A({
         persistSession: true,
         sessionKey,
-        agentUrl: 'http://example.com/.well-known/agent.json',
+        agentUrl: 'http://example.com/.well-known/agent-card.json',
       })
     );
 
@@ -327,7 +327,7 @@ describe('useA2A', () => {
 
   it('should restore messages from localStorage on mount', async () => {
     const sessionKey = 'test-session';
-    const agentUrl = 'http://example.com/.well-known/agent.json';
+    const agentUrl = 'http://example.com/.well-known/agent-card.json';
     const storageKey = `a2a-messages-example-com-${sessionKey}`;
     const storedMessages = [
       {
@@ -489,7 +489,7 @@ describe('useA2A', () => {
 
   it('should persist context ID to localStorage', async () => {
     const sessionKey = 'test-context';
-    const agentUrl = 'http://example.com/.well-known/agent.json';
+    const agentUrl = 'http://example.com/.well-known/agent-card.json';
     const { result } = renderHook(() =>
       useA2A({
         persistSession: true,

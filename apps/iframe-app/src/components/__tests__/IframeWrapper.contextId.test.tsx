@@ -36,7 +36,7 @@ vi.mock('../../lib/hooks/useParentCommunication', () => ({
 describe('IframeWrapper - contextId support', () => {
   const defaultConfig: IframeConfig = {
     props: {
-      agentCard: 'https://api.example.com/agent.json',
+      agentCard: 'https://api.example.com/agent-card.json',
       userId: 'user123',
       userName: 'Test User',
     },

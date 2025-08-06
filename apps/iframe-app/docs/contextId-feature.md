@@ -41,7 +41,7 @@ https://your-domain.com/iframe.html?agentCard=...&contextId=unique-context-123
 ```html
 <!-- Embed iframe with specific context -->
 <iframe
-  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com/agent.json&contextId=customer-12345-session-001"
+  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com/agent-card.json&contextId=customer-12345-session-001"
   width="400"
   height="600"
 ></iframe>

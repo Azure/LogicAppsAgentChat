@@ -73,10 +73,10 @@ describe('AgentDiscovery caching edge cases', () => {
     } as Response);
 
     // First call
-    await discovery.fromDirect('https://example.com/agent.json');
+    await discovery.fromDirect('https://example.com/agent-card.json');
 
     // Second call should use cache
-    await discovery.fromDirect('https://example.com/agent.json');
+    await discovery.fromDirect('https://example.com/agent-card.json');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });

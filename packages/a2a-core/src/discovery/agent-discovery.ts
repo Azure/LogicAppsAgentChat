@@ -27,7 +27,7 @@ export class AgentDiscovery {
   async fromWellKnownUri(domain: string): Promise<AgentCard> {
     // Clean up domain - remove protocol if present
     const cleanDomain = domain.replace(/^https?:\/\//, '');
-    const url = `https://${cleanDomain}/.well-known/agent.json`;
+    const url = `https://${cleanDomain}/.well-known/agent-card.json`;
 
     // Check cache
     if (this.options.cache) {

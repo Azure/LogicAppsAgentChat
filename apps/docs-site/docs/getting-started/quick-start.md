@@ -10,7 +10,7 @@ Get up and running with A2A Chat in just a few minutes. This guide will walk you
 
 You'll need an A2A agent card - a JSON document that describes your agent's capabilities and endpoints. This can be:
 
-- A URL to an agent card (e.g., `https://api.example.com/.well-known/agent.json`)
+- A URL to an agent card (e.g., `https://api.example.com/.well-known/agent-card.json`)
 - A local agent card object
 
 ## Option 1: Pre-built React Widget
@@ -26,7 +26,7 @@ function App() {
   return (
     <div style={{ height: '600px' }}>
       <ChatWidget
-        agentCard="https://api.example.com/.well-known/agent.json"
+        agentCard="https://api.example.com/.well-known/agent-card.json"
         userId="user-123"
         userName="John Doe"
         welcomeMessage="Hello! How can I help you today?"
@@ -50,7 +50,7 @@ import { useA2A } from '@microsoft/a2achat-core/react';
 
 function CustomChat() {
   const { messages, sendMessage, isLoading, error } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -146,7 +146,7 @@ A2A Chat works great with vanilla JavaScript too:
 
     <script>
       const client = new A2AChat.A2AClient({
-        agentCard: 'https://api.example.com/.well-known/agent.json',
+        agentCard: 'https://api.example.com/.well-known/agent-card.json',
       });
 
       async function sendMessage() {

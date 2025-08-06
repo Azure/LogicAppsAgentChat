@@ -53,7 +53,7 @@ describe('lib/index', () => {
 
   describe('mountChatWidget', () => {
     const defaultProps: ChatWidgetProps = {
-      agentCard: 'http://test.agent/agent.json',
+      agentCard: 'http://test.agent/agent-card.json',
     };
 
     it('mounts widget with HTMLElement container', () => {
@@ -119,7 +119,7 @@ describe('lib/index', () => {
       document.body.appendChild(container);
 
       const props: ChatWidgetProps = {
-        agentCard: 'http://test.agent/agent.json',
+        agentCard: 'http://test.agent/agent-card.json',
         placeholder: 'Type here...',
         welcomeMessage: 'Welcome!',
         allowFileUpload: false,

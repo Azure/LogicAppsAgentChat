@@ -65,7 +65,7 @@ Accept: text/event-stream
 
 ```typescript
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   auth: {
     type: 'api-key',
     key: process.env.API_KEY,
@@ -78,7 +78,7 @@ const client = new A2AClient({
 
 ```typescript
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   auth: {
     type: 'bearer',
     token: 'eyJhbGciOiJIUzI1NiIs...', // JWT or OAuth token
@@ -90,7 +90,7 @@ const client = new A2AClient({
 
 ```typescript
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   auth: {
     type: 'oauth2',
     accessToken: 'access_token_here',

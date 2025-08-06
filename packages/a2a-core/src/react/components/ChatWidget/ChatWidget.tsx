@@ -31,7 +31,7 @@ const useStyles = makeStyles({
  * function App() {
  *   return (
  *     <ChatWidget
- *       agentCard="https://agent.example.com/agent.json"
+ *       agentCard="https://agent.example.com/agent-card.json"
  *       themeConfig={{
  *         primaryColor: '#007bff',
  *       }}

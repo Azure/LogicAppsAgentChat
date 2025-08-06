@@ -59,7 +59,7 @@ describe('MultiSessionChat contextId handling', () => {
     const { container } = render(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
       />
     );
@@ -77,7 +77,7 @@ describe('MultiSessionChat contextId handling', () => {
     // Wait for contextId to be set
     await waitFor(
       async () => {
-        const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+        const sessionManager = SessionManager.getInstance('https://test.com/agent-card.json');
         const session = await sessionManager.getSession(sessionId!);
         expect(session?.contextId).toBe(`context-for-${sessionKey}`);
       },
@@ -89,7 +89,7 @@ describe('MultiSessionChat contextId handling', () => {
     const { container } = render(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
       />
     );
@@ -107,7 +107,7 @@ describe('MultiSessionChat contextId handling', () => {
     // Wait for contextId to be set on first session
     await waitFor(
       async () => {
-        const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+        const sessionManager = SessionManager.getInstance('https://test.com/agent-card.json');
         const session = await sessionManager.getSession(initialSessionId!);
         expect(session?.contextId).toBe(`context-for-${initialSessionKey}`);
       },
@@ -115,7 +115,7 @@ describe('MultiSessionChat contextId handling', () => {
     );
 
     // Create a new session
-    const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+    const sessionManager = SessionManager.getInstance('https://test.com/agent-card.json');
     const newSession = await sessionManager.createSession('New Session');
 
     // Manually set a contextId for the new session to simulate previous conversation
@@ -128,7 +128,7 @@ describe('MultiSessionChat contextId handling', () => {
     const { rerender } = render(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
         key={newSession.id} // Force re-render
       />
@@ -148,7 +148,7 @@ describe('MultiSessionChat contextId handling', () => {
   });
 
   it('should handle multiple session switches correctly', async () => {
-    const sessionManager = SessionManager.getInstance('https://test.com/agent.json');
+    const sessionManager = SessionManager.getInstance('https://test.com/agent-card.json');
 
     // Create multiple sessions with different contextIds
     const session1 = await sessionManager.createSession('Session 1');
@@ -166,7 +166,7 @@ describe('MultiSessionChat contextId handling', () => {
     const { rerender } = render(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
       />
     );
@@ -187,7 +187,7 @@ describe('MultiSessionChat contextId handling', () => {
     rerender(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
         key={session2.id}
       />
@@ -207,7 +207,7 @@ describe('MultiSessionChat contextId handling', () => {
     rerender(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
         key={session3.id}
       />
@@ -227,7 +227,7 @@ describe('MultiSessionChat contextId handling', () => {
     rerender(
       <MultiSessionChat
         config={{
-          apiUrl: 'https://test.com/agent.json',
+          apiUrl: 'https://test.com/agent-card.json',
         }}
         key={session1.id}
       />

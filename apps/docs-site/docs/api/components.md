@@ -70,7 +70,7 @@ interface ChatWidgetProps {
 
 ```tsx
 <ChatWidget
-  agentCard="https://api.example.com/.well-known/agent.json"
+  agentCard="https://api.example.com/.well-known/agent-card.json"
   userId="user-123"
   userName="John Doe"
   placeholder="Type your message..."

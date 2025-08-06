@@ -216,7 +216,7 @@ export class A2AChatIntegration {
 /*
 const chatIntegration = new A2AChatIntegration({
   chatFrameUrl: 'https://your-chat-domain.com/iframe.html',
-  agentCardUrl: 'https://api.example.com/agent.json',
+  agentCardUrl: 'https://api.example.com/agent-card.json',
   apiKey: 'your-api-key',
   theme: 'azure'
 });

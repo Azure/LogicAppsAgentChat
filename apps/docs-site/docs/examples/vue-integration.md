@@ -69,7 +69,7 @@ const messagesContainer = ref<HTMLElement>();
 
 // Initialize client
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
 });
 
 // Send message
@@ -487,7 +487,7 @@ import ChatInput from '@/components/ChatInput.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 
 const { messages, isLoading, error, sendMessage, retryLastMessage } = useA2AChat({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   welcomeMessage: 'Hello! How can I assist you today?',
   onError: (error) => {
     console.error('Chat error:', error);

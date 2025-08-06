@@ -11,7 +11,7 @@ export function ChatBlockingDemo() {
   return (
     <div style={{ height: '600px', width: '400px' }}>
       <ChatWidget
-        agentCard="https://your-agent.example.com/agent.json"
+        agentCard="https://your-agent.example.com/agent-card.json"
         welcomeMessage="Welcome! Chat will be disabled during streaming and authentication."
         auth={{
           type: 'bearer',

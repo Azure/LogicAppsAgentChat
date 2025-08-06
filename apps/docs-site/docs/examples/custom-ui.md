@@ -119,7 +119,7 @@ export function AdvancedChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, isLoading, error, clearMessages } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
     userName: 'John Doe',
     welcomeMessage:
       'Hello! I can help you with documents, code, and more. Feel free to upload files!',
@@ -463,7 +463,7 @@ export function SidebarChat() {
       title: 'Project Discussion',
       lastMessage: 'Let me help you with that code...',
       timestamp: new Date(),
-      agentCard: 'https://api.example.com/.well-known/agent.json',
+      agentCard: 'https://api.example.com/.well-known/agent-card.json',
     },
   ]);
   const [activeSessionId, setActiveSessionId] = useState('1');
@@ -476,7 +476,7 @@ export function SidebarChat() {
       title: `Chat ${sessions.length + 1}`,
       lastMessage: 'New conversation',
       timestamp: new Date(),
-      agentCard: 'https://api.example.com/.well-known/agent.json',
+      agentCard: 'https://api.example.com/.well-known/agent-card.json',
     };
     setSessions([...sessions, newSession]);
     setActiveSessionId(newSession.id);
@@ -623,7 +623,7 @@ export function MinimalDarkChat() {
       >
         <ChatThemeProvider theme={darkTheme}>
           <ChatWidget
-            agentCard="https://api.example.com/.well-known/agent.json"
+            agentCard="https://api.example.com/.well-known/agent-card.json"
             placeholder="Ask me anything..."
             welcomeMessage="Hello! I'm here to help. What would you like to know?"
           />
@@ -646,7 +646,7 @@ import './MobileChat.css';
 export function MobileChat() {
   const [isOpen, setIsOpen] = useState(false);
   const { messages, sendMessage, isLoading } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
   });
 
   return (

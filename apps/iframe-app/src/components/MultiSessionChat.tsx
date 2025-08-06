@@ -198,7 +198,7 @@ export function MultiSessionChat({
 
         const url = config.apiUrl.endsWith('.json')
           ? config.apiUrl
-          : `${config.apiUrl}/.well-known/agent.json`;
+          : `${config.apiUrl}/.well-known/agent-card.json`;
 
         const headers: HeadersInit = {};
         if (config.apiKey) {

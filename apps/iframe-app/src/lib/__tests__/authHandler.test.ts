@@ -32,7 +32,8 @@ describe('authHandler', () => {
 
   describe('getBaseUrl', () => {
     it('should extract base URL from agent card URL', () => {
-      const agentCardUrl = 'https://app.example.com/api/agents/assistant/.well-known/agent.json';
+      const agentCardUrl =
+        'https://app.example.com/api/agents/assistant/.well-known/agent-card.json';
       expect(getBaseUrl(agentCardUrl)).toBe('https://app.example.com');
     });
 

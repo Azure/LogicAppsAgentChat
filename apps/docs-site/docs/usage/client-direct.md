@@ -13,7 +13,7 @@ import { A2AClient } from '@microsoft/a2achat-core';
 
 // Initialize with an agent card URL
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
 });
 
 // Or with an agent card object

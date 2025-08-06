@@ -40,36 +40,36 @@ describe('parseIframeConfig', () => {
 
   describe('agent URL extraction', () => {
     it('extracts agent URL from data attribute', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
-      expect(config.props.agentCard).toBe('http://test.agent/agent.json');
+      expect(config.props.agentCard).toBe('http://test.agent/agent-card.json');
     });
 
     it('extracts agent URL from URL parameter', () => {
-      window.location.search = '?agentCard=http://url.agent/agent.json';
+      window.location.search = '?agentCard=http://url.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
-      expect(config.props.agentCard).toBe('http://url.agent/agent.json');
+      expect(config.props.agentCard).toBe('http://url.agent/agent-card.json');
     });
 
     it('supports legacy agent parameter', () => {
-      window.location.search = '?agent=http://legacy.agent/agent.json';
+      window.location.search = '?agent=http://legacy.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
-      expect(config.props.agentCard).toBe('http://legacy.agent/agent.json');
+      expect(config.props.agentCard).toBe('http://legacy.agent/agent-card.json');
     });
 
     it('prefers data attribute over URL parameter', () => {
-      document.documentElement.dataset.agentCard = 'http://data.agent/agent.json';
-      window.location.search = '?agentCard=http://url.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://data.agent/agent-card.json';
+      window.location.search = '?agentCard=http://url.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
-      expect(config.props.agentCard).toBe('http://data.agent/agent.json');
+      expect(config.props.agentCard).toBe('http://data.agent/agent-card.json');
     });
 
     it('transforms URL to agent card when following iframe pattern', () => {
@@ -78,7 +78,7 @@ describe('parseIframeConfig', () => {
       const config = parseIframeConfig();
 
       expect(config.props.agentCard).toBe(
-        'https://example.com/api/agents/TestAgent/.well-known/agent.json'
+        'https://example.com/api/agents/TestAgent/.well-known/agent-card.json'
       );
     });
 
@@ -88,7 +88,7 @@ describe('parseIframeConfig', () => {
       const config = parseIframeConfig();
 
       expect(config.props.agentCard).toBe(
-        'https://example.com/api/agents/MyAgent/.well-known/agent.json'
+        'https://example.com/api/agents/MyAgent/.well-known/agent-card.json'
       );
     });
 
@@ -103,7 +103,7 @@ describe('parseIframeConfig', () => {
 
   describe('theme parsing', () => {
     it('parses theme from data attributes', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.themePrimary = '#ff0000';
       document.documentElement.dataset.themeBackground = '#ffffff';
 
@@ -123,7 +123,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('uses theme preset', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?theme=azure';
 
       const config = parseIframeConfig();
@@ -134,7 +134,7 @@ describe('parseIframeConfig', () => {
 
   describe('branding parsing', () => {
     it('parses branding from data attributes', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.brandTitle = 'My Chat';
       document.documentElement.dataset.brandSubtitle = 'AI Assistant';
       document.documentElement.dataset.brandLogoUrl = 'http://example.com/logo.png';
@@ -149,7 +149,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('uses default branding values when not specified', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
@@ -160,7 +160,7 @@ describe('parseIframeConfig', () => {
 
   describe('other configuration', () => {
     it('parses user ID from data attributes', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.userId = 'user123';
 
       const config = parseIframeConfig();
@@ -169,7 +169,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('parses valid metadata JSON', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.metadata = '{"key":"value","num":123}';
 
       const config = parseIframeConfig();
@@ -178,7 +178,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('handles invalid metadata JSON gracefully', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.metadata = 'invalid json';
 
       const config = parseIframeConfig();
@@ -188,7 +188,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('parses allowed file types', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       document.documentElement.dataset.allowedFileTypes = '.pdf,.doc,.txt';
 
       const config = parseIframeConfig();
@@ -197,7 +197,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('handles allowFileUpload as true by default', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
 
       const config = parseIframeConfig();
 
@@ -205,7 +205,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('parses multi-session mode', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?multiSession=true';
 
       const config = parseIframeConfig();
@@ -214,7 +214,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('parses context ID from URL parameter', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?contextId=ctx-123';
 
       const config = parseIframeConfig();
@@ -225,7 +225,7 @@ describe('parseIframeConfig', () => {
 
   describe('portal security', () => {
     it('validates trusted portal authority', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?inPortal=true&trustedAuthority=https://portal.azure.com';
 
       const config = parseIframeConfig();
@@ -235,7 +235,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('allows subdomain of trusted authority', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?inPortal=true&trustedAuthority=https://subdomain.portal.azure.com';
 
       const config = parseIframeConfig();
@@ -245,7 +245,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('throws error for untrusted authority', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?inPortal=true&trustedAuthority=https://evil.com';
 
       expect(() => parseIframeConfig()).toThrow(
@@ -254,7 +254,7 @@ describe('parseIframeConfig', () => {
     });
 
     it('allows localhost for development', () => {
-      document.documentElement.dataset.agentCard = 'http://test.agent/agent.json';
+      document.documentElement.dataset.agentCard = 'http://test.agent/agent-card.json';
       window.location.search = '?inPortal=true&trustedAuthority=https://localhost:3000';
 
       const config = parseIframeConfig();

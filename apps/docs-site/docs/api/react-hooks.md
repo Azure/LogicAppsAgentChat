@@ -71,7 +71,7 @@ interface UseA2AReturn {
 ```tsx
 function Chat() {
   const { messages, sendMessage, isLoading, error } = useA2A({
-    agentCard: 'https://api.example.com/.well-known/agent.json',
+    agentCard: 'https://api.example.com/.well-known/agent-card.json',
   });
 
   if (error) return <div>Error: {error.message}</div>;

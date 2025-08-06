@@ -58,7 +58,7 @@ Create a `.env.production` file:
 
 ```bash
 # Agent Configuration
-VITE_AGENT_CARD_URL=https://api.example.com/.well-known/agent.json
+VITE_AGENT_CARD_URL=https://api.example.com/.well-known/agent-card.json
 
 # API Configuration
 VITE_API_BASE_URL=https://api.example.com
@@ -395,7 +395,7 @@ export const env = envSchema.parse(import.meta.env);
 
 // Bad ❌
 const client = new A2AClient({
-  agentCard: 'https://api.example.com/.well-known/agent.json',
+  agentCard: 'https://api.example.com/.well-known/agent-card.json',
   auth: {
     type: 'api-key',
     key: 'sk-1234567890', // Never do this!
