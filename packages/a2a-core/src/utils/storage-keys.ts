@@ -18,7 +18,7 @@ export function getAgentStorageIdentifier(agentUrl: string): string {
     path = path.replace(/\/+$/, '');
 
     // Remove common suffixes
-    path = path.replace(/\/(\.well-known\/)?agent\.json$/, '');
+    path = path.replace(/\/(\.well-known\/)?agent(-card)?\.json$/, '');
     path = path.replace(/\/IFrame$/i, '');
     path = path.replace(/\/iframe$/i, '');
 
