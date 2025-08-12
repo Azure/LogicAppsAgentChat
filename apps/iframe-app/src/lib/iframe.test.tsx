@@ -7,9 +7,19 @@ vi.mock('@microsoft/a2achat-core/react', () => ({
   ChatWidget: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));
-vi.mock('./hooks/useIframeConfig');
-vi.mock('../components/IframeWrapper');
-vi.mock('../components/ErrorDisplay');
+vi.mock('./hooks/useIframeConfig', () => ({
+  useIframeConfig: vi.fn(() => ({
+    apiUrl: 'http://localhost:3000',
+    allowedOrigins: ['*'],
+    contextId: 'test-context',
+  })),
+}));
+vi.mock('../components/IframeWrapper', () => ({
+  IframeWrapper: vi.fn(() => null),
+}));
+vi.mock('../components/ErrorDisplay', () => ({
+  ErrorDisplay: vi.fn(() => null),
+}));
 
 describe('iframe initialization', () => {
   let mockCreateRoot: ReturnType<typeof vi.fn>;
@@ -48,10 +58,13 @@ describe('iframe initialization', () => {
   it('initializes successfully when chat-root element exists', async () => {
     await import('./iframe');
 
+    // Wait a bit for initialization to complete
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     expect(mockCreateRoot).toHaveBeenCalledWith(document.getElementById('chat-root'));
     expect(mockRoot.render).toHaveBeenCalled();
     expect(consoleErrorSpy).not.toHaveBeenCalled();
-  });
+  }, 10000);
 
   it('displays error when chat-root element is missing', async () => {
     document.body.innerHTML = '';
