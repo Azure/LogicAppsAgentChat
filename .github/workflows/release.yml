@@ -53,6 +53,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Initialize changesets
+        run: |
+          if [ ! -f ".changeset/config.json" ]; then
+            pnpm exec changeset init
+          fi
+
       - name: Create changeset
         run: |
           cat > .changeset/release-changeset.md << EOF
