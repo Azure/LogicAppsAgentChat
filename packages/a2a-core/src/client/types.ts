@@ -2,6 +2,7 @@ export type AuthConfig =
   | { type: 'bearer'; token: string }
   | { type: 'oauth2'; accessToken: string; tokenType?: string }
   | { type: 'api-key'; key: string; header: string }
+  | { type: 'cookie' }
   | { type: 'custom'; handler: (request: Request) => Promise<Request> | Request }
   | { type: 'none' };
 

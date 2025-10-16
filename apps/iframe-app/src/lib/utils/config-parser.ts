@@ -60,19 +60,31 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
 
   // Transform current URL to agent card URL if we're in an iframe context
   const currentUrl = window.location.href;
-  const iframePattern = /\/api\/agentsChat\/([^/]+)\/IFrame/i;
-  const match = currentUrl.match(iframePattern);
+  const currentHost = window.location.host;
+  const standardIframePattern = /\/api\/agentsChat\/([^/]+)\/IFrame/i;
+  const consumptionFramePattern = /\/scaleunit\/([^/]+)\/flow\/([^/]+)\/AgentChatIFrame/i;
 
-  if (match && match[1]) {
-    const agentKind = match[1];
+  const standardMatch = currentUrl.match(standardIframePattern);
+  const consumptionMatch = currentUrl.match(consumptionFramePattern);
+
+  if (standardMatch && standardMatch[1]) {
+    const agentKind = standardMatch[1];
     // Find the base URL by getting everything before the matched pattern
     const matchIndex = currentUrl.toLowerCase().indexOf('/api/agentschat/');
     const baseUrl = currentUrl.substring(0, matchIndex);
     return `${baseUrl}/api/agents/${agentKind}/.well-known/agent-card.json`;
+  } else if (consumptionMatch && consumptionMatch[1] && consumptionMatch[2]) {
+    const scaleunit = consumptionMatch[1];
+    const flowId = consumptionMatch[2];
+    const scaleUnitId = scaleunit.replace('CU', '');
+    const agentCardBackendHost = currentHost
+      .replace(currentHost.split('.')[0], 'app-' + scaleUnitId)
+      .replace('3001', '');
+    return `${window.location.protocol}//${agentCardBackendHost}/api/agents/${flowId}/.well-known/agent-card.json`;
   }
 
   throw new Error(
-    'data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern'
+    'data-agent-card is required or URL must follow below pattern:\n 1. /api/agentsChat/{AgentKind}/IFrame for a standard app\n 2. /scaleunit/{ScaleUnitId}/flow/{FlowId}/AgentChatIFrame for a consumption app'
   );
 }
 
