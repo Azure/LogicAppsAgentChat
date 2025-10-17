@@ -96,7 +96,9 @@ describe('parseIframeConfig', () => {
       window.location.href = 'https://example.com/some/other/path';
 
       expect(() => parseIframeConfig()).toThrow(
-        'data-agent-card is required or URL must follow /api/agentsChat/{AgentKind}/IFrame pattern'
+        `data-agent-card is required or URL must follow below pattern:
+ 1. /api/agentsChat/{AgentKind}/IFrame for a standard app
+ 2. /scaleunit/{ScaleUnitId}/flow/{FlowId}/AgentChatIFrame for a consumption app`
       );
     });
   });

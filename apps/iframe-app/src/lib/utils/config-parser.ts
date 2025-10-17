@@ -76,15 +76,17 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
   } else if (consumptionMatch && consumptionMatch[1] && consumptionMatch[2]) {
     const scaleunit = consumptionMatch[1];
     const flowId = consumptionMatch[2];
-    const scaleUnitId = scaleunit.replace('CU', '');
+    const scaleUnitId = scaleunit.match(/^cu/i) ? scaleunit.substring(2) : scaleunit;
     const agentCardBackendHost = currentHost
       .replace(currentHost.split('.')[0], 'app-' + scaleUnitId)
-      .replace('3001', '');
+      .split(':')[0]; // Remove port if any
     return `${window.location.protocol}//${agentCardBackendHost}/api/agents/${flowId}/.well-known/agent-card.json`;
   }
 
   throw new Error(
-    'data-agent-card is required or URL must follow below pattern:\n 1. /api/agentsChat/{AgentKind}/IFrame for a standard app\n 2. /scaleunit/{ScaleUnitId}/flow/{FlowId}/AgentChatIFrame for a consumption app'
+    `data-agent-card is required or URL must follow below pattern:
+ 1. /api/agentsChat/{AgentKind}/IFrame for a standard app
+ 2. /scaleunit/{ScaleUnitId}/flow/{FlowId}/AgentChatIFrame for a consumption app`
   );
 }
 
