@@ -62,7 +62,7 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
   const currentUrl = window.location.href;
   const currentHost = window.location.host;
   const standardIframePattern = /\/api\/agentsChat\/([^/]+)\/IFrame/i;
-  const consumptionFramePattern = /\/scaleunit\/([^/]+)\/flow\/([^/]+)\/agentchat\/IFrame/i;
+  const consumptionFramePattern = /\/scaleunits\/([^/]+)\/flows\/([^/]+)\/agentchat\/IFrame/i;
 
   const standardMatch = currentUrl.match(standardIframePattern);
   const consumptionMatch = currentUrl.match(consumptionFramePattern);
@@ -86,7 +86,7 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
   throw new Error(
     `data-agent-card is required or URL must follow below pattern:
  1. /api/agentsChat/{AgentKind}/IFrame for a standard app
- 2. /scaleunit/{ScaleUnitId}/flow/{FlowId}/agentchat/IFrame for a consumption app`
+ 2. /scaleunits/{ScaleUnitId}/flows/{FlowId}/agentchat/IFrame for a consumption app`
   );
 }
 
