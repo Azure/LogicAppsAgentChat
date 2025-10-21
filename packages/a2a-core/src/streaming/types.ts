@@ -18,6 +18,7 @@ export interface SSEClientOptions {
     method: string;
     statusText?: string;
   }) => void | Promise<void>;
+  onTokenRefreshRequired?: () => void | Promise<void>;
 }
 
 export interface SSEParser {

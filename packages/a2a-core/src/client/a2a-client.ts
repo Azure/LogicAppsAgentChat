@@ -17,6 +17,7 @@ export interface A2AClientConfig {
   httpOptions?: HttpClientOptions;
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
+  onTokenRefreshRequired?: () => void | Promise<void>;
   apiKey?: string;
   oboUserToken?: string;
 }
@@ -32,6 +33,7 @@ export class A2AClient {
   private readonly auth: AuthConfig;
   private readonly onAuthRequired?: AuthRequiredHandler;
   private readonly onUnauthorized?: UnauthorizedHandler;
+  private readonly onTokenRefreshRequired?: () => void | Promise<void>;
   private readonly apiKey?: string;
   private readonly oboUserToken?: string;
 
@@ -40,6 +42,7 @@ export class A2AClient {
     this.auth = config.auth || { type: 'none' };
     this.onAuthRequired = config.onAuthRequired;
     this.onUnauthorized = config.onUnauthorized;
+    this.onTokenRefreshRequired = config.onTokenRefreshRequired;
     this.apiKey = config.apiKey;
     this.oboUserToken = config.oboUserToken;
 
@@ -47,7 +50,10 @@ export class A2AClient {
     this.httpClient = new HttpClient(
       this.agentCard.url,
       this.auth,
-      config.httpOptions,
+      {
+        ...config.httpOptions,
+        onTokenRefreshRequired: this.onTokenRefreshRequired,
+      },
       this.apiKey,
       this.onUnauthorized,
       this.oboUserToken
@@ -258,6 +264,7 @@ export class A2AClient {
                     body: JSON.stringify(jsonRpcRequest),
                     withCredentials: this.auth.type !== 'none',
                     onUnauthorized: this.onUnauthorized,
+                    onTokenRefreshRequired: this.onTokenRefreshRequired,
                   });
 
                   // Store SSE client for testing - store on the client instance

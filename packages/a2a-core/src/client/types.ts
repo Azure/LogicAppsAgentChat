@@ -28,6 +28,7 @@ export interface HttpClientOptions {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
+  onTokenRefreshRequired?: () => void | Promise<void>;
 }
 
 // Authentication Required Event

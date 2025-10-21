@@ -71,20 +71,37 @@ export class SSEClient {
 
         if (!response.ok) {
           // Handle 401 Unauthorized specially
-          if (response.status === 401 && this.options.onUnauthorized && !isRetry) {
-            await Promise.resolve(
-              this.options.onUnauthorized({
-                url: this.url,
-                method: this.options.method || 'POST',
-                statusText: response.statusText,
-              })
-            );
+          if (response.status === 401) {
+            if (new URL(this.url).hostname.endsWith('.logic.azure.com')) {
+              console.log('Detected 401 in consumption agent.');
+              // Check for token refresh header
+              const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
+              if (tokenRefreshHeader === 'refresh') {
+                if (this.options.onTokenRefreshRequired) {
+                  await Promise.resolve(this.options.onTokenRefreshRequired());
+                } else {
+                  // Default behavior: reload the page
+                  if (typeof window !== 'undefined') {
+                    window.location.reload();
+                  }
+                }
+                return;
+              }
+            } else if (this.options.onUnauthorized && !isRetry) {
+              await Promise.resolve(
+                this.options.onUnauthorized({
+                  url: this.url,
+                  method: this.options.method || 'POST',
+                  statusText: response.statusText,
+                })
+              );
 
-            // After onUnauthorized completes, retry the connection once
-            console.log('Retrying SSE connection after authentication refresh...');
-            return this.connect(true);
+              // After onUnauthorized completes, retry the connection once
+              console.log('Retrying SSE connection after authentication refresh...');
+              return this.connect(true);
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         if (!response.body) {

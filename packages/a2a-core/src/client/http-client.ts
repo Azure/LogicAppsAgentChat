@@ -11,7 +11,8 @@ import type {
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly auth: AuthConfig | undefined;
-  private readonly options: Required<HttpClientOptions>;
+  private readonly options: Required<Omit<HttpClientOptions, 'onTokenRefreshRequired'>> &
+    Pick<HttpClientOptions, 'onTokenRefreshRequired'>;
   private readonly apiKey?: string;
   private readonly oboUserToken?: string;
   private readonly onUnauthorized?: UnauthorizedHandler;
@@ -175,6 +176,23 @@ export class HttpClient {
         },
       }
     );
+
+    // Check for token refresh header only for consumption agents
+    if (new URL(requestConfig.url).hostname.endsWith('.logic.azure.com')) {
+      const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
+      if (tokenRefreshHeader === 'refresh') {
+        if (this.options.onTokenRefreshRequired) {
+          await Promise.resolve(this.options.onTokenRefreshRequired());
+        } else {
+          // Default behavior: reload the page
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
+        }
+        // Return early to prevent further processing
+        throw new Error('Token refresh required');
+      }
+    }
 
     // Parse response
     let data = await response.json();
