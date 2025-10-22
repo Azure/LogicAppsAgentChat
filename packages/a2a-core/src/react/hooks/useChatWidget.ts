@@ -11,6 +11,7 @@ import type {
 import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
+import { isDirectAgentCardUrl } from '../../utils/agentUrlUtils';
 
 interface UseChatWidgetProps {
   agentCard: string | AgentCard;
@@ -222,7 +223,7 @@ export function useChatWidget({
           const discovery = new AgentDiscovery({ apiKey });
           let resolvedAgentCard: AgentCard;
 
-          if (agentCard.includes('/.well-known/agent-card.json') || agentCard.endsWith('.json')) {
+          if (isDirectAgentCardUrl(agentCard)) {
             try {
               resolvedAgentCard = await discovery.fromDirect(agentCard);
             } catch (error) {

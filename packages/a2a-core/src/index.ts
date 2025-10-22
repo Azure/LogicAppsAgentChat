@@ -25,6 +25,7 @@ export {
   getAgentContextStorageKey,
   getAgentStorageIdentifier,
 } from './utils/storage-keys';
+export { isDirectAgentCardUrl } from './utils/agentUrlUtils';
 
 // Re-export commonly used items at top level for convenience
 export { A2AClient } from './client/a2a-client';
