@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { ChatWidget, ChatWidgetProps, ChatThemeProvider } from '@microsoft/a2achat-core/react';
-import { AgentCard } from '@microsoft/a2achat-core';
+import { AgentCard, isDirectAgentCardUrl } from '@microsoft/a2achat-core';
 import {
   FluentProvider,
   makeStyles,
@@ -196,7 +196,7 @@ export function MultiSessionChat({
         setIsLoadingAgent(true);
         setAgentError(undefined);
 
-        const url = config.apiUrl.endsWith('.json')
+        const url = isDirectAgentCardUrl(config.apiUrl)
           ? config.apiUrl
           : `${config.apiUrl}/.well-known/agent-card.json`;
 
