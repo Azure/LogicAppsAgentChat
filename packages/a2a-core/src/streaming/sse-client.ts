@@ -73,7 +73,6 @@ export class SSEClient {
           // Handle 401 Unauthorized specially
           if (response.status === 401) {
             if (new URL(this.url).hostname.endsWith('.logic.azure.com')) {
-              console.log('Detected 401 in consumption agent.');
               // Check for token refresh header
               const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
               if (tokenRefreshHeader === 'refresh') {

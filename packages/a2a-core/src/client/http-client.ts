@@ -190,7 +190,9 @@ export class HttpClient {
           }
         }
         // Return early to prevent further processing
-        throw new Error('Token refresh required');
+        throw new Error(
+          `Token refresh initiated - request cannot be completed. URL: ${requestConfig.url}, Method: ${requestConfig.method}`
+        );
       }
     }
 

@@ -86,7 +86,7 @@ function extractAgentCardUrl(params: URLSearchParams, dataset: DOMStringMap): st
   throw new Error(
     `data-agent-card is required or URL must follow below pattern:
  1. /api/agentsChat/{AgentKind}/IFrame for a standard app
- 2. /scaleunits/{ScaleUnitId}/flows/{FlowId}/agentchat/IFrame for a consumption app`
+ 2. /scaleunits/{ScaleUnitId}/flows/{FlowId}/agentChat/IFrame for a consumption app`
   );
 }
 

@@ -459,7 +459,9 @@ describe('HttpClient', () => {
         json: async () => ({ data: 'test' }),
       } as Response);
 
-      await expect(client.get('/test')).rejects.toThrow('Token refresh required');
+      await expect(client.get('/test')).rejects.toThrow(
+        'Token refresh initiated - request cannot be completed. URL: https://test-agent.logic.azure.com/test, Method: GET'
+      );
       expect(onTokenRefreshRequired).toHaveBeenCalledTimes(1);
     });
 
@@ -488,7 +490,9 @@ describe('HttpClient', () => {
         json: async () => ({ data: 'test' }),
       } as Response);
 
-      await expect(client.get('/test')).rejects.toThrow('Token refresh required');
+      await expect(client.get('/test')).rejects.toThrow(
+        'Token refresh initiated - request cannot be completed. URL: https://test-agent.logic.azure.com/test, Method: GET'
+      );
       expect(mockReload).toHaveBeenCalledTimes(1);
 
       // Restore original window
