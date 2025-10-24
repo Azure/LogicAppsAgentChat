@@ -440,4 +440,132 @@ describe('HttpClient', () => {
       expect(result).toEqual({ data: 'test', modified: true });
     });
   });
+
+  describe('token refresh', () => {
+    it('should call onTokenRefreshRequired when x-ms-aad-token-refresh-option header is refresh', async () => {
+      const onTokenRefreshRequired = vi.fn();
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'refresh',
+        }),
+        json: async () => ({ data: 'test' }),
+      } as Response);
+
+      await expect(client.get('/test')).rejects.toThrow(
+        'Token refresh initiated - request cannot be completed. URL: https://test-agent.logic.azure.com/test, Method: GET'
+      );
+      expect(onTokenRefreshRequired).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reload page when x-ms-aad-token-refresh-option header is refresh and no callback provided', async () => {
+      // Mock window.location.reload
+      const originalLocation = global.window?.location;
+      const mockReload = vi.fn();
+
+      Object.defineProperty(global, 'window', {
+        value: {
+          location: {
+            reload: mockReload,
+          },
+        },
+        writable: true,
+      });
+
+      client = new HttpClient('https://test-agent.logic.azure.com');
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'refresh',
+        }),
+        json: async () => ({ data: 'test' }),
+      } as Response);
+
+      await expect(client.get('/test')).rejects.toThrow(
+        'Token refresh initiated - request cannot be completed. URL: https://test-agent.logic.azure.com/test, Method: GET'
+      );
+      expect(mockReload).toHaveBeenCalledTimes(1);
+
+      // Restore original window
+      if (originalLocation) {
+        Object.defineProperty(global, 'window', {
+          value: { location: originalLocation },
+          writable: true,
+        });
+      }
+    });
+
+    it('should not trigger token refresh for other header values', async () => {
+      const onTokenRefreshRequired = vi.fn();
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'no-refresh',
+        }),
+        json: async () => ({ data: 'test' }),
+      } as Response);
+
+      const result = await client.get('/test');
+      expect(result).toEqual({ data: 'test' });
+      expect(onTokenRefreshRequired).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing headers gracefully', async () => {
+      const onTokenRefreshRequired = vi.fn();
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: null,
+        json: async () => ({ data: 'test' }),
+      } as any);
+
+      const result = await client.get('/test');
+      expect(result).toEqual({ data: 'test' });
+      expect(onTokenRefreshRequired).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger token refresh for non-consumption agent URLs', async () => {
+      const onTokenRefreshRequired = vi.fn();
+      client = new HttpClient(
+        'https://api.example.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'refresh',
+        }),
+        json: async () => ({ data: 'test' }),
+      } as Response);
+
+      const result = await client.get('/test');
+      expect(result).toEqual({ data: 'test' });
+      expect(onTokenRefreshRequired).not.toHaveBeenCalled();
+    });
+  });
 });

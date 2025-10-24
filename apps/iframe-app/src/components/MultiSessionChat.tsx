@@ -200,6 +200,7 @@ export function MultiSessionChat({
           ? config.apiUrl
           : `${config.apiUrl}/.well-known/agent-card.json`;
 
+        const requestInit: RequestInit = {};
         const headers: HeadersInit = {};
         if (config.apiKey) {
           headers['X-API-Key'] = config.apiKey;
@@ -208,7 +209,13 @@ export function MultiSessionChat({
           headers['x-ms-obo-userToken'] = `Key ${config.oboUserToken}`;
         }
 
-        const response = await fetch(url, { headers });
+        if (headers['X-API-Key'] || headers['x-ms-obo-userToken']) {
+          requestInit.headers = headers;
+        } else {
+          requestInit.credentials = 'include';
+        }
+
+        const response = await fetch(url, requestInit);
         if (!response.ok) {
           throw new Error(`Failed to fetch agent card: ${response.statusText}`);
         }
