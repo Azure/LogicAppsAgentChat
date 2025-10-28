@@ -103,4 +103,6 @@ export interface ChatWidgetProps {
     statusText?: string;
   }) => Promise<void> | void; // Called on 401 errors
   onContextIdChange?: (contextId: string) => void; // Callback when context ID changes
+  sessionName?: string; // Optional session/chat name for display in header
+  onRenameSession?: (newName: string) => void | Promise<void>; // Callback for renaming the session
 }

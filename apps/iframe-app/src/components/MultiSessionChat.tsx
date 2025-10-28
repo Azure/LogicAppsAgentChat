@@ -390,6 +390,12 @@ export function MultiSessionChat({
               fluentTheme={mode}
               onUnauthorized={config.onUnauthorized}
               onContextIdChange={handleContextIdChange}
+              sessionName={activeSession?.name}
+              onRenameSession={async (newName: string) => {
+                if (activeSessionId) {
+                  await renameSession(activeSessionId, newName);
+                }
+              }}
             />
           </ChatThemeProvider>
         </div>
