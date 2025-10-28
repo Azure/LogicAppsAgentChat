@@ -223,14 +223,18 @@ export function ChatWindow(props: ChatWindowProps) {
   const handleSaveTitle = useCallback(() => {
     if (editedTitle.trim() && onRenameSession) {
       onRenameSession(editedTitle.trim());
+      setIsEditingTitle(false);
+    } else {
+      // If empty, revert to original name and exit edit mode
+      setEditedTitle(sessionName || '');
+      setIsEditingTitle(false);
     }
-    setIsEditingTitle(false);
-  }, [editedTitle, onRenameSession]);
+  }, [editedTitle, onRenameSession, sessionName]);
 
   const handleCancelEdit = useCallback(() => {
+    setEditedTitle(sessionName || '');
     setIsEditingTitle(false);
-    setEditedTitle('');
-  }, []);
+  }, [sessionName]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
