@@ -1,5 +1,10 @@
 import { HttpClient } from './http-client';
-import { MessageSchema, MessageSendRequestSchema, TaskSchema } from '../types/schemas';
+import {
+  MessageSchema,
+  MessageSendRequestSchema,
+  TaskSchema,
+  isJsonRpcError,
+} from '../types/schemas';
 import type { AgentCard, AgentCapabilities, Task, MessageSendRequest, TaskState } from '../types';
 import type {
   AuthConfig,
@@ -10,6 +15,7 @@ import type {
 } from './types';
 import { SSEClient } from '../streaming/sse-client';
 import type { SSEMessage } from '../streaming/types';
+import { JsonRpcErrorResponse } from '../types/errors';
 
 export interface A2AClientConfig {
   agentCard: AgentCard;
@@ -131,16 +137,8 @@ export class A2AClient {
       };
 
       // Send request to root path using JSON-RPC
-      const jsonRpcResponse = await this.httpClient.post<any>('/', jsonRpcRequest);
-
-      // Extract result from JSON-RPC response
-      if (jsonRpcResponse.error) {
-        throw new Error(
-          `JSON-RPC error: ${jsonRpcResponse.error.message || JSON.stringify(jsonRpcResponse.error)}`
-        );
-      }
-
-      const response = jsonRpcResponse.result || jsonRpcResponse;
+      // HttpClient now automatically validates JSON-RPC responses and throws JsonRpcErrorResponse on error
+      const response = await this.httpClient.post<any>('/', jsonRpcRequest);
 
       // Validate response
       const taskValidation = TaskSchema.safeParse(response);
@@ -276,11 +274,9 @@ export class A2AClient {
                       // Parse JSON-RPC response from SSE data
                       const jsonRpcData = message.data as any;
 
-                      // Check if it's a JSON-RPC error
-                      if (jsonRpcData.error) {
-                        errorOccurred = new Error(
-                          `JSON-RPC error: ${jsonRpcData.error.message || JSON.stringify(jsonRpcData.error)}`
-                        );
+                      // Check if it's a JSON-RPC error response
+                      if (isJsonRpcError(jsonRpcData)) {
+                        errorOccurred = new JsonRpcErrorResponse(jsonRpcData);
                         isComplete = true;
                         if (sseClient) {
                           sseClient.close();

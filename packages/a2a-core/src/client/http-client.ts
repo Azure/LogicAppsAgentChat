@@ -7,6 +7,8 @@ import type {
   HttpClientOptions,
   UnauthorizedHandler,
 } from './types';
+import { isJsonRpcError, isJsonRpcResult } from '../types/schemas';
+import { JsonRpcErrorResponse, NetworkError } from '../types/errors';
 
 export class HttpClient {
   private readonly baseUrl: string;
@@ -199,6 +201,11 @@ export class HttpClient {
     // Parse response
     let data = await response.json();
 
+    // Validate JSON-RPC response if it looks like one
+    if (this.isJsonRpcResponse(data)) {
+      data = this.validateJsonRpcResponse(data);
+    }
+
     // Apply response interceptors
     for (const interceptor of this.responseInterceptors) {
       data = await interceptor(data);
@@ -281,5 +288,38 @@ export class HttpClient {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Check if the response looks like a JSON-RPC response
+   */
+  private isJsonRpcResponse(data: unknown): boolean {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'jsonrpc' in data &&
+      (data as any).jsonrpc === '2.0'
+    );
+  }
+
+  /**
+   * Validate and handle JSON-RPC response (success or error)
+   * Throws JsonRpcErrorResponse if the response is a JSON-RPC error
+   * Returns the result if it's a success response
+   */
+  private validateJsonRpcResponse<T>(data: unknown): T {
+    // Check if it's a JSON-RPC error
+    if (isJsonRpcError(data)) {
+      throw new JsonRpcErrorResponse(data);
+    }
+
+    // Check if it's a JSON-RPC result
+    if (isJsonRpcResult(data)) {
+      return data.result as T;
+    }
+
+    // If it has jsonrpc: "2.0" but doesn't match error or result format,
+    // return as-is (might be a notification or other format)
+    return data as T;
   }
 }
