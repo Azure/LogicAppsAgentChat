@@ -8,7 +8,7 @@ import type {
   UnauthorizedHandler,
 } from './types';
 import { isJsonRpcError, isJsonRpcResult } from '../types/schemas';
-import { JsonRpcErrorResponse, NetworkError } from '../types/errors';
+import { JsonRpcErrorResponse } from '../types/errors';
 
 export class HttpClient {
   private readonly baseUrl: string;
