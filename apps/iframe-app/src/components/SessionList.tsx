@@ -112,6 +112,12 @@ const useStyles = makeStyles({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     flex: 1,
+    cursor: 'pointer',
+    ':hover': {
+      textDecoration: 'underline',
+      textDecorationColor: tokens.colorNeutralForeground3,
+      textUnderlineOffset: '2px',
+    },
   },
   lastMessage: {
     fontSize: tokens.fontSizeBase200,
@@ -129,7 +135,7 @@ const useStyles = makeStyles({
     ...shorthands.gap(tokens.spacingHorizontalXS),
   },
   sessionActionsHidden: {
-    opacity: 0,
+    opacity: 0.4,
     transition: 'opacity 0.2s ease',
   },
   sessionItemWrapper: {
@@ -274,7 +280,7 @@ const SessionItem = memo(
             ) : (
               <>
                 <div className={styles.sessionHeader}>
-                  <Tooltip content="Double-click to rename" relationship="label">
+                  <Tooltip content="Click edit icon or double-click to rename" relationship="label">
                     <Text className={styles.sessionName}>{session.name || 'Untitled Chat'}</Text>
                   </Tooltip>
                   <div
@@ -284,20 +290,24 @@ const SessionItem = memo(
                       'session-actions'
                     )}
                   >
-                    <Button
-                      appearance="subtle"
-                      icon={<EditRegular />}
-                      size="small"
-                      onClick={handleStartEdit}
-                      title="Rename"
-                    />
-                    <Button
-                      appearance="subtle"
-                      icon={<DeleteRegular />}
-                      size="small"
-                      onClick={handleDelete}
-                      title="Delete"
-                    />
+                    <Tooltip content="Rename chat" relationship="label">
+                      <Button
+                        appearance="subtle"
+                        icon={<EditRegular />}
+                        size="small"
+                        onClick={handleStartEdit}
+                        title="Rename"
+                      />
+                    </Tooltip>
+                    <Tooltip content="Delete chat" relationship="label">
+                      <Button
+                        appearance="subtle"
+                        icon={<DeleteRegular />}
+                        size="small"
+                        onClick={handleDelete}
+                        title="Delete"
+                      />
+                    </Tooltip>
                   </div>
                 </div>
                 {session.lastMessage && (

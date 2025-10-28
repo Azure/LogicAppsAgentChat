@@ -1,6 +1,18 @@
-import React from 'react';
-import { makeStyles, shorthands, tokens, Button, mergeClasses } from '@fluentui/react-components';
-import { PanelLeftExpandRegular, PanelLeftContractRegular } from '@fluentui/react-icons';
+import React, { useState, useCallback } from 'react';
+import {
+  makeStyles,
+  shorthands,
+  tokens,
+  Button,
+  mergeClasses,
+  Input,
+  Tooltip,
+} from '@fluentui/react-components';
+import {
+  PanelLeftExpandRegular,
+  PanelLeftContractRegular,
+  EditRegular,
+} from '@fluentui/react-icons';
 import { MessageList } from '../MessageList';
 import { MessageInput } from '../MessageInput';
 import { CompanyLogo } from '../CompanyLogo';
@@ -51,6 +63,73 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
   },
+  sessionInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalXXS),
+    flex: 1,
+    minWidth: 0, // Allow flex item to shrink below content size
+  },
+  sessionTitleContainer: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalXS),
+    maxWidth: '100%',
+    minWidth: 0, // Allow flex item to shrink
+  },
+  sessionTitle: {
+    fontSize: tokens.fontSizeBase500, // Larger, more prominent
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1, // Darker, more prominent
+    cursor: 'pointer',
+    ...shorthands.overflow('hidden'),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '500px', // Max width for long titles
+    ':hover': {
+      color: tokens.colorBrandForeground1,
+      textDecoration: 'underline',
+    },
+  },
+  sessionTitleInput: {
+    flex: 1,
+    minWidth: 0,
+  },
+  editButton: {
+    minWidth: 'auto',
+    flexShrink: 0,
+    opacity: 0.7,
+    ':hover': {
+      opacity: 1,
+    },
+  },
+  agentInfoCompact: {
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalXXS),
+    marginLeft: 'auto',
+    paddingLeft: tokens.spacingHorizontalM,
+    flexShrink: 0,
+    '@media (max-width: 768px)': {
+      display: 'none', // Hide on mobile
+    },
+  },
+  agentNameCompact: {
+    margin: 0,
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightRegular,
+    color: tokens.colorNeutralForeground3,
+    textAlign: 'right',
+  },
+  agentDescriptionCompact: {
+    margin: 0,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground4,
+    textAlign: 'right',
+    '@media (max-width: 1024px)': {
+      display: 'none', // Hide description on tablets
+    },
+  },
   messageListContainer: {
     flex: 1,
     overflowY: 'auto',
@@ -95,8 +174,13 @@ export function ChatWindow(props: ChatWindowProps) {
     oboUserToken,
     onUnauthorized,
     onContextIdChange,
+    sessionName,
+    onRenameSession,
     mode = 'light',
   } = props;
+
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
 
   // Apply theme if provided
   useTheme(theme, mode);
@@ -128,6 +212,41 @@ export function ChatWindow(props: ChatWindowProps) {
     }
   }, [contextId, onContextIdChange]);
 
+  // Handlers for session title editing
+  const handleStartEditTitle = useCallback(() => {
+    if (onRenameSession && sessionName) {
+      setEditedTitle(sessionName);
+      setIsEditingTitle(true);
+    }
+  }, [sessionName, onRenameSession]);
+
+  const handleSaveTitle = useCallback(() => {
+    if (editedTitle.trim() && onRenameSession) {
+      onRenameSession(editedTitle.trim());
+      setIsEditingTitle(false);
+    } else {
+      // If empty, revert to original name and exit edit mode
+      setEditedTitle(sessionName || '');
+      setIsEditingTitle(false);
+    }
+  }, [editedTitle, onRenameSession, sessionName]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditedTitle(sessionName || '');
+    setIsEditingTitle(false);
+  }, [sessionName]);
+
+  const handleTitleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleSaveTitle();
+      } else if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveTitle, handleCancelEdit]
+  );
+
   // Default to showing logo in header if logoUrl is provided and position is not explicitly 'footer'
   const showHeaderLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition !== 'footer';
   const showFooterLogo = theme?.branding?.logoUrl && theme?.branding?.logoPosition === 'footer';
@@ -151,10 +270,43 @@ export function ChatWindow(props: ChatWindowProps) {
         )}
         <div className={styles.headerContent}>
           {showHeaderLogo && <CompanyLogo branding={theme?.branding} />}
+          {sessionName && onRenameSession && (
+            <div className={styles.sessionInfo}>
+              {isEditingTitle ? (
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  onBlur={handleSaveTitle}
+                  autoFocus
+                  size="small"
+                  className={styles.sessionTitleInput}
+                />
+              ) : (
+                <div className={styles.sessionTitleContainer}>
+                  <Tooltip content="Click to edit or click the edit icon" relationship="label">
+                    <span className={styles.sessionTitle} onClick={handleStartEditTitle}>
+                      {sessionName}
+                    </span>
+                  </Tooltip>
+                  <Button
+                    appearance="subtle"
+                    icon={<EditRegular fontSize={16} />}
+                    size="small"
+                    onClick={handleStartEditTitle}
+                    className={styles.editButton}
+                    title="Rename chat"
+                  />
+                </div>
+              )}
+            </div>
+          )}
           {isConnected && (
-            <div className={styles.agentInfo}>
-              <h3 className={styles.agentName}>{agentName}</h3>
-              {agentDescription && <p className={styles.agentDescription}>{agentDescription}</p>}
+            <div className={styles.agentInfoCompact}>
+              <h3 className={styles.agentNameCompact}>{agentName}</h3>
+              {agentDescription && (
+                <p className={styles.agentDescriptionCompact}>{agentDescription}</p>
+              )}
             </div>
           )}
         </div>
