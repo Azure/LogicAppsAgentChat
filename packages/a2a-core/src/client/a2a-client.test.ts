@@ -98,11 +98,9 @@ describe('A2AClient', () => {
       };
 
       const mockHttpClient = (client as any).httpClient;
-      mockHttpClient.post = vi.fn().mockResolvedValue({
-        jsonrpc: '2.0',
-        result: mockTask,
-        id: 1,
-      });
+      // HttpClient.post() automatically extracts the result from JSON-RPC responses,
+      // so we mock it to return just the task (the result), not the full JSON-RPC response
+      mockHttpClient.post = vi.fn().mockResolvedValue(mockTask);
 
       const message: Message = {
         role: 'user',
