@@ -1,4 +1,5 @@
 export * from './schemas';
+export * from './errors';
 
 // Re-export schemas for convenience
 export {
@@ -12,4 +13,10 @@ export {
   TaskGetRequestSchema,
   TaskCancelRequestSchema,
   PushSubscribeRequestSchema,
+  JsonRpcErrorSchema,
+  JsonRpcErrorObjectSchema,
+  createJsonRpcResultSchema,
+  createJsonRpcResponseSchema,
+  isJsonRpcError,
+  isJsonRpcResult,
 } from './schemas';

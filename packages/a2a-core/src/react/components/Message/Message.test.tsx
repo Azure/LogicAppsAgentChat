@@ -221,7 +221,7 @@ describe('Message', () => {
     expect(screen.getByText('You')).toBeInTheDocument();
   });
 
-  it('renders error status', () => {
+  it('renders error status with generic message', () => {
     const errorMessage: MessageType = {
       ...baseMessage,
       status: 'error',
@@ -230,6 +230,112 @@ describe('Message', () => {
     render(<Message message={errorMessage} />);
 
     expect(screen.getByText('Failed to send')).toBeInTheDocument();
+  });
+
+  it('renders error with JsonRpcError details', () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message: 'Invalid parameters provided',
+        code: -32602,
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Error message is truncated to 20 characters
+    expect(screen.getByText('Invalid parameters. ...')).toBeInTheDocument();
+  });
+
+  it('renders content filter error with user-friendly message', () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message:
+          "HTTP 400 (: content_filter) - The response was filtered due to the prompt triggering Azure OpenAI's content management policy.",
+        code: -32603,
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Error message is truncated to 20 characters
+    expect(screen.getByText('Your message was fil...')).toBeInTheDocument();
+  });
+
+  it('renders custom error code with user-friendly message', () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message: 'Agent loop chat completion failed',
+        code: 'AgentLoopChatCompletionFailed',
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Error message is truncated to 20 characters
+    expect(screen.getByText('Unable to complete t...')).toBeInTheDocument();
+  });
+
+  it('shows full error message in tooltip', async () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message:
+          'HTTP 400 (: content_filter) - The response was filtered\r\nDetailed error information',
+        code: -32603,
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Get the truncated error text element
+    const errorText = screen.getByText('Your message was fil...');
+
+    // The tooltip content should be available via Fluent UI's Tooltip
+    // We verify the tooltip trigger exists
+    expect(errorText).toBeInTheDocument();
+  });
+
+  it('renders internal error with specific message', () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message: 'Database connection failed',
+        code: -32603,
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Error message is truncated to 20 characters
+    expect(screen.getByText('Database connection ...')).toBeInTheDocument();
+  });
+
+  it('handles error with nested data structure', () => {
+    const errorMessage: MessageType = {
+      ...baseMessage,
+      status: 'error',
+      error: {
+        message: 'HTTP 400 (: content_filter)',
+        code: -32603,
+        details: {
+          code: 'AgentLoopChatCompletionFailed',
+          message: 'The response was filtered',
+        },
+      },
+    };
+
+    render(<Message message={errorMessage} />);
+
+    // Should show user-friendly message for content_filter, truncated to 20 characters
+    expect(screen.getByText('Your message was fil...')).toBeInTheDocument();
   });
 
   it('does not render error status for sent messages', () => {

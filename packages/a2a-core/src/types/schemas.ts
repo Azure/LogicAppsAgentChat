@@ -130,7 +130,7 @@ export type Message = z.infer<typeof MessageSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type TaskState = z.infer<typeof TaskStateSchema>;
 export type Artifact = z.infer<typeof ArtifactSchema>;
-export type TaskError = z.infer<typeof ErrorSchema>;
+export type TaskErrorData = z.infer<typeof ErrorSchema>;
 
 // Request/Response Schemas
 
@@ -177,3 +177,65 @@ export type MessageStreamRequest = z.infer<typeof MessageStreamRequestSchema>;
 export type TaskGetRequest = z.infer<typeof TaskGetRequestSchema>;
 export type TaskCancelRequest = z.infer<typeof TaskCancelRequestSchema>;
 export type PushSubscribeRequest = z.infer<typeof PushSubscribeRequestSchema>;
+
+// JSON-RPC 2.0 Protocol Schemas
+
+// JSON-RPC Error object schema
+export const JsonRpcErrorObjectSchema = z.object({
+  code: z.number(),
+  message: z.string(),
+  data: z.unknown().optional(),
+});
+
+// JSON-RPC Error response schema
+export const JsonRpcErrorSchema = z.object({
+  jsonrpc: z.literal('2.0'),
+  error: JsonRpcErrorObjectSchema,
+  id: z.union([z.string(), z.number(), z.null()]),
+});
+
+// JSON-RPC Result response schema (generic, parametrized by result type)
+export const createJsonRpcResultSchema = <T extends z.ZodTypeAny>(resultSchema: T) =>
+  z.object({
+    jsonrpc: z.literal('2.0'),
+    result: resultSchema,
+    id: z.union([z.string(), z.number(), z.null()]),
+  });
+
+// JSON-RPC Response schema (can be either success or error)
+export const createJsonRpcResponseSchema = <T extends z.ZodTypeAny>(resultSchema: T) =>
+  z.union([createJsonRpcResultSchema(resultSchema), JsonRpcErrorSchema]);
+
+// Type exports
+export type JsonRpcErrorObject = z.infer<typeof JsonRpcErrorObjectSchema>;
+export type JsonRpcError = z.infer<typeof JsonRpcErrorSchema>;
+export type JsonRpcResult<T> = {
+  jsonrpc: '2.0';
+  result: T;
+  id: string | number | null;
+};
+export type JsonRpcResponse<T> = JsonRpcResult<T> | JsonRpcError;
+
+// Helper type guard to check if response is an error
+export function isJsonRpcError(response: unknown): response is JsonRpcError {
+  try {
+    JsonRpcErrorSchema.parse(response);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Helper type guard to check if response has result
+export function isJsonRpcResult<T>(response: unknown): response is JsonRpcResult<T> {
+  if (
+    typeof response === 'object' &&
+    response !== null &&
+    'jsonrpc' in response &&
+    response.jsonrpc === '2.0' &&
+    'result' in response
+  ) {
+    return true;
+  }
+  return false;
+}

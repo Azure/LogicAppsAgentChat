@@ -24,6 +24,7 @@ import { markedHighlight } from 'marked-highlight';
 import Prism from 'prismjs';
 import { AuthenticationMessage } from './AuthenticationMessage';
 import { CodeBlockHeader } from './CodeBlockHeader';
+import { getUserFriendlyErrorMessage } from '../../utils/errorUtils';
 import 'prismjs/themes/prism.css';
 // Import all Prism language components
 import 'prismjs/components/prism-clike';
@@ -713,9 +714,24 @@ function MessageComponent({
         </div>
         <div className={styles.metadata}>
           <Caption1 className={styles.time}>{formatTime(message.timestamp)}</Caption1>
-          {message.status === 'error' && (
-            <Caption1 className={styles.error}>Failed to send</Caption1>
-          )}
+          {message.status === 'error' &&
+            (() => {
+              const fullErrorMessage = message.error
+                ? getUserFriendlyErrorMessage(message.error)
+                : 'Failed to send';
+              const maxLength = 20;
+              const displayMessage =
+                fullErrorMessage.length > maxLength
+                  ? `${fullErrorMessage.substring(0, maxLength)}...`
+                  : fullErrorMessage;
+              const fullTechnicalError = message.error?.message || 'Failed to send message';
+
+              return (
+                <Tooltip content={fullTechnicalError} relationship="label">
+                  <Caption1 className={styles.error}>{displayMessage}</Caption1>
+                </Tooltip>
+              );
+            })()}
         </div>
       </div>
     </div>

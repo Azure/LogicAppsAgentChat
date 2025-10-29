@@ -22,6 +22,11 @@ export interface Message {
     authParts: AuthRequiredPart[];
     status: AuthenticationStatus;
   };
+  error?: {
+    message: string;
+    code?: number | string;
+    details?: any;
+  };
 }
 
 export interface Attachment {
