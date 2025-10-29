@@ -12,6 +12,7 @@ import type { Message } from '../types';
 import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
 import { isDirectAgentCardUrl } from '../../utils/agentUrlUtils';
+import { formatErrorMessage } from '../utils/errorUtils';
 
 interface UseChatWidgetProps {
   agentCard: string | AgentCard;
@@ -281,7 +282,14 @@ export function useChatWidget({
         updateMessage(message.id, { status: 'sent' });
       } catch (error) {
         console.error('Error sending message:', error);
-        updateMessage(message.id, { status: 'error' });
+
+        // Extract error details from JsonRpcErrorResponse or other error types
+        const errorDetails = formatErrorMessage(error);
+
+        updateMessage(message.id, {
+          status: 'error',
+          error: errorDetails,
+        });
         throw error;
       }
     },
