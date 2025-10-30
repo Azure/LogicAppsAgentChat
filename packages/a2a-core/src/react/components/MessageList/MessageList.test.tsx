@@ -44,13 +44,15 @@ describe('MessageList', () => {
     },
   ];
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseChatStore.mockReturnValue({
+  // Helper to setup mock store state
+  const setupMockStore = (overrides: Partial<any> = {}) => {
+    const mockState = {
       messages: [],
       isTyping: false,
       isConnected: true,
       pendingUploads: new Map(),
+      sessionMessages: new Map(),
+      typingByContext: new Map(),
       addMessage: vi.fn(),
       updateMessage: vi.fn(),
       deleteMessage: vi.fn(),
@@ -61,7 +63,19 @@ describe('MessageList', () => {
       updatePendingUpload: vi.fn(),
       removePendingUpload: vi.fn(),
       clearMessages: vi.fn(),
+      ...overrides,
+    };
+    mockUseChatStore.mockImplementation((selector: any) => {
+      if (typeof selector === 'function') {
+        return selector(mockState);
+      }
+      return mockState;
     });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupMockStore();
   });
 
   it('renders empty list with no messages', () => {
@@ -78,22 +92,7 @@ describe('MessageList', () => {
   });
 
   it('does not render welcome message when messages exist', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages });
 
     render(<MessageList welcomeMessage="Welcome to the chat!" />);
 
@@ -101,22 +100,7 @@ describe('MessageList', () => {
   });
 
   it('renders all messages', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages });
 
     render(<MessageList />);
 
@@ -127,22 +111,7 @@ describe('MessageList', () => {
   });
 
   it('passes agentName to Message components', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages });
 
     render(<MessageList agentName="Support Bot" />);
 
@@ -151,22 +120,7 @@ describe('MessageList', () => {
   });
 
   it('uses default agentName when not provided', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: [mockMessages[1]], // Only assistant message
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: [mockMessages[1]] }); // Only assistant message
 
     render(<MessageList />);
 
@@ -175,22 +129,7 @@ describe('MessageList', () => {
   });
 
   it('passes userName to Message components', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages });
 
     render(<MessageList userName="John" />);
 
@@ -199,22 +138,7 @@ describe('MessageList', () => {
   });
 
   it('shows typing indicator when isTyping is true', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: [],
-      isTyping: true,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ isTyping: true });
 
     render(<MessageList />);
 
@@ -229,22 +153,7 @@ describe('MessageList', () => {
   });
 
   it('passes agentName to typing indicator', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: [],
-      isTyping: true,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ isTyping: true });
 
     render(<MessageList agentName="AI Assistant" />);
 
@@ -275,22 +184,7 @@ describe('MessageList', () => {
     const { rerender } = render(<MessageList />);
 
     // Update messages
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages });
 
     rerender(<MessageList />);
 
@@ -312,22 +206,7 @@ describe('MessageList', () => {
     const { rerender } = render(<MessageList />);
 
     // Update typing status
-    mockUseChatStore.mockReturnValue({
-      messages: [],
-      isTyping: true,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ isTyping: true });
 
     rerender(<MessageList />);
 
@@ -369,22 +248,7 @@ describe('MessageList', () => {
       },
     ];
 
-    mockUseChatStore.mockReturnValue({
-      messages: orderedMessages,
-      isTyping: false,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: orderedMessages });
 
     render(<MessageList />);
 
@@ -404,22 +268,7 @@ describe('MessageList', () => {
   });
 
   it('renders both messages and typing indicator when both present', () => {
-    mockUseChatStore.mockReturnValue({
-      messages: mockMessages,
-      isTyping: true,
-      isConnected: true,
-      pendingUploads: new Map(),
-      addMessage: vi.fn(),
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      setMessages: vi.fn(),
-      setConnected: vi.fn(),
-      setTyping: vi.fn(),
-      addPendingUpload: vi.fn(),
-      updatePendingUpload: vi.fn(),
-      removePendingUpload: vi.fn(),
-      clearMessages: vi.fn(),
-    });
+    setupMockStore({ messages: mockMessages, isTyping: true });
 
     render(<MessageList />);
 
