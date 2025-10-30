@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useA2A } from '../use-a2a';
 import { AgentDiscovery } from '../../discovery/agent-discovery';
 import type { AgentCard } from '../../types';
@@ -13,6 +13,7 @@ import { createMessage } from '../utils/messageUtils';
 import { useChatStore } from '../store/chatStore';
 import { isDirectAgentCardUrl } from '../../utils/agentUrlUtils';
 import { formatErrorMessage } from '../utils/errorUtils';
+import type { StorageConfig } from '../../storage/history-storage';
 
 interface UseChatWidgetProps {
   agentCard: string | AgentCard;
@@ -25,6 +26,9 @@ interface UseChatWidgetProps {
   agentUrl?: string;
   apiKey?: string;
   oboUserToken?: string;
+  storageConfig?: StorageConfig;
+  initialContextId?: string;
+  sessionId?: string; // For multi-session mode - reads messages from sessionMessages map
 }
 
 export function useChatWidget({
@@ -38,12 +42,14 @@ export function useChatWidget({
   agentUrl,
   apiKey,
   oboUserToken,
+  storageConfig,
+  initialContextId,
+  sessionId,
 }: UseChatWidgetProps) {
-  const [initialized, setInitialized] = useState(false);
   const processedMessageIds = useRef<Set<string>>(new Set());
   const messageIdMap = useRef<Map<string, string>>(new Map());
   const sentMessageContents = useRef<Set<string>>(new Set());
-  const contextIdRef = useRef<string | undefined>();
+  const contextIdRef = useRef<string | undefined>(undefined);
 
   const {
     addMessage,
@@ -52,11 +58,35 @@ export function useChatWidget({
     setTyping,
     setAuthRequired,
     clearMessages: clearLocalMessages,
+    startSessionStream,
+    stopSessionStream,
+    sendMessageToSession,
   } = useChatStore();
+
+  // Get session-specific messages if sessionId is provided (multi-session mode)
+  const sessionMessages = useChatStore((state) =>
+    sessionId ? state.sessionMessages.get(sessionId) || [] : []
+  );
+
+  // Get session-specific typing state for multi-session mode
+  const sessionIsTyping = useChatStore((state) =>
+    sessionId ? state.typingByContext.get(sessionId) || false : false
+  );
+
+  // Get session-specific connection state for multi-session mode
+  const sessionIsConnected = useChatStore((state) =>
+    sessionId ? state.activeConnections.has(sessionId) : false
+  );
+
+  // Pending sessions are treated as "ready" even without connection
+  // Connection will be created automatically when first message is sent
+  const isPendingSession = sessionId?.startsWith('pending-');
+  const effectiveSessionIsConnected = isPendingSession || sessionIsConnected;
 
   // Get agent URL from props or derive from agentCard
   const derivedAgentUrl = agentUrl || (typeof agentCard === 'string' ? agentCard : agentCard?.url);
 
+  // Only use useA2A in single-session mode (when no sessionId provided)
   const {
     isConnected,
     isLoading,
@@ -69,7 +99,8 @@ export function useChatWidget({
     clearMessages,
     sendAuthenticationCompleted,
   } = useA2A(
-    auth
+    // Only connect if NOT in multi-session mode
+    !sessionId && auth
       ? {
           auth,
           persistSession: true,
@@ -82,19 +113,25 @@ export function useChatWidget({
           onUnauthorized,
           apiKey,
           oboUserToken,
+          storageConfig,
+          initialContextId,
         }
-      : {
-          persistSession: true,
-          sessionKey: sessionKey || 'a2a-chat-session',
-          agentUrl: derivedAgentUrl,
-          onAuthRequired: (event: AuthRequiredEvent) => {
-            setAuthRequired(event, contextIdRef.current);
-            return onAuthRequired?.(event);
-          },
-          onUnauthorized,
-          apiKey,
-          oboUserToken,
-        }
+      : !sessionId
+        ? {
+            persistSession: true,
+            sessionKey: sessionKey || 'a2a-chat-session',
+            agentUrl: derivedAgentUrl,
+            onAuthRequired: (event: AuthRequiredEvent) => {
+              setAuthRequired(event, contextIdRef.current);
+              return onAuthRequired?.(event);
+            },
+            onUnauthorized,
+            apiKey,
+            oboUserToken,
+            storageConfig,
+            initialContextId,
+          }
+        : (undefined as any) // Disable useA2A in multi-session mode
   );
 
   // Update contextIdRef when contextId changes
@@ -216,13 +253,23 @@ export function useChatWidget({
 
   // Auto-connect when agentCard is provided
   useEffect(() => {
-    if (!agentCard || initialized || isConnected) return;
+    // Multi-session mode: setup config and optionally start stream
+    const isAlreadyConnected =
+      sessionId && useChatStore.getState().activeConnections.has(sessionId);
+    const isPendingSession = sessionId?.startsWith('pending-');
+    const hasConfig = sessionId && useChatStore.getState().sessionConfigs.has(sessionId);
 
-    const connectToAgent = async () => {
+    // Skip if already connected or already has config
+    if (!sessionId || !agentCard || isAlreadyConnected || hasConfig) {
+      return undefined;
+    }
+
+    const setupSession = async () => {
       try {
+        let resolvedAgentCard: AgentCard;
+
         if (typeof agentCard === 'string') {
           const discovery = new AgentDiscovery({ apiKey });
-          let resolvedAgentCard: AgentCard;
 
           if (isDirectAgentCardUrl(agentCard)) {
             try {
@@ -253,22 +300,114 @@ export function useChatWidget({
           } else {
             resolvedAgentCard = await discovery.fromWellKnownUri(agentCard);
           }
-
-          await connect(resolvedAgentCard);
         } else {
-          await connect(agentCard);
+          resolvedAgentCard = agentCard;
         }
-        setInitialized(true);
+
+        const config = {
+          agentCard: resolvedAgentCard,
+          auth,
+          apiKey,
+          oboUserToken,
+          onAuthRequired,
+          onUnauthorized,
+        };
+
+        if (isPendingSession) {
+          // For pending sessions, just store the config without connecting
+          console.log(`[useChatWidget] Storing config for pending session ${sessionId}`);
+          useChatStore.setState((state) => {
+            const newConfigs = new Map(state.sessionConfigs);
+            newConfigs.set(sessionId, config);
+            return { sessionConfigs: newConfigs };
+          });
+        } else {
+          // For real sessions, start the stream (which stores config automatically)
+          await startSessionStream(sessionId, config);
+        }
       } catch (error) {
-        console.error('Failed to connect to agent:', error);
+        console.error('Failed to setup session:', error);
       }
     };
 
-    connectToAgent();
-  }, [agentCard, auth, apiKey, initialized, isConnected, connect]);
+    setupSession();
+
+    // Cleanup: stop stream when unmounting (only for non-pending sessions)
+    return () => {
+      if (!isPendingSession) {
+        stopSessionStream(sessionId);
+      }
+    };
+  }, [sessionId, agentCard]);
+
+  // Single-session mode: use useA2A connection
+  useEffect(() => {
+    if (!sessionId && agentCard && !isConnected) {
+      const connectToAgent = async () => {
+        try {
+          if (typeof agentCard === 'string') {
+            const discovery = new AgentDiscovery({ apiKey });
+            let resolvedAgentCard: AgentCard;
+
+            if (isDirectAgentCardUrl(agentCard)) {
+              try {
+                resolvedAgentCard = await discovery.fromDirect(agentCard);
+              } catch (error) {
+                // Fallback: fetch manually
+                const headers: HeadersInit = {};
+                if (apiKey) {
+                  headers['X-API-Key'] = apiKey;
+                }
+                const response = await fetch(agentCard, { headers });
+                const rawData = await response.json();
+
+                const enhancedAgentCard = {
+                  protocolVersion: '0.2.9',
+                  ...rawData,
+                  capabilities: {
+                    streaming: false,
+                    pushNotifications: false,
+                    stateTransitionHistory: false,
+                    extensions: [],
+                    ...rawData.capabilities,
+                  },
+                } as AgentCard;
+
+                resolvedAgentCard = enhancedAgentCard;
+              }
+            } else {
+              resolvedAgentCard = await discovery.fromWellKnownUri(agentCard);
+            }
+
+            await connect(resolvedAgentCard);
+          } else {
+            await connect(agentCard);
+          }
+        } catch (error) {
+          console.error('Failed to connect to agent:', error);
+        }
+      };
+
+      connectToAgent();
+    }
+
+    return undefined;
+  }, [sessionId, agentCard, isConnected, connect]);
 
   const sendMessage = useCallback(
     async (content: string): Promise<void> => {
+      // Multi-session mode: use store's sendMessageToSession
+      if (sessionId) {
+        try {
+          await sendMessageToSession(sessionId, content);
+        } catch (error) {
+          console.error('Error sending message:', error);
+          throw error;
+        }
+        return;
+      }
+
+      // Single-session mode: use useA2A's sdkSendMessage
       if (!isConnected) {
         throw new Error('Not connected to agent');
       }
@@ -293,7 +432,7 @@ export function useChatWidget({
         throw error;
       }
     },
-    [isConnected, sdkSendMessage, addMessage, updateMessage]
+    [isConnected, sdkSendMessage, addMessage, updateMessage, sessionId, sendMessageToSession]
   );
 
   const clearSession = useCallback(() => {
@@ -319,10 +458,31 @@ export function useChatWidget({
     setAuthRequired(null, contextIdRef.current);
   }, [setAuthRequired]);
 
+  // Return session-specific or single-session state based on mode
+  if (sessionId) {
+    // Multi-session mode: return store-managed state
+    return {
+      sendMessage,
+      isConnected: effectiveSessionIsConnected, // Use reactive subscription, treating pending sessions as connected
+      isTyping: sessionIsTyping,
+      messages: sessionMessages,
+      agentName: typeof agentCard === 'object' ? agentCard.name : 'Agent',
+      agentDescription: typeof agentCard === 'object' ? agentCard.description : undefined,
+      contextId: sessionId, // In multi-session mode, contextId is the sessionId
+      disconnect: () => stopSessionStream(sessionId),
+      clearSession,
+      sendAuthenticationCompleted, // May need session-specific version
+      handleAuthCompleted,
+      handleAuthCanceled,
+    };
+  }
+
+  // Single-session mode: return useA2A state
   return {
     sendMessage,
     isConnected,
     isTyping: isLoading,
+    messages,
     agentName: connectedAgentCard?.name || 'Agent',
     agentDescription: connectedAgentCard?.description,
     contextId,

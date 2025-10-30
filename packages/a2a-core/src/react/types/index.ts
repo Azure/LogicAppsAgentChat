@@ -1,8 +1,9 @@
 import type { AgentCard } from '../../types';
 import type { AuthConfig, AuthRequiredPart } from '../../client/types';
+import type { StorageConfig } from '../../storage/history-storage';
 
 // Re-export types from main module
-export type { AgentCard, AuthConfig, AuthRequiredPart };
+export type { AgentCard, AuthConfig, AuthRequiredPart, StorageConfig };
 
 // Define and export message roles and statuses
 export type MessageRole = 'user' | 'assistant' | 'system';
@@ -110,4 +111,7 @@ export interface ChatWidgetProps {
   onContextIdChange?: (contextId: string) => void; // Callback when context ID changes
   sessionName?: string; // Optional session/chat name for display in header
   onRenameSession?: (newName: string) => void | Promise<void>; // Callback for renaming the session
+  storageConfig?: StorageConfig; // Optional storage configuration for server-side chat history
+  initialContextId?: string; // Initial context ID for resuming existing server-side conversations
+  sessionId?: string; // For multi-session mode - enables session-specific message isolation
 }

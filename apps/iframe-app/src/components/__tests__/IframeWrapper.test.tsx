@@ -219,7 +219,7 @@ describe('IframeWrapper', () => {
       expect.objectContaining({
         apiKey: 'frame-blade-auth-token',
       }),
-      expect.any(Object)
+      undefined
     );
   });
 
@@ -271,14 +271,14 @@ describe('IframeWrapper', () => {
       }
     });
 
-    // Verify localStorage was updated
-    expect(localStorage.getItem('a2a-context-default')).toBe('test-context-123');
-    const storedMessages = JSON.parse(localStorage.getItem('a2a-messages-default') || '[]');
-    expect(storedMessages).toHaveLength(1);
-    expect(storedMessages[0].content).toBe('Test message');
+    // Verify contextId is handled (not stored in localStorage, but passed as initialContextId prop)
+    // The actual verification happens when the component re-renders with the contextId
+    expect(chatHistory.contextId).toBe('test-context-123');
   });
 
-  it('should store contextId in localStorage for single-session mode', () => {
+  it('should pass contextId from URL config to ChatWidget', async () => {
+    const { ChatWidget } = vi.mocked(await import('@microsoft/a2achat-core/react'));
+
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'ctx-from-url',
@@ -287,12 +287,15 @@ describe('IframeWrapper', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    expect(localStorage.getItem('a2a-context-default')).toBe('ctx-from-url');
+    expect(ChatWidget).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialContextId: 'ctx-from-url',
+      }),
+      undefined
+    );
   });
 
-  it('should not store contextId for multi-session mode', () => {
-    localStorage.clear();
-
+  it('should not use contextId for multi-session mode', () => {
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'ctx-from-url',
@@ -301,6 +304,7 @@ describe('IframeWrapper', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    expect(localStorage.getItem('a2a-context-default')).toBeNull();
+    // Multi-session mode uses MultiSessionChat, which doesn't use initialContextId
+    expect(screen.getByTestId('multi-session-chat')).toBeInTheDocument();
   });
 });
