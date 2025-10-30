@@ -128,8 +128,6 @@ export function MultiSessionChat({
 
   // Initialize storage on mount
   useEffect(() => {
-    let cancelled = false;
-
     async function initializeStorage() {
       try {
         console.log('[MultiSessionChat] Initializing storage...');
@@ -153,10 +151,6 @@ export function MultiSessionChat({
     }
 
     initializeStorage();
-
-    return () => {
-      cancelled = true;
-    };
   }, [config.storageConfig, config.apiUrl]);
 
   const {

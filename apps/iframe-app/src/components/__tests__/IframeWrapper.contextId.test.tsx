@@ -73,7 +73,7 @@ describe('IframeWrapper - contextId support', () => {
       expect.objectContaining({
         initialContextId: 'test-context-123',
       }),
-      expect.any(Object)
+      undefined
     );
   });
 
@@ -109,7 +109,7 @@ describe('IframeWrapper - contextId support', () => {
       expect.objectContaining({
         sessionKey: 'my-session',
       }),
-      expect.any(Object)
+      undefined
     );
   });
 
@@ -131,7 +131,7 @@ describe('IframeWrapper - contextId support', () => {
       expect.objectContaining({
         initialContextId: undefined,
       }),
-      expect.any(Object)
+      undefined
     );
   });
 
@@ -155,7 +155,7 @@ describe('IframeWrapper - contextId support', () => {
         sessionKey: 'custom-session',
         initialContextId: 'test-context-abc',
       }),
-      expect.any(Object)
+      undefined
     );
   });
 });
