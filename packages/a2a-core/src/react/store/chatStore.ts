@@ -600,14 +600,16 @@ export const useChatStore = create<ChatState>()(
                 console.log(
                   `[chatStore] Context ID received for pending session ${sessionId}: ${contextId}`
                 );
-                // Perform migration in the background
-                get()
-                  .migratePendingSessionToRealId(sessionId, contextId)
-                  .catch((error) => {
-                    console.error('[chatStore] Error migrating pending session:', error);
-                  });
-                // Update sessionId for the rest of the stream processing
-                sessionId = contextId;
+                // Perform migration and wait for it to complete before continuing
+                // This prevents race conditions where messages are stored under the wrong ID
+                try {
+                  await get().migratePendingSessionToRealId(sessionId, contextId);
+                  // Update sessionId for the rest of the stream processing
+                  sessionId = contextId;
+                } catch (error) {
+                  console.error('[chatStore] Error migrating pending session:', error);
+                  // Don't reassign sessionId if migration failed
+                }
               }
 
               // Store contextId in user message metadata for future reference
