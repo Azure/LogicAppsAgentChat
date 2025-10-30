@@ -335,10 +335,12 @@ describe('ChatStore - Storage Integration', () => {
       // Expected UI message format (after transformation)
       const expectedUIMessage = {
         id: 'msg-new',
-        role: 'user',
         content: 'New message',
         sender: 'user',
         timestamp: storageMessage.timestamp,
+        metadata: {
+          contextId: storageMessage.contextId,
+        },
       };
 
       act(() => {
@@ -385,10 +387,12 @@ describe('ChatStore - Storage Integration', () => {
       // Expected UI message format (after transformation)
       const expectedUIMessage = {
         id: 'msg-new',
-        role: 'user',
         content: 'New message',
         sender: 'user',
         timestamp: storageMessage.timestamp,
+        metadata: {
+          contextId: storageMessage.contextId,
+        },
       };
 
       act(() => {
