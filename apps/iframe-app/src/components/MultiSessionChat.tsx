@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { ChatWidget, ChatWidgetProps, ChatThemeProvider } from '@microsoft/a2achat-core/react';
+import {
+  ChatWidget,
+  ChatWidgetProps,
+  ChatThemeProvider,
+  StorageConfig,
+  useChatStore,
+  ServerHistoryStorage,
+} from '@microsoft/a2achat-core/react';
 import { AgentCard, isDirectAgentCardUrl } from '@microsoft/a2achat-core';
 import {
   FluentProvider,
@@ -11,9 +18,7 @@ import {
 } from '@fluentui/react-components';
 import { webLightTheme, webDarkTheme } from '@fluentui/react-components';
 import { useChatSessions } from '../hooks/useChatSessions';
-import { useStorageSync } from '../hooks/useStorageSync';
 import { SessionList } from './SessionList';
-import { SessionManager } from '../utils/sessionManager';
 
 const useStyles = makeStyles({
   multiSessionContainer: {
@@ -66,6 +71,19 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     overflow: 'hidden',
   },
+  sessionChat: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  sessionChatHidden: {
+    visibility: 'hidden',
+    pointerEvents: 'none',
+  },
   loadingContainer: {
     display: 'flex',
     alignItems: 'center',
@@ -89,6 +107,7 @@ interface MultiSessionChatProps extends Omit<ChatWidgetProps, 'agentCard'> {
     apiKey?: string;
     oboUserToken?: string;
     onUnauthorized?: () => void | Promise<void>;
+    storageConfig?: StorageConfig;
   };
   mode?: 'light' | 'dark';
 }
@@ -107,6 +126,41 @@ export function MultiSessionChat({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Initialize storage on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initializeStorage() {
+      try {
+        console.log('[MultiSessionChat] Initializing storage...');
+        const { initializeStorage, loadSessions } = useChatStore.getState();
+
+        if (config.storageConfig && config.storageConfig.type === 'server') {
+          // Create ServerHistoryStorage instance from config
+          const storage = new ServerHistoryStorage({
+            agentUrl: config.storageConfig.agentUrl || config.apiUrl,
+            getAuthToken: config.storageConfig.getAuthToken,
+          });
+
+          initializeStorage(storage);
+          console.log('[MultiSessionChat] Storage initialized, loading sessions...');
+          await loadSessions();
+          console.log('[MultiSessionChat] Sessions loaded from server');
+        }
+      } catch (error) {
+        console.error('[MultiSessionChat] Error initializing storage:', error);
+      }
+    }
+
+    if (!cancelled) {
+      initializeStorage();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config.storageConfig, config.apiUrl]);
+
   const {
     sessions,
     activeSessionId,
@@ -115,7 +169,7 @@ export function MultiSessionChat({
     switchSession,
     renameSession,
     deleteSession,
-  } = useChatSessions(config.apiUrl);
+  } = useChatSessions();
 
   // Check screen size and auto-collapse on small screens
   useEffect(() => {
@@ -262,24 +316,18 @@ export function MultiSessionChat({
     [switchSession]
   );
 
-  // Use storage sync for IndexedDB
-  const sessionStorageKey = activeSessionId ? `a2a-chat-session-${activeSessionId}` : '';
-  useStorageSync(config.apiUrl, sessionStorageKey);
+  // Context ID is now managed server-side only
+  const handleContextIdChange = useCallback(async (contextId: string) => {
+    // Server manages context IDs, no local storage needed
+    console.log('[MultiSessionChat] Context ID changed:', contextId);
+  }, []);
 
-  const handleContextIdChange = useCallback(
-    async (contextId: string) => {
-      if (activeSessionId) {
-        // Update the session with the new contextId
-        try {
-          const sessionManager = SessionManager.getInstance(config.apiUrl);
-          await sessionManager.updateSessionContextId(activeSessionId, contextId);
-        } catch (error) {
-          console.error('Error updating contextId:', error);
-        }
-      }
-    },
-    [activeSessionId, config.apiUrl]
-  );
+  // Update viewed session when activeSessionId changes
+  useEffect(() => {
+    if (activeSessionId) {
+      useChatStore.getState().setViewedSession(activeSessionId);
+    }
+  }, [activeSessionId]);
 
   // Show loading state while fetching agent card
   if (isLoadingAgent) {
@@ -304,17 +352,7 @@ export function MultiSessionChat({
     );
   }
 
-  // Show loading if no active session
-  if (!activeSessionId || !activeSession) {
-    return (
-      <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
-        <div className={styles.loadingContainer}>
-          <Spinner size="medium" />
-          <div>Loading chat sessions...</div>
-        </div>
-      </FluentProvider>
-    );
-  }
+  // Don't block rendering if no active session - let SessionList handle creating first session
 
   return (
     <FluentProvider theme={mode === 'dark' ? webDarkTheme : webLightTheme}>
@@ -368,35 +406,45 @@ export function MultiSessionChat({
         </div>
         <div className={styles.chatArea}>
           <ChatThemeProvider theme={mode}>
-            <ChatWidget
-              key={activeSessionId}
-              agentCard={agentCard}
-              apiKey={config.apiKey}
-              oboUserToken={config.oboUserToken}
-              sessionKey={`a2a-chat-session-${activeSessionId}`}
-              agentUrl={config.apiUrl}
-              metadata={{
-                ...chatWidgetProps.metadata,
-                sessionId: activeSessionId,
-              }}
-              theme={chatWidgetProps.theme}
-              userName={chatWidgetProps.userName}
-              placeholder={chatWidgetProps.placeholder}
-              welcomeMessage={chatWidgetProps.welcomeMessage}
-              allowFileUpload={false}
-              onToggleSidebar={toggleSidebar}
-              isSidebarCollapsed={isCollapsed}
-              mode={mode}
-              fluentTheme={mode}
-              onUnauthorized={config.onUnauthorized}
-              onContextIdChange={handleContextIdChange}
-              sessionName={activeSession?.name}
-              onRenameSession={async (newName: string) => {
-                if (activeSessionId) {
-                  await renameSession(activeSessionId, newName);
-                }
-              }}
-            />
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={mergeClasses(
+                  styles.sessionChat,
+                  session.id !== activeSessionId && styles.sessionChatHidden
+                )}
+              >
+                <ChatWidget
+                  agentCard={agentCard}
+                  apiKey={config.apiKey}
+                  oboUserToken={config.oboUserToken}
+                  sessionKey={`a2a-chat-session-${session.id}`}
+                  sessionId={session.id}
+                  agentUrl={config.apiUrl}
+                  metadata={{
+                    ...chatWidgetProps.metadata,
+                    sessionId: session.id,
+                  }}
+                  theme={chatWidgetProps.theme}
+                  userName={chatWidgetProps.userName}
+                  placeholder={chatWidgetProps.placeholder}
+                  welcomeMessage={chatWidgetProps.welcomeMessage}
+                  allowFileUpload={false}
+                  onToggleSidebar={toggleSidebar}
+                  isSidebarCollapsed={isCollapsed}
+                  mode={mode}
+                  fluentTheme={mode}
+                  onUnauthorized={config.onUnauthorized}
+                  onContextIdChange={handleContextIdChange}
+                  sessionName={session.name}
+                  onRenameSession={async (newName: string) => {
+                    await renameSession(session.id, newName);
+                  }}
+                  storageConfig={config.storageConfig}
+                  initialContextId={session.id || undefined}
+                />
+              </div>
+            ))}
           </ChatThemeProvider>
         </div>
       </div>

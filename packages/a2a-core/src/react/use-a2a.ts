@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { A2AClient } from '../client/a2a-client';
 import type { AgentCard, Part as A2APart } from '../types';
 import type { AuthConfig, AuthRequiredHandler, UnauthorizedHandler } from '../client/types';
 import { getAgentMessagesStorageKey, getAgentContextStorageKey } from '../utils/storage-keys';
+import { createHistoryStorage } from '../storage';
+import type { StorageConfig } from '../storage/history-storage';
+import { useChatStore } from './store/chatStore';
 
 export interface ChatMessage {
   id: string;
@@ -29,6 +32,8 @@ export interface UseA2AOptions {
   onUnauthorized?: UnauthorizedHandler;
   apiKey?: string;
   oboUserToken?: string;
+  storageConfig?: StorageConfig;
+  initialContextId?: string; // Initial context ID for resuming existing conversations
 }
 
 export interface UseA2AReturn {
@@ -62,11 +67,56 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
     isRequired: false,
   });
 
-  const clientRef = useRef<A2AClient>();
+  const clientRef = useRef<A2AClient | undefined>(undefined);
   const contextIdRef = useRef<string | undefined>(undefined);
   const authMessageIdRef = useRef<string | undefined>(undefined);
   const authTaskIdRef = useRef<string | undefined>(undefined);
   const currentAgentUrlRef = useRef<string | undefined>(undefined);
+
+  const initializeStorage = useChatStore((state) => state.initializeStorage);
+  const loadSessions = useChatStore((state) => state.loadSessions);
+
+  // Set initial context ID if provided (for resuming existing server sessions)
+  useEffect(() => {
+    if (options.initialContextId) {
+      console.log('[useA2A] Setting/updating contextId:', options.initialContextId);
+      contextIdRef.current = options.initialContextId;
+    }
+  }, [options.initialContextId]);
+
+  // Initialize storage when storageConfig is provided
+  useEffect(() => {
+    console.log('[useA2A] Storage config received:', {
+      hasConfig: !!options.storageConfig,
+      type: options.storageConfig?.type,
+      agentUrl: options.storageConfig?.agentUrl,
+    });
+
+    if (options.storageConfig) {
+      try {
+        // If agentUrl not in config, we'll set it during connect
+        // For now, just check if we can create storage
+        if (options.storageConfig.type === 'server' && !options.storageConfig.agentUrl) {
+          console.log(
+            '[useA2A] Skipping storage initialization - no agentUrl, will initialize during connect'
+          );
+          // Skip initialization until connect is called
+          return;
+        }
+
+        console.log('[useA2A] Initializing storage with config');
+        const storage = createHistoryStorage(options.storageConfig);
+        initializeStorage(storage);
+        console.log('[useA2A] Storage initialized successfully');
+
+        // Automatically load sessions after storage initialization
+        console.log('[useA2A] Loading sessions from server...');
+        loadSessions();
+      } catch (err) {
+        console.error('[useA2A] Failed to initialize storage:', err);
+      }
+    }
+  }, [options.storageConfig, initializeStorage, loadSessions]);
 
   // Helper functions for storage keys
   const getMessagesStorageKey = useCallback(() => {
@@ -91,6 +141,22 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
         // Get agent URL from card
         const agentUrl = typeof card === 'string' ? card : card.url;
         currentAgentUrlRef.current = options.agentUrl || agentUrl;
+
+        // Initialize storage if config provided and not yet initialized
+        if (options.storageConfig && options.storageConfig.type === 'server') {
+          const storageConfig = {
+            ...options.storageConfig,
+            agentUrl: options.storageConfig.agentUrl || agentUrl,
+          };
+
+          try {
+            const storage = createHistoryStorage(storageConfig);
+            initializeStorage(storage);
+          } catch (err) {
+            // Re-throw to prevent connection if storage init fails
+            throw new Error(`Failed to initialize storage: ${(err as Error).message}`);
+          }
+        }
 
         // Create A2A client
         const clientConfig: any = {
@@ -220,8 +286,10 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
       options.persistSession,
       options.sessionKey,
       options.agentUrl,
+      options.storageConfig,
       getMessagesStorageKey,
       getContextStorageKey,
+      initializeStorage,
     ]
   );
 
