@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useA2A } from '../use-a2a';
 import { useChatStore } from '../store/chatStore';
 import type { AgentCard } from '../../types';
