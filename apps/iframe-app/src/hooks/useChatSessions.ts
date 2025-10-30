@@ -209,17 +209,19 @@ export function useChatSessions() {
       }
 
       // If the pending session had a custom name, update it on the server
+      // Migration is guaranteed to be complete when lastMigration is set
       if (pendingSession?.name && pendingSession.name !== 'New Chat') {
         console.log(
           `[useChatSessions] Pending session had custom name "${pendingSession.name}", updating on server`
         );
-        // Use setTimeout to ensure migration completes first
-        setTimeout(() => {
-          const chatStoreRenameSession = useChatStore.getState().renameSession;
-          chatStoreRenameSession(lastMigration.to, pendingSession.name).catch((error) => {
+        (async () => {
+          try {
+            const chatStoreRenameSession = useChatStore.getState().renameSession;
+            await chatStoreRenameSession(lastMigration.to, pendingSession.name);
+          } catch (error) {
             console.error('[useChatSessions] Error renaming migrated session on server:', error);
-          });
-        }, 100);
+          }
+        })();
       }
 
       // Clear the migration state to prevent re-triggering

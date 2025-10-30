@@ -828,11 +828,6 @@ export const useChatStore = create<ChatState>()(
 
       const state = get();
 
-      // Set migration tracking for UI updates with context ID as suggested name
-      set({
-        lastMigration: { from: pendingSessionId, to: realContextId, suggestedName: realContextId },
-      });
-
       // 1. Migrate active connection
       const client = state.activeConnections.get(pendingSessionId);
       if (client) {
@@ -914,6 +909,13 @@ export const useChatStore = create<ChatState>()(
       // We trust that the session was created and don't need to immediately query the server
       // The UI will handle updating the session list, and normal polling will eventually sync it
       console.log(`[chatStore] Successfully migrated pending session to ${realContextId}`);
+
+      // 9. Set migration tracking for UI updates AFTER all migration work is complete
+      // This ensures any UI code reacting to lastMigration can safely perform operations
+      // on the migrated session without race conditions
+      set({
+        lastMigration: { from: pendingSessionId, to: realContextId, suggestedName: realContextId },
+      });
     },
   }))
 );
