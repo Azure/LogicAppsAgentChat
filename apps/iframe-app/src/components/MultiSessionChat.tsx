@@ -164,7 +164,6 @@ export function MultiSessionChat({
   const {
     sessions,
     activeSessionId,
-    activeSession,
     createNewSession,
     switchSession,
     renameSession,

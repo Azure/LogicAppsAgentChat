@@ -596,12 +596,12 @@ export const SessionList = memo(
                       }
                     : {}
                 }
-                onMouseEnter={(e) => {
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                   if (themeColors) {
                     e.currentTarget.style.backgroundColor = themeColors.primary + 'dd';
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                   if (themeColors) {
                     e.currentTarget.style.backgroundColor = themeColors.primary;
                   }
@@ -651,12 +651,12 @@ export const SessionList = memo(
                   border: 'none',
                 }),
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (themeColors) {
                   e.currentTarget.style.backgroundColor = themeColors.primary + 'dd';
                 }
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (themeColors) {
                   e.currentTarget.style.backgroundColor = themeColors.primary;
                 }
