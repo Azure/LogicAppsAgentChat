@@ -103,12 +103,16 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         if (options.auth) {
           clientConfig.auth = options.auth;
-        } else if (options.apiKey) {
-          clientConfig.apiKey = options.apiKey;
-        } else if (options.oboUserToken) {
-          clientConfig.oboUserToken = options.oboUserToken;
         } else {
           clientConfig.auth = { type: 'cookie' };
+        }
+
+        if (options.apiKey) {
+          clientConfig.apiKey = options.apiKey;
+        }
+
+        if (options.oboUserToken) {
+          clientConfig.oboUserToken = options.oboUserToken;
         }
 
         // Create a custom auth handler that adds auth messages to the UI
