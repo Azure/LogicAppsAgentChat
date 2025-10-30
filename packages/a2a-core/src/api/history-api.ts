@@ -71,13 +71,6 @@ class HistoryApiClient {
       params,
     };
 
-    console.log('[HistoryApiClient] Making request:', {
-      url: this.config.agentUrl,
-      method,
-      params,
-      requestId: request.id,
-    });
-
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -86,13 +79,8 @@ class HistoryApiClient {
     if (this.config.getAuthToken) {
       const token = await this.config.getAuthToken();
       if (token) {
-        console.log('[HistoryApiClient] Auth token present, using Bearer auth');
         headers['Authorization'] = `Bearer ${token}`;
-      } else {
-        console.log('[HistoryApiClient] Token empty, relying on cookie authentication');
       }
-    } else {
-      console.log('[HistoryApiClient] No auth token provider, relying on cookie authentication');
     }
 
     const controller = new AbortController();
@@ -101,7 +89,6 @@ class HistoryApiClient {
     }, this.config.timeout ?? 30000);
 
     try {
-      console.log('[HistoryApiClient] Sending fetch request...');
       const response = await fetch(this.config.agentUrl, {
         method: 'POST',
         headers,
@@ -112,18 +99,11 @@ class HistoryApiClient {
 
       clearTimeout(timeoutId);
 
-      console.log('[HistoryApiClient] Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-      });
-
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('[HistoryApiClient] Response data:', JSON.stringify(data, null, 2));
 
       // Check for JSON-RPC error
       if (data.error) {
@@ -153,21 +133,8 @@ class HistoryApiClient {
    */
   async listContexts(params?: ListContextsParams): Promise<ServerContext[]> {
     const response = await this.makeRequest('contexts/list', params);
-
-    try {
-      const validated = ListContextsResponseSchema.parse(response);
-      return validated.result;
-    } catch (error) {
-      console.error('[HistoryApiClient] Schema validation failed for contexts/list');
-      console.error('[HistoryApiClient] Validation error:', error);
-      if (error instanceof Error && 'issues' in error) {
-        console.error(
-          '[HistoryApiClient] Zod issues:',
-          JSON.stringify((error as any).issues, null, 2)
-        );
-      }
-      throw error;
-    }
+    const validated = ListContextsResponseSchema.parse(response);
+    return validated.result;
   }
 
   /**
