@@ -152,9 +152,7 @@ export function MultiSessionChat({
       }
     }
 
-    if (!cancelled) {
-      initializeStorage();
-    }
+    initializeStorage();
 
     return () => {
       cancelled = true;
