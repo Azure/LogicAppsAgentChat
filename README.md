@@ -4,36 +4,34 @@
 [![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
 [![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
 
-A framework-agnostic chat library with wrappers for React. Built on the A2A Browser SDK for seamless agent integration with real-time streaming support.
+A TypeScript SDK for building chat interfaces that connect to A2A (Agent-to-Agent) protocol agents. Available as both a library and an embeddable iframe widget.
+
+## 📦 What's Inside
+
+This monorepo contains:
+
+- **[@microsoft/a2achat-core](./packages/a2a-core)** - Core TypeScript SDK with framework-agnostic APIs and React components
+- **[Iframe App](./apps/iframe-app)** - Embeddable iframe widget for easy integration
+- **[Documentation Site](./apps/docs-site)** - Comprehensive Docusaurus documentation
 
 ## Structure
 
 ```
 ├── packages/
-│   ├── a2a-core/          # Framework-agnostic core library
-│   └── a2a-react/         # React wrapper
+│   └── a2a-core/          # Core SDK with multiple entry points
+│       ├── src/
+│       │   ├── index.ts           # Main entry (core APIs)
+│       │   ├── react/index.ts     # React entry (components & hooks)
+│       │   └── chat/index.ts      # Chat entry (event-driven interface)
+│       └── README.md
 ├── apps/
-│   └── iframe-app/        # Iframe application
-├── turbo.json             # Turbo configuration
-├── pnpm-workspace.yaml    # PNPM workspace configuration
-└── package.json           # Root package.json
+│   ├── iframe-app/        # Embeddable iframe widget
+│   │   ├── src/
+│   │   ├── docs/          # Iframe-specific documentation
+│   │   └── README.md
+│   └── docs-site/         # Documentation website
+└── docs/                  # Architecture & design docs
 ```
-
-## Packages
-
-### [@a2achat/core](./packages/a2a-core)
-
-Framework-agnostic core library that provides the base chat functionality.
-
-### [@a2achat/react](./packages/a2a-react)
-
-React wrapper around the core library.
-
-## Applications
-
-### [Iframe App](./apps/iframe-app)
-
-Standalone iframe application for embedding.
 
 ## Development
 
@@ -98,88 +96,206 @@ pnpm version-packages
 pnpm release
 ```
 
-## Recent Updates
+## 📖 Examples
 
-### Streaming Support Fixed
+### Server-Side History with Multi-Session
 
-- Fixed React re-rendering issues for real-time message streaming
-- Improved component key management for proper updates
-- Enhanced useA2ANative hook to handle streaming artifact updates
+```tsx
+import { ChatWidget } from '@microsoft/a2achat-core/react';
 
-### CI/CD Improvements
+<ChatWidget
+  agentCard="https://api.example.com"
+  auth={{ type: 'bearer', token: 'token' }}
+  storageConfig={{
+    type: 'server',
+    agentUrl: 'https://api.example.com',
+    getAuthToken: () => getToken(),
+  }}
+  // Resume existing conversation
+  initialContextId="conv-abc123"
+  // Track context changes
+  onContextIdChange={(contextId) => {
+    console.log('Context changed:', contextId);
+    // Optionally save to URL or localStorage
+    history.pushState({}, '', `?contextId=${contextId}`);
+  }}
+/>;
+```
 
-- Updated all GitHub Actions workflows to use pnpm 10.12.4
-- Fixed deprecated action versions (upgraded to v3/v4)
-- Added proper permissions for PR comments
-- Separated PR checks from main CI workflow
-- Disabled deployment steps (commented out for future use)
+### Custom UI with useA2A Hook
 
-### Code Quality
+```tsx
+import { useA2A } from '@microsoft/a2achat-core/react';
+import { useState } from 'react';
 
-- Integrated Prettier for consistent code formatting
-- Added Husky pre-commit hooks with lint-staged
-- Fixed all TypeScript errors across the monorepo
-- Adjusted test coverage thresholds to realistic values (70-95%)
-- Added proper vite-env.d.ts files for Vite projects
+function CustomChatUI() {
+  const [input, setInput] = useState('');
 
-### Development Experience
+  const { messages, isLoading, isConnected, sendMessage, clearMessages, authState } = useA2A({
+    agentCard: 'https://api.example.com',
+    auth: { type: 'bearer', token: 'token' },
+    storageConfig: { type: 'indexeddb' },
+  });
 
-- Standardized pnpm installation across all workflows
-- Added frozen-lockfile enforcement in CI
-- Improved error messages and debugging
-- Better monorepo workspace management
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    await sendMessage(input);
+    setInput('');
+  };
 
-## Previous Library (@microsoft/a2achat)
+  return (
+    <div>
+      <div>{isConnected ? 'Connected' : 'Disconnected'}</div>
 
-This monorepo is migrated from the previous single-package library. The original functionality has been preserved and will be gradually migrated to the new structure.
+      {authState.isRequired && <div>Authentication required...</div>}
 
-## Features
+      <div>
+        {messages.map((msg) => (
+          <div key={msg.id}>
+            <strong>{msg.sender}:</strong> {msg.content}
+          </div>
+        ))}
+      </div>
 
-- 🚀 **Small bundle size**: ~45KB limit with React as peer dependency
+      {isLoading && <div>Loading...</div>}
+
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+      />
+      <button onClick={handleSend}>Send</button>
+      <button onClick={clearMessages}>Clear</button>
+    </div>
+  );
+}
+```
+
+### Handling On-Behalf-Of (OBO) Authentication
+
+```tsx
+import { ChatWidget } from '@microsoft/a2achat-core/react';
+
+<ChatWidget
+  agentCard="https://api.example.com"
+  auth={{
+    type: 'bearer',
+    token: 'your-api-token',
+  }}
+  // Handle authentication events
+  onUnauthorized={async (event) => {
+    console.log('Unauthorized:', event.url, event.statusText);
+
+    // Refresh token
+    try {
+      const response = await fetch('/.auth/refresh', {
+        credentials: 'same-origin',
+      });
+
+      if (response.ok) {
+        // Token refreshed, retry will happen automatically
+        console.log('Token refreshed');
+      } else {
+        // Redirect to login
+        window.location.href = '/.auth/login/aad';
+      }
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+    }
+  }}
+/>;
+```
+
+### Low-Level Client with Streaming
+
+```typescript
+import { A2AClient } from '@microsoft/a2achat-core';
+
+const client = new A2AClient({
+  agentCard: 'https://api.example.com',
+  auth: { type: 'bearer', token: 'token' },
+  onAuthRequired: (event) => {
+    console.log('Auth required:', event.authParts);
+    // Open consent URLs in popup
+    event.authParts.forEach((part) => {
+      if (part.url) {
+        window.open(part.url, '_blank', 'width=600,height=700');
+      }
+    });
+  },
+});
+
+// Stream messages
+const stream = await client.message.stream({
+  message: {
+    role: 'user',
+    parts: [{ kind: 'text', text: 'Hello, how are you?' }],
+  },
+});
+
+for await (const chunk of stream) {
+  if (chunk.kind === 'text') {
+    console.log('Text:', chunk.text);
+  } else if (chunk.kind === 'data') {
+    console.log('Data:', chunk.data);
+  }
+}
+```
+
+## ✨ Features
+
+### Core Features
+
+- 🚀 **Small bundle size**: ~45KB with React as peer dependency
 - 📦 **Dual distribution**: NPM package + iframe embed
 - 🎨 **Fully customizable**: CSS variables for runtime theming
+- ⚛️ **React 19+ compatible**: Modern React applications
+- ✅ **TypeScript**: Full type safety and IntelliSense
+- 🧪 **Well tested**: Comprehensive test suite with Vitest
+
+### Chat Features
+
 - 📝 **Markdown support**: Rich text formatting with syntax highlighting
 - 📎 **File uploads**: Built-in file attachment support with progress tracking
 - 🏢 **Company branding**: Add your logo to the chat interface
-- ⚛️ **React 18+ compatible**: Works seamlessly with modern React applications
-- 🤖 **A2A Browser SDK**: Built on the official A2A Browser SDK
-- 🔐 **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth
-- 🌊 **Real-time Streaming**: Server-Sent Events for real-time agent responses
-- 🔍 **Agent Discovery**: Automatic agent card resolution from domain names
-- ✅ **TypeScript**: Full type safety and IntelliSense support
-- 🧪 **Well tested**: Comprehensive test suite with Vitest
-- 🔄 **CI/CD**: Automated testing and builds with GitHub Actions
+- 💬 **Multi-session**: Multiple concurrent conversations with sidebar UI
+- 🔐 **Authentication**: Bearer, API Key, OAuth2, Cookie, and custom handlers
+- 🌊 **Real-time streaming**: Server-Sent Events (SSE) for real-time agent responses
+- 💾 **Chat history**: Client-side (IndexedDB) or server-side storage
+- 🔍 **Agent discovery**: Automatic agent card resolution
 
-## Installation
+### Integration
+
+- 🖼️ **Iframe embeddable**: Easy no-code integration
+- 📨 **PostMessage API**: Cross-origin communication
+- 🪟 **Azure Portal**: Frame Blade protocol support
+- 🔌 **Plugin system**: Extensible with custom analytics, logging, and more
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-# Using npm
-npm install @microsoft/a2achat
-
-# Using pnpm
-pnpm add @microsoft/a2achat
-
-# Using yarn
-yarn add @microsoft/a2achat
+npm install @microsoft/a2achat-core
+# or
+pnpm add @microsoft/a2achat-core
+# or
+yarn add @microsoft/a2achat-core
 ```
 
-## Usage
-
-### As NPM Package
+### Library Usage (React)
 
 ```tsx
-import React from 'react';
-import { ChatWindow } from '@microsoft/a2achat';
-import '@microsoft/a2achat/styles.css';
+import { ChatWidget } from '@microsoft/a2achat-core/react';
+import '@microsoft/a2achat-core/react/styles.css';
 
 function App() {
   return (
-    <ChatWindow
-      agentCard="https://my-a2a-agent.example.com" // Agent domain
-      auth={{
-        type: 'bearer',
-        token: 'your-api-token',
-      }}
+    <ChatWidget
+      agentCard="https://my-agent.example.com"
+      auth={{ type: 'bearer', token: 'your-token' }}
+      welcomeMessage="Hello! How can I help you today?"
+      allowFileUpload={true}
       theme={{
         colors: {
           primary: '#0066cc',
@@ -192,10 +308,6 @@ function App() {
           logoPosition: 'header',
         },
       }}
-      welcomeMessage="Hello! How can I help you today?"
-      allowFileUpload={true}
-      maxFileSize={10 * 1024 * 1024} // 10MB
-      allowedFileTypes={['image/*', 'application/pdf', '.doc', '.docx']}
       onMessage={(message) => console.log('New message:', message)}
       onConnectionChange={(connected) => console.log('Connected:', connected)}
     />
@@ -203,31 +315,160 @@ function App() {
 }
 ```
 
-#### With Different Authentication Methods
+### Iframe Usage
+
+```html
+<iframe
+  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com"
+  width="400"
+  height="600"
+  style="border: none;"
+></iframe>
+```
+
+## 📚 Documentation
+
+### Library Usage
+
+The `@microsoft/a2achat-core` package provides three entry points for different use cases:
+
+#### 1. React Components (`/react`)
+
+Full-featured React components with built-in UI and state management:
 
 ```tsx
-import { ChatWindow, AuthConfig } from '@microsoft/a2achat';
+import { ChatWidget, ChatWindow } from '@microsoft/a2achat-core/react';
+import '@microsoft/a2achat-core/react/styles.css';
 
-// Bearer token authentication
+// Single-session chat
+<ChatWidget
+  agentCard="https://api.example.com"
+  auth={{ type: 'bearer', token: 'token' }}
+  welcomeMessage="How can I help?"
+  allowFileUpload={true}
+/>
+
+// Multi-session chat with server-side history
+<ChatWidget
+  agentCard="https://api.example.com"
+  auth={{ type: 'bearer', token: 'token' }}
+  storageConfig={{
+    type: 'server',
+    agentUrl: 'https://api.example.com',
+  }}
+  initialContextId="session-123"
+/>
+```
+
+#### 2. React Hooks (`/react`)
+
+For custom UI implementations:
+
+```tsx
+import { useA2A } from '@microsoft/a2achat-core/react';
+
+function CustomChat() {
+  const { messages, isLoading, isConnected, sendMessage, authState } = useA2A({
+    agentCard: 'https://api.example.com',
+    auth: { type: 'bearer', token: 'token' },
+  });
+
+  return (
+    <div>
+      {messages.map((msg) => (
+        <div key={msg.id}>{msg.content}</div>
+      ))}
+      <input
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') sendMessage(e.target.value);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+#### 3. Core Client API (main entry)
+
+Framework-agnostic for any JavaScript environment:
+
+```typescript
+import { A2AClient } from '@microsoft/a2achat-core';
+
+const client = new A2AClient({
+  agentCard: 'https://api.example.com',
+  auth: { type: 'bearer', token: 'token' },
+});
+
+// Send a message
+const task = await client.message.send({
+  message: {
+    role: 'user',
+    parts: [{ kind: 'text', text: 'Hello' }],
+  },
+});
+
+// Stream responses
+for await (const chunk of await client.message.stream({
+  message: {
+    role: 'user',
+    parts: [{ kind: 'text', text: 'Hello' }],
+  },
+})) {
+  console.log(chunk);
+}
+```
+
+#### 4. Event-Driven Chat Interface (`/chat`)
+
+For event-based architectures:
+
+```typescript
+import { ChatInterface } from '@microsoft/a2achat-core/chat';
+
+const chat = new ChatInterface({
+  agentCard: 'https://api.example.com',
+  auth: { type: 'bearer', token: 'token' },
+});
+
+chat.on('message-sent', (msg) => console.log('Sent:', msg));
+chat.on('message-received', (msg) => console.log('Received:', msg));
+chat.on('error', (err) => console.error('Error:', err));
+
+await chat.sendMessage('Hello, agent!');
+```
+
+### Authentication Methods
+
+```tsx
+import { AuthConfig } from '@microsoft/a2achat-core';
+
+// Bearer token
 const bearerAuth: AuthConfig = {
   type: 'bearer',
   token: 'your-bearer-token',
 };
 
-// API Key authentication
+// API Key
 const apiKeyAuth: AuthConfig = {
-  type: 'apiKey',
+  type: 'api-key',
   key: 'your-api-key',
-  header: 'X-API-Key', // optional, defaults to 'X-API-Key'
+  header: 'X-API-Key',
 };
 
-// OAuth2 authentication
+// OAuth2
 const oauth2Auth: AuthConfig = {
   type: 'oauth2',
   accessToken: 'your-access-token',
+  tokenType: 'Bearer',
 };
 
-// Custom authentication
+// Cookie-based (for same-origin)
+const cookieAuth: AuthConfig = {
+  type: 'cookie',
+};
+
+// Custom handler
 const customAuth: AuthConfig = {
   type: 'custom',
   handler: async (request) => {
@@ -237,212 +478,290 @@ const customAuth: AuthConfig = {
   },
 };
 
-function App() {
-  return (
-    <ChatWindow
-      agentCard="https://my-a2a-agent.example.com"
-      auth={bearerAuth} // Use any of the auth configurations above
-    />
-  );
-}
-```
-
-#### Using Hardcoded Agent Card
-
-```tsx
-import React from 'react';
-import { ChatWindow } from '@microsoft/a2achat';
-import type { AgentCard } from '@microsoft/a2achat';
-
-const agentCard: AgentCard = {
-  name: 'My Assistant',
-  version: '1.0.0',
-  description: 'A helpful AI assistant',
-  url: 'https://agent.example.com/rpc',
-  capabilities: {
-    streaming: true,
-    pushNotifications: false,
-    stateTransitionHistory: true,
-  },
-  defaultInputModes: ['text'],
-  defaultOutputModes: ['text'],
+// No authentication
+const noAuth: AuthConfig = {
+  type: 'none',
 };
-
-function App() {
-  return (
-    <ChatWindow
-      agentCard={agentCard} // Pass agent card object directly
-      theme={{
-        colors: {
-          primary: '#0066cc',
-        },
-      }}
-    />
-  );
-}
 ```
 
-### As iFrame
+### Iframe Widget Usage
+
+The iframe app provides an easy way to embed chat without npm dependencies. See [apps/iframe-app](./apps/iframe-app) for full documentation.
+
+#### Basic Embedding
 
 ```html
+<!-- Via URL parameters -->
 <iframe
-  src="https://cdn.example.com/chat-widget/index.html"
-  data-agent-card="https://my-a2a-agent.example.com/agent-card.json"
-  data-theme-primary="#0066cc"
-  data-theme-background="#f5f5f5"
-  data-logo-url="https://example.com/logo.png"
-  data-logo-size="medium"
-  data-logo-position="header"
-  data-welcome-message="Hello! How can I help you today?"
+  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com&theme=blue&multiSession=false"
+  width="400"
+  height="600"
+  style="border: none;"
+></iframe>
+
+<!-- Via data attributes -->
+<iframe
+  src="https://your-domain.com/iframe.html"
+  data-agent-card="https://api.example.com"
+  data-theme="blue"
+  data-user-name="John Doe"
+  data-welcome-message="Hello! How can I help?"
   data-allow-file-upload="true"
   data-max-file-size="10485760"
-  style="width: 400px; height: 600px; border: none;"
-/>
+  data-multi-session="false"
+  width="400"
+  height="600"
+  style="border: none;"
+></iframe>
 ```
 
-#### iFrame with Hardcoded Agent Card
+#### Configuration Options (URL Parameters or Data Attributes)
 
-For hardcoded agent card configurations, use postMessage:
+| Parameter/Attribute | Type    | Description                                   | Default   |
+| ------------------- | ------- | --------------------------------------------- | --------- |
+| `agentCard`         | string  | Agent card URL (required)                     | -         |
+| `userId`            | string  | User identifier                               | -         |
+| `userName`          | string  | Display name                                  | -         |
+| `theme`             | string  | Preset theme (blue, green, red, purple, etc.) | 'default' |
+| `mode`              | string  | Light or dark mode                            | 'light'   |
+| `multiSession`      | boolean | Enable multi-session mode                     | false     |
+| `singleSession`     | boolean | Force single-session mode                     | true      |
+| `contextId`         | string  | Pre-populate session context ID               | -         |
+| `allowFileUpload`   | boolean | Enable file uploads                           | true      |
+| `maxFileSize`       | number  | Max file size in bytes                        | 10MB      |
+| `allowedFileTypes`  | string  | Comma-separated MIME types                    | -         |
+| `placeholder`       | string  | Input placeholder text                        | -         |
+| `welcomeMessage`    | string  | Initial bot message                           | -         |
+| `apiKey`            | string  | API key for authentication                    | -         |
+| `oboUserToken`      | string  | On-behalf-of user token                       | -         |
+| `logoUrl`           | string  | Branding logo URL                             | -         |
+| `logoSize`          | string  | Logo size (small, medium, large)              | 'medium'  |
+| `logoPosition`      | string  | Logo position (header, footer)                | 'header'  |
+| `expectPostMessage` | boolean | Wait for postMessage configuration            | false     |
+| `inPortal`          | boolean | Azure Portal context mode                     | false     |
+| `trustedAuthority`  | string  | Portal's origin for auth                      | -         |
+| `allowedOrigins`    | string  | Comma-separated allowed postMessage origins   | -         |
+
+#### Multi-Session Mode
+
+Enable multiple concurrent conversations with a sidebar UI:
 
 ```html
 <iframe
-  id="chat-iframe"
-  src="https://cdn.example.com/chat-widget/index.html?expectPostMessage=true"
-  style="width: 400px; height: 600px; border: none;"
-/>
+  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com&multiSession=true"
+  width="600"
+  height="700"
+  style="border: none;"
+></iframe>
+```
+
+Features:
+
+- Multiple concurrent conversations
+- Session persistence in localStorage
+- Session renaming and deletion
+- Last message preview
+- Activity timestamps
+
+#### PostMessage Protocol
+
+For dynamic configuration or parent-iframe communication:
+
+```html
+<iframe id="chat" src="https://your-domain.com/iframe.html?expectPostMessage=true"></iframe>
 
 <script>
-  const agentCard = {
-    name: 'My Assistant',
-    version: '1.0.0',
-    url: 'https://agent.example.com/rpc',
-    capabilities: { streaming: true },
-  };
+  const iframe = document.getElementById('chat');
 
-  // Wait for iframe to be ready
-  window.addEventListener('message', function (event) {
+  // Listen for iframe ready
+  window.addEventListener('message', (event) => {
     if (event.data?.type === 'IFRAME_READY') {
-      document.getElementById('chat-iframe').contentWindow.postMessage(
+      // Send configuration
+      iframe.contentWindow.postMessage(
         {
           type: 'SET_AGENT_CARD',
-          agentCard: agentCard,
+          agentCard: {
+            name: 'My Agent',
+            url: 'https://api.example.com/rpc',
+            capabilities: { streaming: true },
+          },
         },
         '*'
       );
+    }
+
+    if (event.data?.type === 'AGENT_CARD_RECEIVED') {
+      console.log('Configuration received by iframe');
     }
   });
 </script>
 ```
 
-#### iFrame Data Attributes
+#### Azure Portal Integration (Frame Blade)
 
-All configuration options can be passed via `data-*` attributes:
+For Azure Portal blade integration:
 
-- `data-agent-card`: Agent card URL (required unless using postMessage)
-- `data-theme-*`: Theme customization (e.g., `data-theme-primary`, `data-theme-background`)
-- `data-logo-url`: Company logo URL
-- `data-logo-size`: Logo size (small, medium, large)
-- `data-logo-position`: Logo position (header, footer)
-- `data-welcome-message`: Initial welcome message
-- `data-allow-file-upload`: Enable file uploads (true/false)
-- `data-max-file-size`: Maximum file size in bytes
-- `data-placeholder`: Input placeholder text
+```html
+<iframe
+  src="https://your-domain.com/iframe.html?inPortal=true&trustedAuthority=https://portal.azure.com"
+  width="100%"
+  height="100%"
+></iframe>
+```
 
-## Development
+The iframe supports the Frame Blade protocol:
+
+- `ready` - Iframe initialization
+- `initializationcomplete` - Full setup done
+- `revealcontent` - Ready to display
+- `themeChanged` - Handle portal theme changes
+- `authToken` - Receive authentication tokens
+- `chatHistory` - Import chat history
+
+#### Security
+
+The iframe validates postMessage origins against:
+
+1. Explicitly configured `allowedOrigins`
+2. Document referrer origin
+3. Current iframe origin
+4. Development origins (localhost)
+
+Wildcard subdomain matching supported: `*.example.com`
+
+```html
+<iframe
+  src="https://your-domain.com/iframe.html?allowedOrigins=https://app.example.com,https://*.example.com"
+></iframe>
+```
+
+## 🛠️ Development
 
 ### Prerequisites
 
-- Node.js 18+ or 20+
-- pnpm 10.12.4+
+- Node.js >= 18
+- pnpm >= 10.12.4
 
 ### Getting Started
 
 ```bash
+# Clone the repository
+git clone https://github.com/your-org/a2achat.git
+cd a2achat
+
 # Install dependencies
 pnpm install
 
-# Start development server
-pnpm run dev
+# Build all packages
+pnpm build
 
-# Run tests
-pnpm test
-
-# Run tests with UI
-pnpm run test:ui
-
-# Run tests with coverage
-pnpm run test:coverage
-
-# Type checking
-pnpm run typecheck
-
-# Linting
-pnpm run lint
-
-# Format code
-pnpm run format
-
-# Build library
-pnpm run build:lib
-
-# Build iframe version
-pnpm run build:iframe
-
-# Build demo site
-pnpm run build:demo
-
-# Build all distributions
-pnpm run build
+# Start development mode for all packages
+pnpm dev
 ```
 
-### CI/CD
+### Monorepo Commands
 
-This project uses GitHub Actions for continuous integration:
+```bash
+# Run commands for all packages
+pnpm test              # Run all tests
+pnpm typecheck         # Type check all packages
+pnpm lint              # Lint all packages
+pnpm format            # Format all files
+pnpm build             # Build all packages
 
-#### Pull Request Checks
+# Run commands for specific package
+pnpm --filter @microsoft/a2achat-core test
+pnpm --filter @microsoft/a2achat-core build
+pnpm --filter @a2achat/iframe-app dev
 
-On every pull request:
+# Add dependencies to specific package
+pnpm --filter @microsoft/a2achat-core add lodash
+pnpm --filter @microsoft/a2achat-core add -D @types/lodash
+```
 
-- Runs TypeScript type checking
-- Runs Prettier format checking
-- Runs ESLint for code quality
-- Runs full test suite with coverage
-- Builds all distributions
-- Posts results as PR comments
+### Testing
 
-#### Main Branch CI
+```bash
+# Run all tests
+pnpm test
 
-On pushes to `main`:
+# Run tests for specific package
+pnpm --filter @microsoft/a2achat-core test
 
-- Runs all quality checks
-- Builds all packages
-- Tests against Node.js 18.x and 20.x
-- Security scanning with CodeQL
-- Dependency vulnerability checks
+# Run tests in watch mode
+pnpm --filter @microsoft/a2achat-core test:watch
 
-#### Pre-commit Hooks
+# Run tests with UI
+pnpm --filter @microsoft/a2achat-core test:ui
 
-Automatically formats staged files using:
+# Run tests with coverage
+pnpm test:coverage
+```
 
-- Prettier for code formatting
-- Runs via Husky and lint-staged
+### Publishing
 
-## Configuration
+```bash
+# Create a changeset (document changes)
+pnpm changeset
 
-### Theme Options
+# Version packages based on changesets
+pnpm version-packages
+
+# Build and publish to npm
+pnpm release
+```
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed development guidelines.
+
+## ⚙️ Configuration
+
+### ChatWidget / ChatWindow Props
+
+| Prop                 | Type                                 | Description                                   | Default |
+| -------------------- | ------------------------------------ | --------------------------------------------- | ------- |
+| `agentCard`          | `string \| AgentCard`                | Agent URL or agent card object (required)     | -       |
+| `auth`               | `AuthConfig`                         | Authentication configuration                  | -       |
+| `theme`              | `Partial<ChatTheme>`                 | Custom theme configuration                    | -       |
+| `userId`             | `string`                             | User identifier                               | -       |
+| `userName`           | `string`                             | Display name                                  | -       |
+| `metadata`           | `Record<string, any>`                | Additional metadata                           | -       |
+| `placeholder`        | `string`                             | Input placeholder text                        | -       |
+| `welcomeMessage`     | `string`                             | Initial welcome message                       | -       |
+| `allowFileUpload`    | `boolean`                            | Enable file uploads                           | true    |
+| `maxFileSize`        | `number`                             | Max file size in bytes                        | 10MB    |
+| `allowedFileTypes`   | `string[]`                           | Allowed file types (MIME types or extensions) | -       |
+| `sessionKey`         | `string`                             | Unique key for session storage                | -       |
+| `sessionId`          | `string`                             | Explicit session identifier                   | -       |
+| `sessionName`        | `string`                             | Display name for session                      | -       |
+| `agentUrl`           | `string`                             | Override agent endpoint URL                   | -       |
+| `storageConfig`      | `StorageConfig`                      | Chat history storage configuration            | -       |
+| `initialContextId`   | `string`                             | Resume existing conversation context          | -       |
+| `onMessage`          | `(message: Message) => void`         | Message event callback                        | -       |
+| `onConnectionChange` | `(connected: boolean) => void`       | Connection status callback                    | -       |
+| `onToggleSidebar`    | `() => void`                         | Sidebar toggle callback (multi-session)       | -       |
+| `onContextIdChange`  | `(contextId: string) => void`        | Context ID change callback                    | -       |
+| `onRenameSession`    | `(newName: string) => Promise<void>` | Session rename callback                       | -       |
+| `onUnauthorized`     | `(event: UnauthorizedEvent) => void` | 401 error handler for re-authentication       | -       |
+
+### Theme Configuration
 
 ```typescript
 interface ChatTheme {
   colors: {
-    primary: string;
-    primaryText: string;
-    background: string;
-    surface: string;
-    text: string;
-    textSecondary: string;
-    border: string;
-    error: string;
-    success: string;
+    primary: string; // Primary accent color
+    primaryText: string; // Text on primary color
+    background: string; // Main background
+    surface: string; // Card/container background
+    text: string; // Primary text
+    textSecondary: string; // Secondary text
+    border: string; // Border color
+    error: string; // Error states
+    success: string; // Success states
+    backgroundDark?: string; // Dark mode background
+    surfaceDark?: string; // Dark mode surface
+    textDark?: string; // Dark mode text
+    textSecondaryDark?: string; // Dark mode secondary text
+    borderDark?: string; // Dark mode border
   };
   typography: {
     fontFamily: string;
@@ -453,7 +772,7 @@ interface ChatTheme {
     };
   };
   spacing: {
-    unit: number;
+    unit: number; // Base spacing unit (in pixels)
   };
   borderRadius: {
     small: string;
@@ -464,151 +783,206 @@ interface ChatTheme {
     logoUrl?: string;
     logoSize?: 'small' | 'medium' | 'large';
     logoPosition?: 'header' | 'footer';
+    name?: string;
   };
 }
+
+// Usage
+import { createCustomTheme, defaultLightTheme } from '@microsoft/a2achat-core/react';
+
+const myTheme = createCustomTheme({
+  primaryColor: '#0066cc',
+  backgroundColor: '#ffffff',
+});
 ```
 
-### Props
+### Storage Configuration
 
-| Prop                 | Type                           | Description                                  |
-| -------------------- | ------------------------------ | -------------------------------------------- |
-| `agentCard`          | `string \| AgentCard`          | Agent domain or agent card object (required) |
-| `auth`               | `AuthConfig`                   | Authentication configuration                 |
-| `theme`              | `Partial<ChatTheme>`           | Custom theme configuration                   |
-| `userId`             | `string`                       | User identifier                              |
-| `metadata`           | `Record<string, any>`          | Additional metadata                          |
-| `placeholder`        | `string`                       | Input placeholder text                       |
-| `welcomeMessage`     | `string`                       | Initial welcome message                      |
-| `allowFileUpload`    | `boolean`                      | Enable file uploads                          |
-| `maxFileSize`        | `number`                       | Max file size in bytes                       |
-| `allowedFileTypes`   | `string[]`                     | Allowed file types                           |
-| `onMessage`          | `(message: Message) => void`   | Message callback                             |
-| `onConnectionChange` | `(connected: boolean) => void` | Connection status callback                   |
+```typescript
+type StorageConfig =
+  | { type: 'indexeddb' }  // Client-side IndexedDB storage
+  | {
+      type: 'server';       // Server-side storage
+      agentUrl: string;
+      getAuthToken?: () => string | Promise<string>;
+    };
 
-## A2A Browser SDK Integration
-
-This library is built on the official [A2A Browser SDK](https://www.npmjs.com/package/a2a-browser-sdk), providing:
-
-- **Agent Discovery**: Automatic agent card resolution from domain names
-- **Authentication**: Built-in support for Bearer, API Key, OAuth2, and custom auth methods
-- **Real-time Streaming**: Server-Sent Events for instant agent responses
-- **Task Management**: Automatic task and context management
-- **Error Handling**: Comprehensive error handling and recovery
-
-### Using with A2A Agents
-
-```tsx
-// Using agent domain (recommended)
-<ChatWindow
-  agentCard="https://my-a2a-agent.example.com"
-  auth={{
-    type: 'bearer',
-    token: 'your-api-token'
+// Usage
+<ChatWidget
+  agentCard="https://api.example.com"
+  storageConfig={{
+    type: 'server',
+    agentUrl: 'https://api.example.com',
+    getAuthToken: () => localStorage.getItem('token') || '',
   }}
-  // The library automatically discovers the agent card,
-  // detects capabilities, and enables streaming if supported
-/>
-
-// Using hardcoded agent card
-<ChatWindow
-  agentCard={{
-    name: "My Agent",
-    url: "https://agent.example.com/rpc",
-    capabilities: { streaming: true }
-  }}
-  auth={{
-    type: 'api-key',
-    key: 'your-api-key'
-  }}
+  initialContextId="existing-conversation-123"
 />
 ```
 
-### Authentication Methods
+## 🔌 Plugin System
 
-The library supports all A2A Browser SDK authentication methods:
+Extend functionality with custom plugins:
 
-```tsx
-// Bearer token
-const bearerAuth = {
-  type: 'bearer',
-  token: 'your-bearer-token',
-};
+```typescript
+import { A2AClient, Plugin, PluginManager } from '@microsoft/a2achat-core';
 
-// API Key
-const apiKeyAuth = {
-  type: 'apiKey',
-  key: 'your-api-key',
-  header: 'X-API-Key', // optional
-};
-
-// OAuth2
-const oauth2Auth = {
-  type: 'oauth2',
-  accessToken: 'your-access-token',
-};
-
-// Custom authentication
-const customAuth = {
-  type: 'custom',
-  handler: async (request) => {
-    // Add custom headers
-    request.headers.set('Authorization', `Custom ${await getToken()}`);
-    return request;
+// Define a custom plugin
+const analyticsPlugin: Plugin = {
+  name: 'analytics',
+  version: '1.0.0',
+  description: 'Track chat events',
+  install: (context) => {
+    console.log('Analytics plugin installed');
+  },
+  hooks: {
+    beforeMessageSend: async (message) => {
+      console.log('Sending message:', message);
+      return message;
+    },
+    afterMessageReceive: async (message) => {
+      console.log('Received message:', message);
+      // Send to analytics service
+      await trackEvent('message_received', { message });
+      return message;
+    },
+    onError: async (error) => {
+      console.error('Chat error:', error);
+      // Send to error tracking service
+      await trackError(error);
+    },
   },
 };
+
+// Use with A2AClient
+const client = new A2AClient({
+  agentCard: 'https://api.example.com',
+  auth: { type: 'bearer', token: 'token' },
+});
+
+const pluginManager = new PluginManager(client);
+pluginManager.register(analyticsPlugin);
 ```
 
-## Bundle Size
+### Built-in Plugins
+
+#### Analytics Plugin
+
+```typescript
+import { AnalyticsPlugin } from '@microsoft/a2achat-core';
+
+const analyticsPlugin = new AnalyticsPlugin({
+  trackEvent: (name, data) => {
+    // Send to your analytics service
+    analytics.track(name, data);
+  },
+});
+```
+
+#### Logger Plugin
+
+```typescript
+import { LoggerPlugin } from '@microsoft/a2achat-core';
+
+const loggerPlugin = new LoggerPlugin({
+  level: 'info', // 'debug' | 'info' | 'warn' | 'error'
+  logger: console, // or custom logger
+});
+```
+
+### Plugin Hooks
+
+Available lifecycle hooks:
+
+- `beforeRequest` - Modify requests before sending
+- `afterResponse` - Process responses after receiving
+- `beforeMessageSend` - Transform messages before sending
+- `afterMessageReceive` - Process messages after receiving
+- `onTaskCreated` - Handle task creation events
+- `onTaskCompleted` - Handle task completion events
+- `onTaskFailed` - Handle task failure events
+- `onError` - Handle error events
+- `onStart` - Handle connection start events
+- `onStop` - Handle connection stop events
+
+## 📊 Bundle Size
 
 The library is optimized for small bundle size:
 
-- **Library**: ~45KB (gzipped, excluding React)
+- **Core Library**: ~45KB (gzipped, excluding React)
+- **React Components**: ~5KB additional (gzipped)
 - **Styles**: ~5KB (gzipped)
-- **Total**: ~50KB with all features enabled
+- **Total**: ~50-55KB with all features enabled
 
-Bundle size is monitored in CI to prevent regression.
+React is a peer dependency and not included in the bundle.
 
-## Browser Support
+## 🌐 Browser Support
 
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
 - Mobile browsers (iOS Safari 14+, Chrome Android 90+)
 
-## Contributing
+Requires support for:
+
+- ES2020+
+- Server-Sent Events (SSE)
+- IndexedDB (for client-side storage)
+- Web Workers (optional, for background tasks)
+
+## 🤝 Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
-### Running Tests
+### Code Quality Standards
 
-```bash
-# Run all tests
-pnpm test
-
-# Run specific test file
-pnpm test src/components/ChatWindow/ChatWindow.test.tsx
-
-# Run with coverage
-pnpm run test:coverage
-
-# Run tests in watch mode
-pnpm run test:watch
-```
-
-### Code Quality
-
-- All code must pass TypeScript type checking (strict mode)
-- Prettier formatting is enforced via pre-commit hooks
-- ESLint rules must be followed
-- Tests must pass with 100% success rate
-- Test coverage thresholds:
+- **TypeScript**: Strict mode enabled, no `any` types
+- **Testing**: Comprehensive test coverage with behavior-driven tests
   - Lines: 70%
-  - Functions: 95%
+  - Functions: 85%
   - Branches: 70%
   - Statements: 70%
-- New features should include comprehensive tests
-- No `any` types or `@ts-ignore` comments without justification
+- **Formatting**: Prettier enforced via pre-commit hooks
+- **Linting**: ESLint rules must pass
+- **Type Safety**: No `@ts-ignore` without justification
 
-## License
+### Development Workflow
 
-MIT
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make your changes with tests
+4. Run quality checks: `pnpm typecheck && pnpm lint && pnpm test`
+5. Commit your changes: `git commit -m "feat: add my feature"`
+6. Push to your fork: `git push origin feature/my-feature`
+7. Create a Pull Request
+
+### CI/CD
+
+All PRs are automatically checked for:
+
+- TypeScript type errors
+- Prettier formatting
+- ESLint violations
+- Test failures
+- Build errors
+- Bundle size regression
+
+## 📚 Additional Resources
+
+- [Core Package Documentation](./packages/a2a-core/README.md)
+- [Iframe App Documentation](./apps/iframe-app/README.md)
+- [Development Guide](./DEVELOPMENT.md)
+- [Architecture Documentation](./docs/)
+- [API Testing Findings](./docs/api-testing-findings.md)
+- [OBO Authentication Guide](./docs/OBO_AUTHENTICATION.md)
+
+## 🔒 Security
+
+For security issues, please see [SECURITY.md](./SECURITY.md) for reporting guidelines.
+
+## 📝 License
+
+MIT License - see [LICENSE.md](./LICENSE.md) for details
+
+---
+
+Built with ❤️ by the A2A Chat team
