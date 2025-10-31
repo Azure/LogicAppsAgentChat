@@ -361,6 +361,9 @@ export function useChatSessions() {
         const chatStoreDeleteSession = useChatStore.getState().deleteSession;
         await chatStoreDeleteSession(sessionId);
 
+        // Immediately remove from local state to prevent sync effect from preserving it
+        setSessions((prevSessions) => prevSessions.filter((s) => s.id !== sessionId));
+
         // If we deleted the active session, switch to another one
         if (sessionId === activeSessionId) {
           const remainingSessions = serverSessions.filter((s) => s.id !== sessionId);
