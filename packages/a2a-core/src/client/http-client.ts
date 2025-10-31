@@ -128,7 +128,8 @@ export class HttpClient {
           if (request.body) {
             options.body = request.body;
             // Required for streaming bodies in some environments
-            (options as any).duplex = 'half';
+            // TypeScript doesn't have duplex in RequestInit yet, but it's required for streaming
+            (options as RequestInit & { duplex?: string }).duplex = 'half';
           }
 
           const fetchRequest = new Request(request.url, options);
@@ -298,7 +299,7 @@ export class HttpClient {
       typeof data === 'object' &&
       data !== null &&
       'jsonrpc' in data &&
-      (data as any).jsonrpc === '2.0'
+      (data as Record<string, unknown>).jsonrpc === '2.0'
     );
   }
 

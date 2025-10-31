@@ -4,6 +4,7 @@ import {
   MessageSendRequestSchema,
   TaskSchema,
   isJsonRpcError,
+  isJsonRpcResult,
 } from '../types/schemas';
 import type { AgentCard, AgentCapabilities, Task, MessageSendRequest, TaskState } from '../types';
 import type {
@@ -16,6 +17,40 @@ import type {
 import { SSEClient } from '../streaming/sse-client';
 import type { SSEMessage } from '../streaming/types';
 import { JsonRpcErrorResponse } from '../types/errors';
+
+// Type extension for Task with contextId
+// contextId is stored in metadata but we add it at the top level for convenience
+type TaskWithContext = Task & { contextId?: string };
+
+// Type extension for A2AClient with SSE client (used for testing)
+type A2AClientWithSSE = A2AClient & { sseClient?: SSEClient };
+
+// Helper type for A2A response data - represents the various shapes we receive
+// This is a runtime-validated structure, so we use explicit typing after checking
+type A2AResponseData = Record<string, unknown>;
+
+// Helper functions for type-safe contextId access
+function getContextId(task: Task | TaskWithContext): string | undefined {
+  // Check if contextId is at top level (runtime addition)
+  if ('contextId' in task && typeof task.contextId === 'string') {
+    return task.contextId;
+  }
+  // Check metadata
+  if (task.metadata?.contextId && typeof task.metadata.contextId === 'string') {
+    return task.metadata.contextId;
+  }
+  return undefined;
+}
+
+function setContextId(task: Task, contextId: string): asserts task is TaskWithContext {
+  // Add contextId at top level for convenience
+  (task as TaskWithContext).contextId = contextId;
+  // Also add to metadata for persistence
+  if (!task.metadata) {
+    task.metadata = {};
+  }
+  task.metadata.contextId = contextId;
+}
 
 export interface A2AClientConfig {
   agentCard: AgentCard;
@@ -80,8 +115,15 @@ export class A2AClient {
   }
 
   hasCapability(capabilityName: keyof AgentCapabilities): boolean {
-    const capabilities = this.agentCard.capabilities as any;
-    return !!capabilities[capabilityName];
+    const capabilities = this.agentCard.capabilities;
+    const value = capabilities[capabilityName];
+
+    // Extensions is an array, other capabilities are booleans
+    if (capabilityName === 'extensions') {
+      return Array.isArray(value) && value.length > 0;
+    }
+
+    return typeof value === 'boolean' ? value : false;
   }
 
   // Message operations
@@ -114,11 +156,16 @@ export class A2AClient {
               data: part.data,
               filename: part.filename,
             };
-          } else {
+          } else if (part.type === 'structured') {
+            // TypeScript now knows this is the structured variant
             return {
               kind: 'data',
-              data: (part as any).data,
+              data: part.data,
             };
+          } else {
+            // Exhaustive check - should never reach here
+            const _exhaustive: never = part;
+            throw new Error(`Unknown part type: ${(_exhaustive as { type: string }).type}`);
           }
         }),
         // Include contextId directly in message if available
@@ -200,11 +247,18 @@ export class A2AClient {
                           data: part.data,
                           filename: part.filename,
                         };
-                      } else {
+                      } else if (part.type === 'structured') {
+                        // TypeScript now knows this is the structured variant
                         return {
                           kind: 'data',
-                          data: (part as any).data,
+                          data: part.data,
                         };
+                      } else {
+                        // Exhaustive check - should never reach here
+                        const _exhaustive: never = part;
+                        throw new Error(
+                          `Unknown part type: ${(_exhaustive as { type: string }).type}`
+                        );
                       }
                     }),
                     // Include contextId directly in message if available
@@ -266,13 +320,13 @@ export class A2AClient {
                   });
 
                   // Store SSE client for testing - store on the client instance
-                  (clientInstance as any).sseClient = sseClient;
+                  (clientInstance as A2AClientWithSSE).sseClient = sseClient;
 
                   // Set up persistent message handlers
                   const messageHandler = (message: SSEMessage) => {
                     try {
-                      // Parse JSON-RPC response from SSE data
-                      const jsonRpcData = message.data as any;
+                      // Parse JSON-RPC response from SSE data (already typed as unknown)
+                      const jsonRpcData = message.data;
 
                       // Check if it's a JSON-RPC error response
                       if (isJsonRpcError(jsonRpcData)) {
@@ -285,72 +339,128 @@ export class A2AClient {
                       }
 
                       // Extract the result which should be a task or status update
-                      const result = jsonRpcData.result || jsonRpcData;
+                      // Type guard: Check if it's a JSON-RPC result with a result field
+                      let resultData: A2AResponseData;
+                      let topLevelContextId: string | undefined;
+
+                      if (isJsonRpcResult(jsonRpcData)) {
+                        // Standard JSON-RPC 2.0 format
+                        resultData = jsonRpcData.result as A2AResponseData;
+                        // Extract contextId from top-level JSON-RPC response if present
+                        if (
+                          typeof jsonRpcData === 'object' &&
+                          jsonRpcData !== null &&
+                          'contextId' in jsonRpcData &&
+                          typeof jsonRpcData.contextId === 'string'
+                        ) {
+                          topLevelContextId = jsonRpcData.contextId;
+                        }
+                      } else if (
+                        typeof jsonRpcData === 'object' &&
+                        jsonRpcData !== null &&
+                        'result' in jsonRpcData
+                      ) {
+                        // Legacy format: has result field but no jsonrpc version
+                        const dataWithResult = jsonRpcData as Record<string, unknown>;
+                        resultData = dataWithResult.result as A2AResponseData;
+                        // Extract contextId from top-level if present
+                        if (
+                          'contextId' in dataWithResult &&
+                          typeof dataWithResult.contextId === 'string'
+                        ) {
+                          topLevelContextId = dataWithResult.contextId;
+                        }
+                      } else {
+                        // Direct format: the data itself is the result
+                        resultData = jsonRpcData as A2AResponseData;
+                      }
 
                       // Handle different A2A response types
                       // Check if this is a legacy format (direct task data without 'kind' field)
-                      if (!result.kind && result.id && result.state) {
+                      if (!resultData.kind && resultData.id && resultData.state) {
                         // Legacy format - handle as a task update
-                        if (!currentTask || currentTask.id !== result.id) {
+                        // Runtime-validated properties - safe to cast
+                        const resultId = resultData.id as string;
+                        const resultState = resultData.state as TaskState;
+                        const resultCreatedAt =
+                          (resultData.createdAt as string | undefined) || new Date().toISOString();
+                        const resultMessages = (resultData.messages as any[] | undefined) || [];
+                        const resultArtifacts = (resultData.artifacts as any[] | undefined) || [];
+                        const resultContextId =
+                          typeof resultData.contextId === 'string'
+                            ? resultData.contextId
+                            : undefined;
+
+                        if (!currentTask || currentTask.id !== resultId) {
                           // New task or task ID changed - create new task state
                           currentTask = {
-                            id: result.id,
-                            state: result.state,
-                            createdAt: result.createdAt || new Date().toISOString(),
-                            messages: result.messages || [],
-                            artifacts: result.artifacts || [],
+                            id: resultId,
+                            state: resultState,
+                            createdAt: resultCreatedAt,
+                            messages: resultMessages,
+                            artifacts: resultArtifacts,
                             // Include contextId from server response if available
-                            ...(result.contextId ? { contextId: result.contextId } : {}),
-                            ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
+                            ...(resultContextId ? { contextId: resultContextId } : {}),
+                            ...(topLevelContextId ? { contextId: topLevelContextId } : {}),
                           };
                         } else {
                           // Update existing task
-                          currentTask.state = result.state;
-                          currentTask.updatedAt = result.updatedAt || new Date().toISOString();
-                          if (result.messages) {
-                            currentTask.messages = result.messages;
+                          currentTask.state = resultState;
+                          currentTask.updatedAt =
+                            (resultData.updatedAt as string | undefined) ||
+                            new Date().toISOString();
+                          if (resultMessages.length > 0) {
+                            currentTask.messages = resultMessages;
                           }
-                          if (result.artifacts) {
-                            currentTask.artifacts = result.artifacts;
+                          if (resultArtifacts.length > 0) {
+                            currentTask.artifacts = resultArtifacts;
                           }
                           // Update contextId if provided
-                          if (result.contextId) {
-                            (currentTask as any).contextId = result.contextId;
+                          if (resultContextId) {
+                            setContextId(currentTask, resultContextId);
                           }
-                          if (jsonRpcData.contextId) {
-                            (currentTask as any).contextId = jsonRpcData.contextId;
+                          if (topLevelContextId) {
+                            setContextId(currentTask, topLevelContextId);
                           }
                         }
 
                         // Queue the task update
+                        const contextId = getContextId(currentTask);
                         messageQueue.push({
                           ...currentTask,
                           messages: [...currentTask.messages],
                           artifacts: currentTask.artifacts ? [...currentTask.artifacts] : undefined,
                           // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
-                            : {}),
+                          ...(contextId ? { contextId } : {}),
                         });
 
                         // Check if completed
-                        if (result.state === 'completed' || result.state === 'failed') {
+                        if (resultState === 'completed' || resultState === 'failed') {
                           isComplete = true;
                           if (sseClient) {
                             sseClient.close();
                           }
                         }
-                      } else if (result.kind === 'task') {
+                      } else if (resultData.kind === 'task') {
                         // Initial task response - create the base task
+                        const taskId = resultData.id as string;
+                        const taskStatus = resultData.status as
+                          | { state?: string; timestamp?: string }
+                          | undefined;
+                        const taskContextId =
+                          typeof resultData.contextId === 'string'
+                            ? resultData.contextId
+                            : undefined;
+
                         currentTask = {
-                          id: result.id,
-                          state: result.status?.state === 'submitted' ? 'pending' : 'running',
-                          createdAt: result.status?.timestamp || new Date().toISOString(),
+                          id: taskId,
+                          state: taskStatus?.state === 'submitted' ? 'pending' : 'running',
+                          createdAt: taskStatus?.timestamp || new Date().toISOString(),
                           messages: [],
                           artifacts: [],
                           // Include contextId from server response if available
-                          ...(result.contextId ? { contextId: result.contextId } : {}),
-                          ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
+                          ...(taskContextId ? { contextId: taskContextId } : {}),
+                          ...(topLevelContextId ? { contextId: topLevelContextId } : {}),
                         };
                         // Queue the initial task with a clean copy
                         messageQueue.push({
@@ -360,30 +470,32 @@ export class A2AClient {
                           messages: [],
                           artifacts: [],
                           // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
+                          ...(getContextId(currentTask)
+                            ? { contextId: getContextId(currentTask) }
                             : {}),
                         });
                       } else if (
-                        result.kind === 'auth-required' ||
-                        (result.kind === 'status-update' &&
-                          result.status?.state === 'auth-required')
+                        resultData.kind === 'auth-required' ||
+                        (resultData.kind === 'status-update' &&
+                          (resultData.status as any)?.state === 'auth-required')
                       ) {
                         // Handle authentication required status FIRST before general status updates
 
                         if (!currentTask) {
                           currentTask = {
-                            id: result.taskId || result.id,
+                            id: (resultData.taskId || resultData.id) as string,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
                             artifacts: [],
-                            ...(result.contextId ? { contextId: result.contextId } : {}),
+                            ...(resultData.contextId
+                              ? { contextId: resultData.contextId as string }
+                              : {}),
                           };
                         }
 
                         // Extract auth data from the message parts
-                        const authMessage = result.status?.message;
+                        const authMessage = (resultData.status as any)?.message;
 
                         if (authMessage && authMessage.parts) {
                           const authParts: AuthRequiredPart[] = [];
@@ -418,8 +530,9 @@ export class A2AClient {
 
                           if (authParts.length > 0 && authHandler) {
                             const authEvent = {
-                              taskId: result.taskId || currentTask.id,
-                              contextId: result.contextId || (currentTask as any).contextId || '',
+                              taskId: (resultData.taskId as string) || currentTask.id,
+                              contextId:
+                                (resultData.contextId as string) || getContextId(currentTask) || '',
                               authParts,
                               messageType: 'InTaskAuthRequired',
                             };
@@ -443,42 +556,51 @@ export class A2AClient {
 
                         // Don't complete the stream yet - wait for auth completion
                         // The stream will continue after authentication
-                      } else if (result.kind === 'status-update') {
+                      } else if (resultData.kind === 'status-update') {
                         // Status update - accumulate messages
+                        const statusUpdateId = (resultData.taskId || resultData.id) as string;
+                        const statusUpdateContextId =
+                          typeof resultData.contextId === 'string'
+                            ? resultData.contextId
+                            : undefined;
+                        const statusUpdateStatus = resultData.status as
+                          | { state?: string; timestamp?: string; message?: any }
+                          | undefined;
+
                         if (!currentTask) {
                           // Create task if we don't have one yet
                           currentTask = {
-                            id: result.taskId || result.id,
+                            id: statusUpdateId,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
                             artifacts: [],
                             // Include contextId from server response if available
-                            ...(result.contextId ? { contextId: result.contextId } : {}),
-                            ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
+                            ...(statusUpdateContextId ? { contextId: statusUpdateContextId } : {}),
+                            ...(topLevelContextId ? { contextId: topLevelContextId } : {}),
                           };
                         }
 
                         // Update task state
                         currentTask.state =
-                          result.status?.state === 'completed'
+                          statusUpdateStatus?.state === 'completed'
                             ? 'completed'
-                            : result.status?.state === 'failed'
+                            : statusUpdateStatus?.state === 'failed'
                               ? 'failed'
                               : 'running';
                         currentTask.updatedAt =
-                          result.status?.timestamp || new Date().toISOString();
+                          statusUpdateStatus?.timestamp || new Date().toISOString();
 
                         // Update contextId if provided
-                        if (result.contextId) {
-                          (currentTask as any).contextId = result.contextId;
+                        if (statusUpdateContextId) {
+                          setContextId(currentTask, statusUpdateContextId);
                         }
-                        if (jsonRpcData.contextId) {
-                          (currentTask as any).contextId = jsonRpcData.contextId;
+                        if (topLevelContextId) {
+                          setContextId(currentTask, topLevelContextId);
                         }
 
                         // Add new message if present
-                        const statusMessage = result.status?.message;
+                        const statusMessage = statusUpdateStatus?.message;
                         if (statusMessage && statusMessage.parts) {
                           // Convert A2A message format to our format
                           const content = statusMessage.parts
@@ -494,47 +616,52 @@ export class A2AClient {
                         }
 
                         // Queue a snapshot of the current task state
+                        const contextId = getContextId(currentTask);
                         messageQueue.push({
                           ...currentTask,
                           messages: [...currentTask.messages],
                           artifacts: currentTask.artifacts ? [...currentTask.artifacts] : undefined,
                           // Pass through contextId to the consumer
-                          ...((currentTask as any).contextId
-                            ? { contextId: (currentTask as any).contextId }
-                            : {}),
+                          ...(contextId ? { contextId } : {}),
                         });
 
                         // Check if this is the final update
-                        if (result.final) {
+                        if (resultData.final) {
                           isComplete = true;
                           if (sseClient) {
                             sseClient.close();
                           }
                         }
-                      } else if (result.kind === 'artifact-update') {
+                      } else if (resultData.kind === 'artifact-update') {
                         // Handle streaming artifact updates with append logic
                         if (!currentTask) {
                           // Create task if we don't have one yet
                           currentTask = {
-                            id: result.taskId || `task-${Date.now()}`,
+                            id:
+                              (resultData.taskId as string) ||
+                              (resultData.id as string) ||
+                              `task-${Date.now()}`,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
                             artifacts: [],
                             // Include contextId from server response if available
-                            ...(result.contextId ? { contextId: result.contextId } : {}),
-                            ...(jsonRpcData.contextId ? { contextId: jsonRpcData.contextId } : {}),
+                            ...(resultData.contextId
+                              ? { contextId: resultData.contextId as string }
+                              : {}),
+                            ...(topLevelContextId ? { contextId: topLevelContextId } : {}),
                           };
                         }
 
                         // Handle streaming text content from artifacts
-                        if (result.artifact && result.artifact.parts) {
-                          const textParts = result.artifact.parts
+                        const artifactData = resultData.artifact as any;
+                        if (artifactData && artifactData.parts) {
+                          const textParts = artifactData.parts
                             .filter((part: any) => part.kind === 'Text' || part.kind === 'text')
                             .map((part: any) => part.text || '')
                             .join('');
 
-                          if (!result.append) {
+                          if (!resultData.append) {
                             // Start new message - this is the first chunk
                             const newMessage = {
                               role: 'assistant' as const,
@@ -579,13 +706,13 @@ export class A2AClient {
                             messages: [...(currentTask.messages || [])],
                             artifacts: currentTask.artifacts ? [...currentTask.artifacts] : [],
                             // Pass through contextId to the consumer
-                            ...((currentTask as any).contextId
-                              ? { contextId: (currentTask as any).contextId }
+                            ...(getContextId(currentTask)
+                              ? { contextId: getContextId(currentTask) }
                               : {}),
                           });
-                        } else if (result.artifact) {
+                        } else if (artifactData) {
                           // Handle complete artifacts (not streaming parts)
-                          const artifact = result.artifact;
+                          const artifact = artifactData;
 
                           // Check if this artifact already exists (avoid duplicates)
                           const existingArtifactIndex = currentTask.artifacts?.findIndex(
@@ -607,7 +734,7 @@ export class A2AClient {
                         }
 
                         // Check if this is the final artifact chunk
-                        if (result.lastChunk) {
+                        if (resultData.lastChunk) {
                           // Mark task as completed or continue based on final flag
                           currentTask.state = 'completed';
                         }
@@ -615,7 +742,7 @@ export class A2AClient {
                         // Unknown format, try to construct a basic task
                         if (!currentTask) {
                           currentTask = {
-                            id: result.id || `task-${Date.now()}`,
+                            id: (resultData.id as string) || `task-${Date.now()}`,
                             state: 'running',
                             createdAt: new Date().toISOString(),
                             messages: [],
@@ -627,10 +754,11 @@ export class A2AClient {
                       }
 
                       // Check if this is the final message
+                      const resultStatus = resultData.status as { state?: string } | undefined;
                       if (
-                        result.final ||
-                        result.status?.state === 'completed' ||
-                        result.status?.state === 'failed'
+                        resultData.final ||
+                        resultStatus?.state === 'completed' ||
+                        resultStatus?.state === 'failed'
                       ) {
                         isComplete = true;
                         if (sseClient) {
@@ -698,7 +826,8 @@ export class A2AClient {
               if (sseClient) {
                 sseClient.close();
               }
-              return { done: true, value: undefined as any };
+              // When iterator is done, value is undefined (TypeScript allows this for terminated iterators)
+              return { done: true, value: undefined as unknown as Task };
             },
             throw: async (error?: Error): Promise<IteratorResult<Task>> => {
               if (sseClient) {
