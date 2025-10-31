@@ -12,7 +12,7 @@ import type { ChatHistoryStorage } from '../../storage/history-storage';
 import type { ChatSession, Message as StorageMessage } from '../../api/history-types';
 import { transformStorageMessagesToUI } from '../utils/message-transformer';
 import { A2AClient } from '../../client/a2a-client';
-import type { AgentCard, Part as A2APart } from '../../types';
+import type { AgentCard, Part as A2APart, Task } from '../../types';
 
 // Enable MapSet plugin for Immer to handle Maps
 enableMapSet();
@@ -590,7 +590,12 @@ export const useChatStore = create<ChatState>()(
         for await (const task of stream) {
           // Capture context ID from the server response
           if (!contextId) {
-            const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
+            // Check for contextId in task (runtime addition) or metadata
+            const taskWithContext = task as Task & { contextId?: string };
+            const serverContextId =
+              ('contextId' in taskWithContext && typeof taskWithContext.contextId === 'string'
+                ? taskWithContext.contextId
+                : undefined) || task.metadata?.['contextId'];
             if (serverContextId) {
               contextId = serverContextId as string;
 
