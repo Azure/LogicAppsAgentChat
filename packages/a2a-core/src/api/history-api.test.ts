@@ -4,7 +4,8 @@ import type { ServerContext, ServerTask } from './history-types';
 
 describe('History API Client', () => {
   const mockAgentUrl = 'https://example.com/api/agents/TestAgent';
-  const mockToken = 'test-token-123';
+  const mockApiKey = 'test-api-key-123';
+  const mockOboToken = 'test-obo-token-456';
 
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -20,7 +21,7 @@ describe('History API Client', () => {
 
   const createMockConfig = (overrides?: Partial<HistoryApiConfig>): HistoryApiConfig => ({
     agentUrl: mockAgentUrl,
-    getAuthToken: () => mockToken,
+    apiKey: mockApiKey,
     ...overrides,
   });
 
@@ -61,7 +62,7 @@ describe('History API Client', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${mockToken}`,
+            'X-API-Key': mockApiKey,
           }),
         })
       );
@@ -90,19 +91,36 @@ describe('History API Client', () => {
       });
     });
 
-    it('should work without auth token', async () => {
+    it('should work without API key', async () => {
       const mockContexts: ServerContext[] = [];
       fetchMock.mockResolvedValueOnce(createMockResponse(mockContexts));
 
       const api = createHistoryApi({
         agentUrl: mockAgentUrl,
-        // No getAuthToken provided
+        // No apiKey provided
       });
 
       await api.listContexts();
 
       const headers = fetchMock.mock.calls[0][1].headers;
-      expect(headers['Authorization']).toBeUndefined();
+      expect(headers['X-API-Key']).toBeUndefined();
+    });
+
+    it('should include OBO token header when provided', async () => {
+      const mockContexts: ServerContext[] = [];
+      fetchMock.mockResolvedValueOnce(createMockResponse(mockContexts));
+
+      const api = createHistoryApi({
+        agentUrl: mockAgentUrl,
+        apiKey: mockApiKey,
+        oboUserToken: mockOboToken,
+      });
+
+      await api.listContexts();
+
+      const headers = fetchMock.mock.calls[0][1].headers;
+      expect(headers['X-API-Key']).toBe(mockApiKey);
+      expect(headers['x-ms-obo-userToken']).toBe(`Key ${mockOboToken}`);
     });
 
     it('should handle contexts without name field', async () => {

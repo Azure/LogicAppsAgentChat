@@ -12,7 +12,8 @@
  * const storage = createHistoryStorage({
  *   type: 'server',
  *   agentUrl: 'https://example.com/api/agents/MyAgent',
- *   getAuthToken: () => getToken(),
+ *   apiKey: 'your-api-key',
+ *   oboUserToken: 'optional-obo-token',
  * });
  *
  * const sessions = await storage.listSessions();
@@ -43,7 +44,8 @@ import type { ChatHistoryStorage } from './history-storage';
  * const storage = createHistoryStorage({
  *   type: 'server',
  *   agentUrl: 'https://example.com/api/agents/MyAgent',
- *   getAuthToken: async () => await getAuthToken(),
+ *   apiKey: 'your-api-key',
+ *   oboUserToken: 'optional-obo-token',
  * });
  *
  * // Browser storage (future)
@@ -56,7 +58,8 @@ import type { ChatHistoryStorage } from './history-storage';
 export const createHistoryStorage = (config: {
   type: 'server' | 'browser';
   agentUrl?: string;
-  getAuthToken?: () => Promise<string> | string;
+  apiKey?: string;
+  oboUserToken?: string;
   storageKeyPrefix?: string;
   timeout?: number;
 }): ChatHistoryStorage => {
@@ -67,7 +70,8 @@ export const createHistoryStorage = (config: {
 
     return new ServerHistoryStorage({
       agentUrl: config.agentUrl,
-      getAuthToken: config.getAuthToken,
+      apiKey: config.apiKey,
+      oboUserToken: config.oboUserToken,
       timeout: config.timeout,
     });
   }

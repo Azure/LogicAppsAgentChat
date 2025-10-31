@@ -28,7 +28,8 @@ import {
  */
 export type HistoryApiConfig = {
   agentUrl: string; // Full agent URL (e.g., https://example.com/api/agents/AgentName)
-  getAuthToken?: () => Promise<string> | string; // Function to get auth token
+  apiKey?: string; // API key for authentication (passed as X-API-Key header)
+  oboUserToken?: string; // OBO user token for authentication (passed as x-ms-obo-userToken header)
   timeout?: number; // Request timeout in ms (default: 30000)
 };
 
@@ -75,12 +76,14 @@ class HistoryApiClient {
       'Content-Type': 'application/json',
     };
 
-    // Add authorization if token provider is configured and returns a non-empty token
-    if (this.config.getAuthToken) {
-      const token = await this.config.getAuthToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+    // Add API key header if provided
+    if (this.config.apiKey) {
+      headers['X-API-Key'] = this.config.apiKey;
+    }
+
+    // Add OBO user token header if provided
+    if (this.config.oboUserToken) {
+      headers['x-ms-obo-userToken'] = `Key ${this.config.oboUserToken}`;
     }
 
     const controller = new AbortController();
@@ -183,7 +186,8 @@ class HistoryApiClient {
  * ```typescript
  * const historyApi = createHistoryApi({
  *   agentUrl: 'https://example.com/api/agents/MyAgent',
- *   getAuthToken: () => getToken(),
+ *   apiKey: 'your-api-key-here',
+ *   oboUserToken: 'optional-obo-token',
  * });
  *
  * const contexts = await historyApi.listContexts({

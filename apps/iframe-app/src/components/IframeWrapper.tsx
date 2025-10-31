@@ -120,24 +120,15 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
   const storageConfig: StorageConfig = {
     type: 'server',
     agentUrl: agentBaseUrl,
-    getAuthToken: () => {
-      // Prefer apiKey, fall back to oboUserToken
-      const token = apiKey || propsWithAuth.apiKey || oboUserToken || propsWithAuth.oboUserToken;
-      console.log('[IframeWrapper] getAuthToken called:', {
-        apiKey: apiKey ? 'present' : 'missing',
-        propsApiKey: propsWithAuth.apiKey ? 'present' : 'missing',
-        oboUserToken: oboUserToken ? 'present' : 'missing',
-        propsOboUserToken: propsWithAuth.oboUserToken ? 'present' : 'missing',
-        token: token ? 'present' : 'EMPTY',
-      });
-      return token || '';
-    },
+    apiKey: apiKey || propsWithAuth.apiKey,
+    oboUserToken: oboUserToken || propsWithAuth.oboUserToken,
   };
 
   console.log('[IframeWrapper] Storage config created:', {
     type: storageConfig.type,
     agentUrl: storageConfig.agentUrl,
-    hasAuthTokenFunction: !!storageConfig.getAuthToken,
+    hasApiKey: !!storageConfig.apiKey,
+    hasOboUserToken: !!storageConfig.oboUserToken,
   });
 
   // Render appropriate chat component
