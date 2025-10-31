@@ -88,11 +88,13 @@ export function useChatSessions() {
 
       setIsLoading(false);
     } else {
-      // No server sessions available - keep any pending sessions sorted by updatedAt
-      console.log('[useChatSessions] No server sessions available');
+      // No server sessions available - keep local sessions (both pending and real) sorted by updatedAt
+      // This is important for the first chat: when migration happens from pending to real context ID,
+      // we need to preserve that real session even though server hasn't been polled yet
+      console.log('[useChatSessions] No server sessions available, keeping local sessions');
       setSessions((prevSessions) => {
-        const pendingOnly = prevSessions.filter((s) => s.id.startsWith('pending-'));
-        return pendingOnly.sort((a, b) => b.updatedAt - a.updatedAt);
+        // Sort all local sessions by recency instead of filtering
+        return [...prevSessions].sort((a, b) => b.updatedAt - a.updatedAt);
       });
       setIsLoading(false);
     }
