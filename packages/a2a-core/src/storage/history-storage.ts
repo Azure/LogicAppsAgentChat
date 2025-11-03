@@ -139,14 +139,9 @@ export type StorageConfig = {
   agentUrl?: string;
 
   /**
-   * For server storage: API key for authentication
+   * For server storage: function to get auth token
    */
-  apiKey?: string;
-
-  /**
-   * For server storage: OBO user token for authentication
-   */
-  oboUserToken?: string;
+  getAuthToken?: () => Promise<string> | string;
 
   /**
    * For browser storage: storage key prefix

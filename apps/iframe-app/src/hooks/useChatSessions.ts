@@ -88,13 +88,11 @@ export function useChatSessions() {
 
       setIsLoading(false);
     } else {
-      // No server sessions available - keep local sessions (both pending and real) sorted by updatedAt
-      // This is important for the first chat: when migration happens from pending to real context ID,
-      // we need to preserve that real session even though server hasn't been polled yet
-      console.log('[useChatSessions] No server sessions available, keeping local sessions');
+      // No server sessions available - keep any pending sessions sorted by updatedAt
+      console.log('[useChatSessions] No server sessions available');
       setSessions((prevSessions) => {
-        // Sort all local sessions by recency instead of filtering
-        return [...prevSessions].sort((a, b) => b.updatedAt - a.updatedAt);
+        const pendingOnly = prevSessions.filter((s) => s.id.startsWith('pending-'));
+        return pendingOnly.sort((a, b) => b.updatedAt - a.updatedAt);
       });
       setIsLoading(false);
     }
@@ -360,9 +358,6 @@ export function useChatSessions() {
         console.log('[useChatSessions] Deleting (archiving) server session:', sessionId);
         const chatStoreDeleteSession = useChatStore.getState().deleteSession;
         await chatStoreDeleteSession(sessionId);
-
-        // Immediately remove from local state to prevent sync effect from preserving it
-        setSessions((prevSessions) => prevSessions.filter((s) => s.id !== sessionId));
 
         // If we deleted the active session, switch to another one
         if (sessionId === activeSessionId) {

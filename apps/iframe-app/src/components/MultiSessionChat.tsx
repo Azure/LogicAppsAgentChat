@@ -137,8 +137,7 @@ export function MultiSessionChat({
           // Create ServerHistoryStorage instance from config
           const storage = new ServerHistoryStorage({
             agentUrl: config.storageConfig.agentUrl || config.apiUrl,
-            apiKey: config.storageConfig.apiKey || config.apiKey,
-            oboUserToken: config.storageConfig.oboUserToken || config.oboUserToken,
+            getAuthToken: config.storageConfig.getAuthToken,
           });
 
           initializeStorage(storage);

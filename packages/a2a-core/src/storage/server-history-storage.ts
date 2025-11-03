@@ -21,8 +21,7 @@ import type { ChatHistoryStorage, ListSessionsOptions } from './history-storage'
  */
 export type ServerHistoryStorageConfig = {
   agentUrl: string;
-  apiKey?: string; // API key for authentication (passed as X-API-Key header)
-  oboUserToken?: string; // OBO user token for authentication (passed as x-ms-obo-userToken header)
+  getAuthToken?: () => Promise<string> | string;
   timeout?: number;
 };
 
@@ -39,15 +38,13 @@ export class ServerHistoryStorage implements ChatHistoryStorage {
   constructor(config: ServerHistoryStorageConfig) {
     console.log('[ServerHistoryStorage] Creating instance with config:', {
       agentUrl: config.agentUrl,
-      hasApiKey: !!config.apiKey,
-      hasOboUserToken: !!config.oboUserToken,
+      hasAuthToken: !!config.getAuthToken,
       timeout: config.timeout,
     });
 
     this.api = createHistoryApi({
       agentUrl: config.agentUrl,
-      apiKey: config.apiKey,
-      oboUserToken: config.oboUserToken,
+      getAuthToken: config.getAuthToken,
       timeout: config.timeout,
     });
 

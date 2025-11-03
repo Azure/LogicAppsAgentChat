@@ -26,8 +26,7 @@ describe('ServerHistoryStorage', () => {
     // Create storage instance
     storage = new ServerHistoryStorage({
       agentUrl: 'https://example.com/api/agents/TestAgent',
-      apiKey: 'test-api-key',
-      oboUserToken: 'test-obo-token',
+      getAuthToken: () => 'test-token',
     });
 
     // Get reference to mocked API
