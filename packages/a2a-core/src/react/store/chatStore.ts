@@ -431,15 +431,82 @@ export const useChatStore = create<ChatState>()(
           clientConfig.auth = { type: 'cookie' };
         }
 
-        if (config.onAuthRequired) {
-          clientConfig.onAuthRequired = config.onAuthRequired;
-        }
+        // Create internal auth handler for OBO auth messages (separate from onAuthRequired callback)
+        clientConfig.onAuthRequired = async (event: AuthRequiredEvent) => {
+          console.log('[chatStore] Internal auth handler called for session', sessionId, event);
+
+          // Use event.contextId as the actual session ID (handles migration from pending to real)
+          const actualSessionId = event.contextId;
+          console.log('[chatStore] Using actual session ID from event.contextId:', actualSessionId);
+
+          // Create auth message and add to chat
+          const authMessageId = `auth-${event.taskId}-${Date.now()}`;
+          const authMessage: Message = {
+            id: authMessageId,
+            content: 'Authentication required',
+            sender: 'system',
+            timestamp: new Date(),
+            status: 'sent',
+            authEvent: {
+              authParts: event.authParts,
+              status: 'pending',
+            },
+            metadata: {
+              taskId: event.taskId,
+            },
+          };
+
+          // Add auth message to session messages
+          // During session migration, we need to add to BOTH the pending ID and real ID
+          // so the UI can display the auth message immediately
+          set((draft) => {
+            const newSessionMessages = new Map(draft.sessionMessages);
+
+            // Add to the actual session ID (real context ID)
+            const actualMsgs = newSessionMessages.get(actualSessionId) || [];
+            newSessionMessages.set(actualSessionId, [...actualMsgs, authMessage]);
+
+            // ALSO add to pending session ID if different (during migration window)
+            if (sessionId !== actualSessionId && sessionId.startsWith('pending-')) {
+              console.log(
+                '[chatStore] Adding auth message to BOTH pending and real session IDs for migration'
+              );
+              const pendingMsgs = newSessionMessages.get(sessionId) || [];
+              newSessionMessages.set(sessionId, [...pendingMsgs, authMessage]);
+            }
+
+            // Set auth required state for this context
+            const newAuthRequired = new Map(draft.authRequiredByContext);
+            newAuthRequired.set(event.contextId, event);
+
+            return {
+              sessionMessages: newSessionMessages,
+              authRequiredByContext: newAuthRequired,
+            };
+          });
+
+          // If there's a custom onAuthRequired callback (for chat session expiry), call it
+          if (config.onAuthRequired) {
+            console.log('[chatStore] Calling custom onAuthRequired callback');
+            return config.onAuthRequired(event);
+          }
+        };
 
         if (config.onUnauthorized) {
           clientConfig.onUnauthorized = config.onUnauthorized;
         }
 
+        console.log('[chatStore] Creating A2AClient with config:', {
+          hasAuthHandler: !!clientConfig.onAuthRequired,
+          hasUnauthorizedHandler: !!clientConfig.onUnauthorized,
+          agentCardUrl: clientConfig.agentCard.url,
+        });
+
         const client = new A2AClient(clientConfig);
+
+        console.log('[chatStore] A2AClient created, checking handler:', {
+          hasOnAuthRequired: !!(client as any).onAuthRequired,
+        });
 
         console.log(`[chatStore] Connected session ${sessionId}`);
 

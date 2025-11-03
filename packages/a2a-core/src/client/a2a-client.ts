@@ -370,6 +370,13 @@ export class A2AClient {
                           result.status?.state === 'auth-required')
                       ) {
                         // Handle authentication required status FIRST before general status updates
+                        console.log('[a2a-client] AUTH REQUIRED EVENT DETECTED!', {
+                          kind: result.kind,
+                          state: result.status?.state,
+                          hasMessage: !!result.status?.message,
+                          hasParts: !!result.status?.message?.parts,
+                          partsLength: result.status?.message?.parts?.length,
+                        });
 
                         if (!currentTask) {
                           currentTask = {
@@ -384,30 +391,59 @@ export class A2AClient {
 
                         // Extract auth data from the message parts
                         const authMessage = result.status?.message;
+                        console.log('[a2a-client] Auth message:', authMessage);
 
                         if (authMessage && authMessage.parts) {
                           const authParts: AuthRequiredPart[] = [];
 
                           // Collect all auth parts
                           for (const part of authMessage.parts) {
+                            console.log('[a2a-client] Processing part:', {
+                              kind: part.kind,
+                              hasData: !!part.data,
+                            });
                             if (part.kind === 'Data' || part.kind === 'data') {
                               const authData = part.data;
+                              console.log('[a2a-client] Auth data:', authData);
                               if (
                                 authData?.messageType === 'InTaskAuthRequired' &&
                                 authData?.consentLink
                               ) {
                                 // Handle new packet structure where consentLink is an object
-                                const consentLink = authData.consentLink;
+                                const rawConsentLink = authData.consentLink;
+                                console.log('[a2a-client] Raw consentLink:', {
+                                  type: typeof rawConsentLink,
+                                  value: rawConsentLink,
+                                  isString: typeof rawConsentLink === 'string',
+                                });
+
+                                // Check if consentLink is a string or object with link property
+                                const consentLinkUrl =
+                                  typeof rawConsentLink === 'string'
+                                    ? rawConsentLink
+                                    : rawConsentLink?.link;
+
+                                console.log(
+                                  '[a2a-client] Extracted consentLinkUrl:',
+                                  consentLinkUrl
+                                );
+
                                 authParts.push({
-                                  consentLink: consentLink.link || consentLink, // Support both new and old formats
+                                  consentLink: consentLinkUrl,
                                   status:
-                                    consentLink.status || authData.status || 'Unauthenticated',
+                                    typeof rawConsentLink === 'object' && rawConsentLink?.status
+                                      ? rawConsentLink.status
+                                      : authData.status || 'Unauthenticated',
                                   serviceName:
-                                    consentLink.apiDetails?.apiDisplayName ||
-                                    authData.serviceName ||
-                                    'External Service',
+                                    typeof rawConsentLink === 'object' &&
+                                    rawConsentLink?.apiDetails?.apiDisplayName
+                                      ? rawConsentLink.apiDetails.apiDisplayName
+                                      : authData.serviceName || 'External Service',
                                   serviceIcon:
-                                    consentLink.apiDetails?.apiIconUri || authData.serviceIcon,
+                                    typeof rawConsentLink === 'object' &&
+                                    rawConsentLink?.apiDetails?.apiIconUri
+                                      ? rawConsentLink.apiDetails.apiIconUri
+                                      : authData.serviceIcon,
                                   description: authData.description,
                                 });
                               }
@@ -415,6 +451,7 @@ export class A2AClient {
                           }
 
                           // If we have auth parts, trigger the handler
+                          console.log('[a2a-client] Collected auth parts:', authParts.length);
 
                           if (authParts.length > 0 && authHandler) {
                             const authEvent = {
@@ -424,12 +461,15 @@ export class A2AClient {
                               messageType: 'InTaskAuthRequired',
                             };
 
+                            console.log('[a2a-client] Calling authHandler with event:', authEvent);
                             // Call the auth handler
                             Promise.resolve(authHandler(authEvent))
                               .then(() => {
+                                console.log('[a2a-client] Auth handler completed successfully');
                                 // Auth handler completed successfully
                               })
                               .catch((error) => {
+                                console.error('[a2a-client] Auth handler error:', error);
                                 errorOccurred = new Error(
                                   `Authentication failed: ${error.message}`
                                 );
@@ -438,7 +478,14 @@ export class A2AClient {
                                   sseClient.close();
                                 }
                               });
+                          } else {
+                            console.log('[a2a-client] NOT calling authHandler:', {
+                              hasAuthParts: authParts.length > 0,
+                              hasAuthHandler: !!authHandler,
+                            });
                           }
+                        } else {
+                          console.log('[a2a-client] No authMessage or authMessage.parts');
                         }
 
                         // Don't complete the stream yet - wait for auth completion

@@ -21,6 +21,8 @@ export const transformStorageMessageToUI = (storageMessage: StorageMessage): UIM
     sender: storageMessage.role === 'assistant' ? 'assistant' : 'user',
     // Preserve contextId in metadata for session continuity
     metadata: storageMessage.contextId ? { contextId: storageMessage.contextId } : undefined,
+    // Preserve authEvent for authentication messages from history
+    authEvent: storageMessage.authEvent,
   };
 };
 

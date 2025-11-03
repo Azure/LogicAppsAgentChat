@@ -177,6 +177,15 @@ export type Message = {
   content: MessageContent[];
   timestamp: Date; // Parsed from metadata.timestamp
   contextId: string;
+  authEvent?: {
+    authParts: Array<{
+      serviceName: string;
+      serviceIcon?: string;
+      consentLink: string;
+      description: string;
+    }>;
+    status: 'pending' | 'completed' | 'failed' | 'canceled';
+  };
 };
 
 /**
