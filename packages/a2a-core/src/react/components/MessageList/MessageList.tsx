@@ -29,8 +29,6 @@ interface MessageListProps {
   userName?: string;
   onAuthCompleted?: () => void;
   onAuthCanceled?: () => void;
-  sessionId?: string; // For multi-session mode
-  contextId?: string; // For single-session mode (fallback)
 }
 
 export function MessageList({
@@ -39,22 +37,9 @@ export function MessageList({
   userName = 'You',
   onAuthCompleted,
   onAuthCanceled,
-  sessionId,
-  contextId,
 }: MessageListProps) {
   const styles = useStyles();
-
-  // In multi-session mode, read session-specific messages
-  // In single-session mode, read global messages
-  const messages = useChatStore((state) =>
-    sessionId ? state.sessionMessages.get(sessionId) || [] : state.messages
-  );
-
-  const isTyping = useChatStore((state) =>
-    sessionId || contextId
-      ? state.typingByContext.get(sessionId || contextId || '') || false
-      : state.isTyping
-  );
+  const { messages, isTyping } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(true);
   const lastMessageContent = useRef<string>('');

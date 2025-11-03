@@ -1,9 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import {
-  ChatWidget,
-  type ChatWidgetProps,
-  type StorageConfig,
-} from '@microsoft/a2achat-core/react';
+import { ChatWidget, type ChatWidgetProps } from '@microsoft/a2achat-core/react';
 import { MultiSessionChat } from './MultiSessionChat';
 import { LoadingDisplay } from './LoadingDisplay';
 import { useFrameBlade } from '../lib/hooks/useFrameBlade';
@@ -39,12 +35,35 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
   const expectPostMessage = params.get('expectPostMessage') === 'true';
 
   // Handle chat history received from parent blade
-  const handleChatHistoryReceived = useCallback((history: ChatHistoryData) => {
-    console.log('Chat history received:', history);
-    chatHistoryRef.current = history;
-    // Note: contextId and messages are now handled through server-side storage
-    // The contextId will be passed as initialContextId prop to ChatWidget
-  }, []);
+  const handleChatHistoryReceived = useCallback(
+    (history: ChatHistoryData) => {
+      console.log('Chat history received:', history);
+      chatHistoryRef.current = history;
+
+      // If we're in single-session mode and received a contextId, store it
+      if (!multiSession && history.contextId) {
+        const sessionKey = props.sessionKey || 'default';
+        const storageKey = `a2a-context-${sessionKey}`;
+        localStorage.setItem(storageKey, history.contextId);
+
+        // Also store the messages if provided
+        if (history.messages && history.messages.length > 0) {
+          const messagesKey = `a2a-messages-${sessionKey}`;
+          // Convert messages to the format expected by the chat widget
+          const formattedMessages = history.messages.map((msg) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp).toISOString(),
+            metadata: msg.metadata,
+          }));
+          localStorage.setItem(messagesKey, JSON.stringify(formattedMessages));
+          console.log(`Stored ${history.messages.length} messages in localStorage`);
+        }
+      }
+    },
+    [multiSession, props.sessionKey]
+  );
 
   // Frame Blade integration
   const { isReady: isFrameBladeReady } = useFrameBlade({
@@ -102,44 +121,6 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
       ? { ...finalProps, apiKey: authToken, oboUserToken: oboUserToken }
       : { ...finalProps, oboUserToken: oboUserToken };
 
-  // Create storage configuration for server-side chat history
-  // Extract base agent URL (remove .well-known/agent-card.json if present)
-  const getAgentBaseUrl = (cardUrl: string | undefined): string => {
-    if (!cardUrl) return '';
-    // Remove .well-known/agent-card.json from the end if it exists
-    return cardUrl.replace(/\/\.well-known\/agent-card\.json$/, '');
-  };
-
-  const agentBaseUrl =
-    typeof propsWithAuth.agentCard === 'string'
-      ? getAgentBaseUrl(propsWithAuth.agentCard)
-      : propsWithAuth.agentCard
-        ? getAgentBaseUrl(propsWithAuth.agentCard.url)
-        : '';
-
-  const storageConfig: StorageConfig = {
-    type: 'server',
-    agentUrl: agentBaseUrl,
-    getAuthToken: () => {
-      // Prefer apiKey, fall back to oboUserToken
-      const token = apiKey || propsWithAuth.apiKey || oboUserToken || propsWithAuth.oboUserToken;
-      console.log('[IframeWrapper] getAuthToken called:', {
-        apiKey: apiKey ? 'present' : 'missing',
-        propsApiKey: propsWithAuth.apiKey ? 'present' : 'missing',
-        oboUserToken: oboUserToken ? 'present' : 'missing',
-        propsOboUserToken: propsWithAuth.oboUserToken ? 'present' : 'missing',
-        token: token ? 'present' : 'EMPTY',
-      });
-      return token || '';
-    },
-  };
-
-  console.log('[IframeWrapper] Storage config created:', {
-    type: storageConfig.type,
-    agentUrl: storageConfig.agentUrl,
-    hasAuthTokenFunction: !!storageConfig.getAuthToken,
-  });
-
   // Render appropriate chat component
   if (multiSession) {
     return (
@@ -152,7 +133,6 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
           apiKey: apiKey || propsWithAuth.apiKey || '',
           oboUserToken: oboUserToken || propsWithAuth.oboUserToken || '',
           onUnauthorized,
-          storageConfig,
         }}
         {...propsWithAuth}
         mode={mode}
@@ -160,11 +140,24 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
     );
   }
 
-  // For single-session mode, determine the initial context ID
+  // For single-session mode with contextId, we need to ensure it's stored properly
+  // The ChatWidget uses sessionKey for persistence, defaulting to 'default' if not provided
   const sessionKey = propsWithAuth.sessionKey || 'default';
 
-  // Use contextId from URL config, or from chat history received via postMessage
-  const initialContextId = contextId || chatHistoryRef.current?.contextId;
+  // Pre-populate localStorage with contextId if provided for single-session mode
+  // Skip this if we already received chat history via postMessage
+  if (contextId && !multiSession && !chatHistoryRef.current) {
+    const storageKey = `a2a-context-${sessionKey}`;
+    const existingContextId = localStorage.getItem(storageKey);
+
+    // Only set if not already present to avoid overwriting active sessions
+    if (!existingContextId) {
+      localStorage.setItem(storageKey, contextId);
+      console.log(`Set contextId in localStorage: ${storageKey} = ${contextId}`);
+    } else {
+      console.log(`Existing contextId found: ${storageKey} = ${existingContextId}`);
+    }
+  }
 
   return (
     <ChatWidget
@@ -173,8 +166,6 @@ export function IframeWrapper({ config }: IframeWrapperProps) {
       fluentTheme={mode}
       onUnauthorized={onUnauthorized}
       sessionKey={sessionKey}
-      storageConfig={storageConfig}
-      initialContextId={initialContextId}
     />
   );
 }

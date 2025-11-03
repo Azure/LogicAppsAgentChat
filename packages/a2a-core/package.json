@@ -63,21 +63,21 @@
     "@types/events": "^3.0.3",
     "@types/node": "^24.0.12",
     "@types/prismjs": "^1.26.5",
-    "@types/react": "^19.0.0",
+    "@types/react": "^18.2.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.6",
     "postcss-modules": "^6.0.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vite": "^6.4.1",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "react": ">=19.2.0"
+    "react": ">=16.8.0"
   },
   "peerDependenciesMeta": {
     "react": {

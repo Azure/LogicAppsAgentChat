@@ -150,7 +150,6 @@ export interface ChatWindowProps extends ChatWidgetProps {
   onToggleSidebar?: () => void;
   isSidebarCollapsed?: boolean;
   mode?: 'light' | 'dark';
-  sessionId?: string; // For multi-session mode
 }
 
 export function ChatWindow(props: ChatWindowProps) {
@@ -177,8 +176,6 @@ export function ChatWindow(props: ChatWindowProps) {
     onContextIdChange,
     sessionName,
     onRenameSession,
-    storageConfig,
-    initialContextId,
     mode = 'light',
   } = props;
 
@@ -206,9 +203,6 @@ export function ChatWindow(props: ChatWindowProps) {
     agentUrl,
     apiKey,
     oboUserToken,
-    storageConfig,
-    initialContextId,
-    sessionId: props.sessionId, // Pass through sessionId for multi-session mode
   });
 
   // Notify parent when contextId changes
@@ -325,8 +319,6 @@ export function ChatWindow(props: ChatWindowProps) {
           userName={userName}
           onAuthCompleted={handleAuthCompleted}
           onAuthCanceled={handleAuthCanceled}
-          sessionId={props.sessionId}
-          contextId={contextId}
         />
       </div>
 
@@ -345,7 +337,6 @@ export function ChatWindow(props: ChatWindowProps) {
           allowedFileTypes={allowedFileTypes}
           disabled={!isConnected}
           contextId={contextId}
-          sessionId={props.sessionId}
         />
       </div>
     </div>

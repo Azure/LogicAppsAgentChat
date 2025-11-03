@@ -39,9 +39,6 @@ export { Message as MessageComponent } from './components/Message';
 export { TypingIndicator } from './components/TypingIndicator';
 export { CompanyLogo } from './components/CompanyLogo';
 export { FileUpload } from './components/FileUpload';
-// Session management component
-export { SessionList } from './components/SessionList';
-export type { SessionListProps } from './components/SessionList';
 // Authentication component
 export { AuthenticationMessage } from './components/Message/AuthenticationMessage';
 export type { AuthenticationMessageProps } from './components/Message/AuthenticationMessage';
@@ -55,14 +52,3 @@ export type { PopupWindowOptions, PopupWindowResult } from '../utils/popup-windo
 // Fluent UI Theme exports
 export { createCustomTheme, defaultLightTheme, defaultDarkTheme } from './theme/fluentTheme';
 export type { ThemeConfig } from './theme/fluentTheme';
-
-// Storage exports
-export { createHistoryStorage } from '../storage';
-export type {
-  ChatHistoryStorage,
-  StorageConfig,
-  ListSessionsOptions,
-} from '../storage/history-storage';
-export { ServerHistoryStorage } from '../storage/server-history-storage';
-export type { ServerHistoryStorageConfig } from '../storage/server-history-storage';
-export type { ChatSession, Message as StorageMessage, MessageContent } from '../api/history-types';

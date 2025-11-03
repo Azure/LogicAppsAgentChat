@@ -219,7 +219,7 @@ describe('IframeWrapper', () => {
       expect.objectContaining({
         apiKey: 'frame-blade-auth-token',
       }),
-      undefined
+      expect.any(Object)
     );
   });
 
@@ -271,14 +271,14 @@ describe('IframeWrapper', () => {
       }
     });
 
-    // Verify contextId is handled (not stored in localStorage, but passed as initialContextId prop)
-    // The actual verification happens when the component re-renders with the contextId
-    expect(chatHistory.contextId).toBe('test-context-123');
+    // Verify localStorage was updated
+    expect(localStorage.getItem('a2a-context-default')).toBe('test-context-123');
+    const storedMessages = JSON.parse(localStorage.getItem('a2a-messages-default') || '[]');
+    expect(storedMessages).toHaveLength(1);
+    expect(storedMessages[0].content).toBe('Test message');
   });
 
-  it('should pass contextId from URL config to ChatWidget', async () => {
-    const { ChatWidget } = vi.mocked(await import('@microsoft/a2achat-core/react'));
-
+  it('should store contextId in localStorage for single-session mode', () => {
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'ctx-from-url',
@@ -287,15 +287,12 @@ describe('IframeWrapper', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    expect(ChatWidget).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialContextId: 'ctx-from-url',
-      }),
-      undefined
-    );
+    expect(localStorage.getItem('a2a-context-default')).toBe('ctx-from-url');
   });
 
-  it('should not use contextId for multi-session mode', () => {
+  it('should not store contextId for multi-session mode', () => {
+    localStorage.clear();
+
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'ctx-from-url',
@@ -304,7 +301,6 @@ describe('IframeWrapper', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    // Multi-session mode uses MultiSessionChat, which doesn't use initialContextId
-    expect(screen.getByTestId('multi-session-chat')).toBeInTheDocument();
+    expect(localStorage.getItem('a2a-context-default')).toBeNull();
   });
 });

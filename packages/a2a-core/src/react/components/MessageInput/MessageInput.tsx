@@ -70,7 +70,6 @@ interface MessageInputProps {
   maxFileSize?: number;
   allowedFileTypes?: string[];
   contextId?: string;
-  sessionId?: string; // For multi-session mode - check session-specific connection state
 }
 
 export function MessageInput({
@@ -81,7 +80,6 @@ export function MessageInput({
   maxFileSize: _maxFileSize, // Not used with Fluent UI file input
   allowedFileTypes,
   contextId,
-  sessionId,
 }: MessageInputProps) {
   const styles = useStyles();
   const [message, setMessage] = useState('');
@@ -90,24 +88,11 @@ export function MessageInput({
   const wasTypingRef = useRef(false);
   const shouldRestoreFocusRef = useRef(true);
   const {
-    isConnected: globalIsConnected,
+    isConnected,
     isTyping: globalIsTyping,
     getIsTypingForContext,
     getAuthRequiredForContext,
   } = useChatStore();
-
-  // Get session-specific connection state for multi-session mode
-  const sessionIsConnected = useChatStore((state) =>
-    sessionId ? state.activeConnections.has(sessionId) : false
-  );
-
-  // Pending sessions are treated as "ready" even without connection
-  // Connection will be created automatically when first message is sent
-  const isPendingSession = sessionId?.startsWith('pending-');
-
-  // Use session-specific connection state if sessionId provided, otherwise global
-  // Pending sessions are always considered "connected" for input purposes
-  const isConnected = sessionId ? isPendingSession || sessionIsConnected : globalIsConnected;
 
   // Get session-specific states, fallback to global state if no contextId
   const isTyping = contextId ? getIsTypingForContext(contextId) : globalIsTyping;

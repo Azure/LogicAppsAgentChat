@@ -45,10 +45,31 @@ describe('IframeWrapper - contextId support', () => {
     inPortal: false,
   };
 
+  let localStorageMock: { [key: string]: string } = {};
+
   beforeEach(() => {
     // Reset URL
     delete (window as any).location;
     (window as any).location = new URL('http://localhost:3000');
+
+    // Mock localStorage
+    localStorageMock = {};
+
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn((key: string) => localStorageMock[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
+          localStorageMock[key] = value;
+        }),
+        removeItem: vi.fn((key: string) => {
+          delete localStorageMock[key];
+        }),
+        clear: vi.fn(() => {
+          localStorageMock = {};
+        }),
+      },
+      writable: true,
+    });
 
     // Reset mocks
     vi.clearAllMocks();
@@ -58,9 +79,7 @@ describe('IframeWrapper - contextId support', () => {
     vi.restoreAllMocks();
   });
 
-  it('should pass initialContextId to ChatWidget for single-session mode', async () => {
-    const { ChatWidget } = vi.mocked(await import('@microsoft/a2achat-core/react'));
-
+  it('should set contextId in localStorage for single-session mode', () => {
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'test-context-123',
@@ -69,15 +88,13 @@ describe('IframeWrapper - contextId support', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    expect(ChatWidget).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialContextId: 'test-context-123',
-      }),
-      undefined
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      'a2a-context-default',
+      'test-context-123'
     );
   });
 
-  it('should not pass initialContextId for multi-session mode', async () => {
+  it('should not set contextId in localStorage for multi-session mode', () => {
     const configWithContextId: IframeConfig = {
       ...defaultConfig,
       contextId: 'test-context-456',
@@ -86,8 +103,49 @@ describe('IframeWrapper - contextId support', () => {
 
     render(<IframeWrapper config={configWithContextId} />);
 
-    // Multi-session mode uses MultiSessionChat, not ChatWidget
-    expect(screen.getByTestId('multi-session-chat')).toBeInTheDocument();
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('should respect existing contextId in localStorage', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Pre-populate localStorage
+    localStorageMock['a2a-context-default'] = 'existing-context-789';
+
+    const configWithContextId: IframeConfig = {
+      ...defaultConfig,
+      contextId: 'new-context-123',
+      multiSession: false,
+    };
+
+    render(<IframeWrapper config={configWithContextId} />);
+
+    // Should not overwrite existing contextId
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      'Existing contextId found: a2a-context-default = existing-context-789'
+    );
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it('should use custom sessionKey for contextId storage', () => {
+    const configWithSessionKey: IframeConfig = {
+      ...defaultConfig,
+      props: {
+        ...defaultConfig.props,
+        sessionKey: 'custom-session',
+      },
+      contextId: 'test-context-abc',
+      multiSession: false,
+    };
+
+    render(<IframeWrapper config={configWithSessionKey} />);
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      'a2a-context-custom-session',
+      'test-context-abc'
+    );
   });
 
   it('should pass sessionKey to ChatWidget', async () => {
@@ -109,13 +167,11 @@ describe('IframeWrapper - contextId support', () => {
       expect.objectContaining({
         sessionKey: 'my-session',
       }),
-      undefined
+      expect.any(Object)
     );
   });
 
-  it('should handle missing contextId gracefully', async () => {
-    const { ChatWidget } = vi.mocked(await import('@microsoft/a2achat-core/react'));
-
+  it('should handle missing contextId gracefully', () => {
     const configWithoutContextId: IframeConfig = {
       ...defaultConfig,
       contextId: undefined,
@@ -124,38 +180,25 @@ describe('IframeWrapper - contextId support', () => {
 
     render(<IframeWrapper config={configWithoutContextId} />);
 
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
     expect(screen.getByTestId('chat-widget')).toBeInTheDocument();
-
-    // Should still pass initialContextId prop, but it will be undefined
-    expect(ChatWidget).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialContextId: undefined,
-      }),
-      undefined
-    );
   });
 
-  it('should pass contextId with custom sessionKey', async () => {
-    const { ChatWidget } = vi.mocked(await import('@microsoft/a2achat-core/react'));
+  it('should log when setting contextId', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const configWithSessionKey: IframeConfig = {
+    const configWithContextId: IframeConfig = {
       ...defaultConfig,
-      props: {
-        ...defaultConfig.props,
-        sessionKey: 'custom-session',
-      },
-      contextId: 'test-context-abc',
+      contextId: 'logged-context',
       multiSession: false,
     };
 
-    render(<IframeWrapper config={configWithSessionKey} />);
+    render(<IframeWrapper config={configWithContextId} />);
 
-    expect(ChatWidget).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionKey: 'custom-session',
-        initialContextId: 'test-context-abc',
-      }),
-      undefined
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      'Set contextId in localStorage: a2a-context-default = logged-context'
     );
+
+    consoleLogSpy.mockRestore();
   });
 });
