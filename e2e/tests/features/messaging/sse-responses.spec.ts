@@ -10,7 +10,7 @@
  * - Error handling
  */
 
-import { test, expect } from '../../fixtures/sse-fixtures';
+import { test, expect } from '../../../fixtures/sse-fixtures';
 
 // Agent card URL - intercepted by our fixture
 const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';

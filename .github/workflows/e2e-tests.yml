@@ -60,8 +60,8 @@ jobs:
           path: test-results/screenshots/
           retention-days: 7
 
-  critical-tests:
-    name: Critical Path Tests
+  smoke-tests:
+    name: Smoke Tests
     timeout-minutes: 30
     runs-on: ubuntu-latest
 
@@ -89,20 +89,20 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Run Critical Tests
-        run: pnpm test:e2e:critical
+      - name: Run Smoke Tests
+        run: pnpm test:e2e:smoke
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: critical-tests-report
+          name: smoke-tests-report
           path: playwright-report/
           retention-days: 30
 
-      # Fail the workflow if critical tests fail
-      - name: Check critical tests passed
+      # Fail the workflow if smoke tests fail
+      - name: Check smoke tests passed
         if: failure()
         run: |
-          echo "::error::Critical tests failed! Deployment must be blocked."
+          echo "::error::Smoke tests failed! Deployment must be blocked."
           exit 1

@@ -454,7 +454,17 @@ export function useChatWidget({
   const sendAuthCompletedForSession = useCallback(async () => {
     if (!sessionId) {
       // Single-session mode: use useA2A's sendAuthenticationCompleted
-      return sendAuthenticationCompleted();
+      // Set typing indicator for single-session mode
+      const contextToUse = contextIdRef.current;
+      setTyping(true, contextToUse);
+
+      try {
+        const result = await sendAuthenticationCompleted();
+        return result;
+      } finally {
+        // Clear typing indicator when done
+        setTyping(false, contextToUse);
+      }
     }
 
     // Multi-session mode: use the session's A2AClient directly
@@ -474,97 +484,107 @@ export function useChatWidget({
 
     console.log('[useChatWidget] Sending authentication completed for session', sessionId);
 
-    // Use the client's sendAuthenticationCompleted method which expects contextId and taskId
-    const stream = await client.sendAuthenticationCompleted(sessionId, authRequired.taskId);
+    // Set typing indicator before processing the stream
+    setTyping(true, sessionId);
 
-    // Process the stream responses - same pattern as sendMessageToSession in chatStore
-    for await (const task of stream) {
-      console.log('[useChatWidget] Auth completed response:', task);
+    try {
+      // Use the client's sendAuthenticationCompleted method which expects contextId and taskId
+      const stream = await client.sendAuthenticationCompleted(sessionId, authRequired.taskId);
 
-      // Process messages from the task (same logic as in chatStore.sendMessageToSession)
-      if (task.messages && task.messages.length > 0) {
-        for (let i = 0; i < task.messages.length; i++) {
-          const message = task.messages[i];
-          if (!message) continue;
+      // Process the stream responses - same pattern as sendMessageToSession in chatStore
+      for await (const task of stream) {
+        console.log('[useChatWidget] Auth completed response:', task);
 
-          const contentParts = message.content || [];
-          const textContent = contentParts
-            .filter((part: any) => part.type === 'text')
-            .map((part: any) => (part.type === 'text' ? part.content : ''))
-            .join('');
+        // Process messages from the task (same logic as in chatStore.sendMessageToSession)
+        if (task.messages && task.messages.length > 0) {
+          for (let i = 0; i < task.messages.length; i++) {
+            const message = task.messages[i];
+            if (!message) continue;
 
-          if (textContent) {
-            const messageId = `${message.role}-${task.id}-${i}`;
-            const isStreaming = task.state === 'running' || task.state === 'pending';
+            const contentParts = message.content || [];
+            const textContent = contentParts
+              .filter((part: any) => part.type === 'text')
+              .map((part: any) => (part.type === 'text' ? part.content : ''))
+              .join('');
 
-            useChatStore.setState((draft) => {
-              const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
+            if (textContent) {
+              const messageId = `${message.role}-${task.id}-${i}`;
+              const isStreaming = task.state === 'running' || task.state === 'pending';
 
-              // Skip if this is a user message that we already have
-              if (message.role === 'user') {
-                const isDuplicate = sessionMsgs.some(
-                  (msg) => msg.sender === 'user' && msg.content === textContent
-                );
-                if (isDuplicate) {
-                  return {};
+              useChatStore.setState((draft) => {
+                const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
+
+                // Skip if this is a user message that we already have
+                if (message.role === 'user') {
+                  const isDuplicate = sessionMsgs.some(
+                    (msg) => msg.sender === 'user' && msg.content === textContent
+                  );
+                  if (isDuplicate) {
+                    return {};
+                  }
                 }
-              }
 
-              const existingIndex = sessionMsgs.findIndex((msg) => msg.id === messageId);
-              const newMessages = [...sessionMsgs];
+                const existingIndex = sessionMsgs.findIndex((msg) => msg.id === messageId);
+                const newMessages = [...sessionMsgs];
 
-              if (existingIndex >= 0) {
-                // Update existing message
-                newMessages[existingIndex] = {
-                  ...newMessages[existingIndex],
-                  content: textContent,
-                  metadata: {
-                    ...newMessages[existingIndex].metadata,
-                    isStreaming,
-                    taskId: task.id,
-                  },
-                };
-              } else {
-                // Add new message
-                const newMessage = {
-                  id: messageId,
-                  content: textContent,
-                  sender: message.role === 'user' ? ('user' as const) : ('assistant' as const),
-                  timestamp: new Date(),
-                  status: 'sent' as const,
-                  metadata: {
-                    isStreaming,
-                    taskId: task.id,
-                    contextId: sessionId,
-                  },
-                };
-                newMessages.push(newMessage);
+                if (existingIndex >= 0) {
+                  // Update existing message
+                  newMessages[existingIndex] = {
+                    ...newMessages[existingIndex],
+                    content: textContent,
+                    metadata: {
+                      ...newMessages[existingIndex].metadata,
+                      isStreaming,
+                      taskId: task.id,
+                    },
+                  };
+                } else {
+                  // Add new message
+                  const newMessage = {
+                    id: messageId,
+                    content: textContent,
+                    sender: message.role === 'user' ? ('user' as const) : ('assistant' as const),
+                    timestamp: new Date(),
+                    status: 'sent' as const,
+                    metadata: {
+                      isStreaming,
+                      taskId: task.id,
+                      contextId: sessionId,
+                    },
+                  };
+                  newMessages.push(newMessage);
 
-                // Increment unread count for assistant messages if this session is not currently viewed
-                if (message.role === 'assistant' && draft.viewedSessionId !== sessionId) {
-                  const newUnreadCounts = new Map(draft.unreadCounts);
-                  const currentCount = newUnreadCounts.get(sessionId) || 0;
-                  newUnreadCounts.set(sessionId, currentCount + 1);
-                  const newSessionMessages = new Map(draft.sessionMessages);
-                  newSessionMessages.set(sessionId, newMessages);
-                  return { sessionMessages: newSessionMessages, unreadCounts: newUnreadCounts };
+                  // Increment unread count for assistant messages if this session is not currently viewed
+                  if (message.role === 'assistant' && draft.viewedSessionId !== sessionId) {
+                    const newUnreadCounts = new Map(draft.unreadCounts);
+                    const currentCount = newUnreadCounts.get(sessionId) || 0;
+                    newUnreadCounts.set(sessionId, currentCount + 1);
+                    const newSessionMessages = new Map(draft.sessionMessages);
+                    newSessionMessages.set(sessionId, newMessages);
+                    return { sessionMessages: newSessionMessages, unreadCounts: newUnreadCounts };
+                  }
                 }
-              }
 
-              const newSessionMessages = new Map(draft.sessionMessages);
-              newSessionMessages.set(sessionId, newMessages);
-              return { sessionMessages: newSessionMessages };
-            });
+                const newSessionMessages = new Map(draft.sessionMessages);
+                newSessionMessages.set(sessionId, newMessages);
+                return { sessionMessages: newSessionMessages };
+              });
+            }
           }
         }
       }
+    } finally {
+      // Clear typing indicator when stream completes
+      setTyping(false, sessionId);
     }
-  }, [sessionId, sendAuthenticationCompleted]);
+  }, [sessionId, sendAuthenticationCompleted, setTyping]);
 
   const handleAuthCompleted = useCallback(async () => {
     try {
+      // Send auth completed message (this will set typing indicator which takes precedence over auth status)
       await sendAuthCompletedForSession();
-      // Clear auth required state when authentication is completed
+
+      // Clear auth required state after sending completion message
       // In multi-session mode, use sessionId; in single-session mode, use contextIdRef
       const contextToUse = sessionId || contextIdRef.current;
       setAuthRequired(null, contextToUse);

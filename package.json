@@ -14,7 +14,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:critical": "playwright test e2e/tests/critical",
+    "test:e2e:smoke": "playwright test e2e/tests/smoke",
     "test:e2e:report": "playwright show-report",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",

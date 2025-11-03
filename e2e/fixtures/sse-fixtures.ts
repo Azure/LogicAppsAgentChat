@@ -8,6 +8,53 @@ import { test as base, Page } from '@playwright/test';
 import { generateSSEResponse, AGENT_CARD } from '../mocks/sse-generators';
 
 async function setupSSEMocking(page: Page) {
+  // Log browser console messages to see what's happening
+  page.on('console', (msg) => {
+    const type = msg.type();
+    const text = msg.text();
+    if (text.includes('[MOCK]') || text.includes('[AUTH]')) {
+      console.log(`[BROWSER ${type.toUpperCase()}]`, text);
+    }
+  });
+
+  // Mock openPopupWindow to simulate successful authentication without real popups
+  await page.addInitScript(() => {
+    console.log('[MOCK] Init script running, about to override window.open');
+
+    // Override window.open to return a mock window that appears closed after a brief delay
+    const originalOpen = window.open;
+    window.open = function (url?: string | URL, target?: string, features?: string) {
+      console.log(
+        '[MOCK] window.open called with:',
+        JSON.stringify({ url: url?.toString(), target })
+      );
+
+      const startTime = Date.now();
+      const mockWindow = {
+        get closed() {
+          // Window appears closed after 600ms (after first poll interval)
+          const elapsed = Date.now() - startTime;
+          const isClosed = elapsed > 600;
+          if (isClosed) {
+            console.log(`[MOCK] window.closed getter returning true after ${elapsed}ms`);
+          }
+          return isClosed;
+        },
+        close: function () {
+          console.log('[MOCK] window.close() called');
+        },
+        focus: function () {
+          console.log('[MOCK] window.focus() called');
+        },
+      };
+
+      console.log('[MOCK] Returning mock window object');
+      return mockWindow as any;
+    };
+
+    console.log('[MOCK] window.open override complete');
+  });
+
   // Intercept agent card requests
   await page.route('**/api/agents/test/.well-known/agent-card.json', async (route) => {
     await route.fulfill({
@@ -31,13 +78,433 @@ async function setupSSEMocking(page: Page) {
 
     // Handle contexts/list
     if (method === 'contexts/list') {
+      // Check if the request came from a page with specific flags
+      const requestUrl = request.url();
+      const referer = request.headers()['referer'] || '';
+      const shouldReturnError = referer.includes('errorHistory=true');
+      const shouldReturnMockHistory = referer.includes('withHistory=true');
+
+      // Return error response if errorHistory flag is set
+      if (shouldReturnError) {
+        console.log('[SSE FIXTURE] Returning error for errorHistory test');
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32603,
+              message: 'Internal server error',
+            },
+          }),
+        });
+        return;
+      }
+
+      // Return empty sessions array by default (unless withHistory flag is set)
+      if (!shouldReturnMockHistory) {
+        console.log('[SSE FIXTURE] Returning empty sessions (default)');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: [],
+          }),
+        });
+        return;
+      }
+
+      // Return mock chat sessions only when withHistory=true is set
+      const mockSessions = [
+        {
+          id: 'session-1',
+          name: 'Project Discussion',
+          isArchived: false,
+          createdAt: '01/10/2025 10:30:00 AM',
+          updatedAt: '01/10/2025 02:15:00 PM',
+          status: 'Running',
+          lastTask: {
+            id: 'task-1',
+            contextId: 'session-1',
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'I can help you with the project requirements.',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 02:15:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 02:15:00 PM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'I can help you with the project requirements.',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 02:15:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 02:15:00 PM',
+            },
+            history: [],
+          },
+        },
+        {
+          id: 'session-2',
+          name: 'Bug Investigation',
+          isArchived: false,
+          createdAt: '01/09/2025 03:45:00 PM',
+          updatedAt: '01/09/2025 04:30:00 PM',
+          status: 'Running',
+          lastTask: {
+            id: 'task-2',
+            contextId: 'session-2',
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-2',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The issue appears to be related to the API timeout.',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 04:30:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 04:30:00 PM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-2',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The issue appears to be related to the API timeout.',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 04:30:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 04:30:00 PM',
+            },
+            history: [],
+          },
+        },
+      ];
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           jsonrpc: '2.0',
           id,
-          result: [],
+          result: mockSessions,
+        }),
+      });
+      return;
+    }
+
+    // Handle tasks/list
+    if (method === 'tasks/list') {
+      const contextId = params?.Id;
+      console.log('[SSE FIXTURE] tasks/list request for context:', contextId);
+
+      // Check for error scenario
+      const referer = request.headers()['referer'] || '';
+      const shouldReturnTasksError = referer.includes('errorTasks=true');
+
+      if (shouldReturnTasksError) {
+        console.log('[SSE FIXTURE] Returning error for errorTasks test');
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32603,
+              message: 'Failed to load tasks',
+            },
+          }),
+        });
+        return;
+      }
+
+      // Return context-specific mock tasks/messages
+      // NOTE: transformTasksToMessages reads from task.history array, not taskStatus.message
+      let mockTasks;
+
+      if (contextId === 'session-1') {
+        // Session 1: "Project Discussion" messages
+        mockTasks = [
+          {
+            id: `task-${contextId}-1`,
+            contextId: contextId,
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-user-s1-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Tell me about the project architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 10:30:00 AM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 10:30:00 AM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-user-s1-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Tell me about the project architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 10:30:00 AM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 10:30:00 AM',
+            },
+            history: [
+              {
+                messageId: 'msg-user-s1-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Tell me about the project architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 10:30:00 AM',
+                },
+                kind: 'message',
+              },
+            ],
+          },
+          {
+            id: `task-${contextId}-2`,
+            contextId: contextId,
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-agent-s1-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The project uses a modern microservices architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 02:15:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 02:15:00 PM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-agent-s1-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The project uses a modern microservices architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 02:15:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/10/2025 02:15:00 PM',
+            },
+            history: [
+              {
+                messageId: 'msg-agent-s1-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The project uses a modern microservices architecture',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/10/2025 02:15:00 PM',
+                },
+                kind: 'message',
+              },
+            ],
+          },
+        ];
+      } else if (contextId === 'session-2') {
+        // Session 2: "Bug Investigation" messages
+        mockTasks = [
+          {
+            id: `task-${contextId}-1`,
+            contextId: contextId,
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-user-s2-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Help me debug this timeout issue',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 03:45:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 03:45:00 PM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-user-s2-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Help me debug this timeout issue',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 03:45:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 03:45:00 PM',
+            },
+            history: [
+              {
+                messageId: 'msg-user-s2-1',
+                role: 'user',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Help me debug this timeout issue',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 03:45:00 PM',
+                },
+                kind: 'message',
+              },
+            ],
+          },
+          {
+            id: `task-${contextId}-2`,
+            contextId: contextId,
+            taskStatus: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-agent-s2-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The timeout is likely caused by the database connection pool',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 04:30:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 04:30:00 PM',
+            },
+            status: {
+              state: 'completed',
+              message: {
+                messageId: 'msg-agent-s2-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The timeout is likely caused by the database connection pool',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 04:30:00 PM',
+                },
+                kind: 'message',
+              },
+              timestamp: '01/09/2025 04:30:00 PM',
+            },
+            history: [
+              {
+                messageId: 'msg-agent-s2-1',
+                role: 'agent',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'The timeout is likely caused by the database connection pool',
+                  },
+                ],
+                metadata: {
+                  timestamp: '01/09/2025 04:30:00 PM',
+                },
+                kind: 'message',
+              },
+            ],
+          },
+        ];
+      } else {
+        // Default fallback for unknown sessions
+        mockTasks = [];
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id,
+          result: mockTasks,
         }),
       });
       return;
