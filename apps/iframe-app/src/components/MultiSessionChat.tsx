@@ -426,7 +426,6 @@ export function MultiSessionChat({
                   isSidebarCollapsed={isCollapsed}
                   mode={mode}
                   fluentTheme={mode}
-                  onAuthRequired={chatWidgetProps.onAuthRequired}
                   onUnauthorized={config.onUnauthorized}
                   onContextIdChange={handleContextIdChange}
                   sessionName={session.name}

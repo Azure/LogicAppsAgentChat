@@ -19,6 +19,10 @@ export const transformStorageMessageToUI = (storageMessage: StorageMessage): UIM
   const authEvent = storageMessage.authEvent
     ? {
         ...storageMessage.authEvent,
+        authParts: storageMessage.authEvent.authParts.map((part) => ({
+          ...part,
+          status: 'completed',
+        })),
         status: 'completed' as const,
       }
     : undefined;
