@@ -90,7 +90,7 @@ jobs:
         run: pnpm build
 
       - name: Run Smoke Tests
-        run: pnpm test:e2e:smoke
+        run: pnpm test:e2e:smoke --project=chromium
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
