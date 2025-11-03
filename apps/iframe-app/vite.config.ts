@@ -19,7 +19,12 @@ function renameIndexHtml(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), renameIndexHtml(), mkcert()],
+  plugins: [
+    react(),
+    renameIndexHtml(),
+    // Only use mkcert (HTTPS) locally, not in CI
+    ...(process.env.CI ? [] : [mkcert()]),
+  ],
   base: './', // Use relative paths instead of absolute
   build: {
     outDir: 'dist',
