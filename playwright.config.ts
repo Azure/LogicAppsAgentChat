@@ -25,8 +25,8 @@ export default defineConfig({
   },
 
   use: {
-    // Base URL for all tests (HTTPS because vite uses mkcert)
-    baseURL: 'https://localhost:3001',
+    // Base URL for all tests (HTTPS locally, HTTP in CI)
+    baseURL: process.env.CI ? 'http://localhost:3001' : 'https://localhost:3001',
 
     // Ignore HTTPS certificate errors for localhost
     ignoreHTTPSErrors: true,
@@ -100,11 +100,11 @@ export default defineConfig({
   ],
 
   // Web server configuration - automatically starts dev server for E2E tests
-  // In CI: Server is always started fresh
-  // Locally: Reuses existing server if already running
+  // In CI: Server is always started fresh with HTTP (HTTPS requires mkcert)
+  // Locally: Reuses existing server if already running with HTTPS
   webServer: {
     command: 'pnpm --filter @a2achat/iframe-app dev',
-    url: 'https://localhost:3001',
+    url: process.env.CI ? 'http://localhost:3001' : 'https://localhost:3001',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
     stdout: 'ignore',

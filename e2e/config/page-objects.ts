@@ -8,7 +8,6 @@ import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
 import {
   waitForVisible,
-  waitForText,
   typeRealistic,
   waitForCondition,
   getCount,

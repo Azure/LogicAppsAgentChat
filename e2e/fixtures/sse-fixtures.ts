@@ -22,7 +22,6 @@ async function setupSSEMocking(page: Page) {
     console.log('[MOCK] Init script running, about to override window.open');
 
     // Override window.open to return a mock window that appears closed after a brief delay
-    const originalOpen = window.open;
     window.open = function (url?: string | URL, target?: string, features?: string) {
       console.log(
         '[MOCK] window.open called with:',
@@ -79,7 +78,6 @@ async function setupSSEMocking(page: Page) {
     // Handle contexts/list
     if (method === 'contexts/list') {
       // Check if the request came from a page with specific flags
-      const requestUrl = request.url();
       const referer = request.headers()['referer'] || '';
       const shouldReturnError = referer.includes('errorHistory=true');
       const shouldReturnMockHistory = referer.includes('withHistory=true');

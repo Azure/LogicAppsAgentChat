@@ -428,6 +428,15 @@ export class A2AClient {
                                   consentLinkUrl
                                 );
 
+                                // Validate that we have a valid consent link URL
+                                if (!consentLinkUrl || typeof consentLinkUrl !== 'string') {
+                                  console.error(
+                                    '[a2a-client] Invalid consent link - skipping auth part:',
+                                    { rawConsentLink, consentLinkUrl }
+                                  );
+                                  continue;
+                                }
+
                                 authParts.push({
                                   consentLink: consentLinkUrl,
                                   status:

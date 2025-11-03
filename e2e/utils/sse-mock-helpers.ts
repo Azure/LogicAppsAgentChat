@@ -74,7 +74,7 @@ export const mockSSEEndpoint = async (page: Page, url: string, config: SSEMockCo
 
     // For Playwright, we need to fulfill with a string body
     // We'll concatenate all events
-    const { events, delay = 0 } = config;
+    const { events } = config;
     let body = '';
 
     for (let i = 0; i < events.length; i++) {

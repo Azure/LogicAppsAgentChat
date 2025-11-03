@@ -397,7 +397,7 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
                   kind: 'data',
                   data: {
                     messageType: 'InTaskAuthRequired',
-                    consentLink: 'https://www.microsoft.com',
+                    consentLink: 'http://localhost:3001/mock-consent',
                     status: 'Unauthenticated',
                     serviceName: 'Microsoft Graph',
                     serviceIcon: 'https://example.com/icons/graph.png',
@@ -454,7 +454,7 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
                   kind: 'data',
                   data: {
                     messageType: 'InTaskAuthRequired',
-                    consentLink: 'https://www.microsoft.com',
+                    consentLink: 'http://localhost:3001/mock-consent',
                     status: 'Unauthenticated',
                     serviceName: 'Microsoft Graph',
                     serviceIcon: 'https://example.com/icons/graph.png',
