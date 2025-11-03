@@ -11,7 +11,7 @@ const AGENT_CARD = {
   protocolVersion: '1.0',
   name: 'Test Agent',
   description: 'A test agent for E2E testing',
-  url: 'https://localhost:3001/api/agents/test',
+  url: 'http://localhost:3001/api/agents/test',
   version: '1.0.0',
   capabilities: {
     streaming: true,
@@ -23,7 +23,7 @@ const AGENT_CARD = {
   skills: [],
 };
 
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('Error Handling', () => {
   test('should show error when agent card fails to load', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('Error Handling', () => {
     });
 
     // Navigate to app
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Should show error message
@@ -54,7 +54,7 @@ test.describe('Error Handling', () => {
       });
     });
 
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Should show error
@@ -91,7 +91,7 @@ test.describe('Error Handling', () => {
       await route.continue();
     });
 
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // App might still show UI but with error state
@@ -136,7 +136,7 @@ test.describe('Error Handling', () => {
       await route.continue();
     });
 
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
 
     // Should show loading state or timeout error
     await page.waitForTimeout(2000);
@@ -148,7 +148,7 @@ test.describe('Error Handling', () => {
 
   test('should handle missing agent card parameter', async ({ page }) => {
     // Navigate without agentCard parameter
-    await page.goto('https://localhost:3001/');
+    await page.goto('http://localhost:3001/');
     await page.waitForLoadState('networkidle');
 
     // App should not crash - check page has some content
@@ -195,7 +195,7 @@ test.describe('Message Error Handling', () => {
   });
 
   test('should prevent sending empty messages', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -224,7 +224,7 @@ test.describe('Message Error Handling', () => {
   });
 
   test('should prevent sending whitespace-only messages', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -240,7 +240,7 @@ test.describe('Message Error Handling', () => {
   });
 
   test('should handle very long messages', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -285,7 +285,7 @@ test.describe('Message Error Handling', () => {
   });
 
   test('should handle special characters in messages', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -307,7 +307,7 @@ test.describe('Message Error Handling', () => {
   });
 
   test('should handle emoji in messages', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();

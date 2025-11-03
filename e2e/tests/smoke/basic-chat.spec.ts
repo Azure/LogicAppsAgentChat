@@ -16,7 +16,7 @@ const AGENT_CARD = {
   protocolVersion: '1.0',
   name: 'Test Agent',
   description: 'A test agent for E2E testing',
-  url: 'https://localhost:3001/api/agents/test',
+  url: 'http://localhost:3001/api/agents/test',
   version: '1.0.0',
   capabilities: {
     streaming: true,
@@ -28,7 +28,7 @@ const AGENT_CARD = {
   skills: [],
 };
 
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('Basic Chat Flow - CRITICAL', () => {
   test.beforeEach(async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
 
   test('should display chat interface after starting new chat', async ({ page }) => {
     // Navigate to app
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Click "Start a new chat"
@@ -80,7 +80,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
   });
 
   test('should send message and display it in chat', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Start new chat
@@ -105,7 +105,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
   });
 
   test('should show loading state while waiting for response', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -119,7 +119,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
   });
 
   test('should handle Enter key to send message', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -136,7 +136,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
   });
 
   test('should enable send button when text is entered', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -155,7 +155,7 @@ test.describe('Basic Chat Flow - CRITICAL', () => {
   });
 
   test('should display user message in chat history', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -210,7 +210,7 @@ test.describe('Chat Interface Accessibility - CRITICAL', () => {
   });
 
   test('should be keyboard accessible', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Start new chat first
@@ -232,7 +232,7 @@ test.describe('Chat Interface Accessibility - CRITICAL', () => {
   });
 
   test('should have proper ARIA labels', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();

@@ -8,7 +8,7 @@
 import { test, expect } from '../../../fixtures/sse-fixtures';
 
 // Agent card URL - intercepted by our fixture
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('API Key Authentication', () => {
   test('should include API key header in agent card request', async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('API Key Authentication', () => {
     // Navigate to app with API key
     const apiKey = 'test-api-key-12345';
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -35,7 +35,7 @@ test.describe('API Key Authentication', () => {
     // Navigate to app with API key
     const apiKey = 'test-api-key-67890';
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -72,7 +72,7 @@ test.describe('API Key Authentication', () => {
 
     // Navigate to app with API key
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -94,7 +94,7 @@ test.describe('OBO Token Authentication', () => {
     // Navigate to app with OBO token
     const oboToken = 'obo-user-token-abc123';
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -108,7 +108,7 @@ test.describe('OBO Token Authentication', () => {
     // Navigate to app with OBO token
     const oboToken = 'obo-user-token-def456';
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -145,7 +145,7 @@ test.describe('OBO Token Authentication', () => {
 
     // Navigate to app with OBO token
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -163,7 +163,7 @@ test.describe('Combined API Key and OBO Token Authentication', () => {
 
     // Navigate to app with both credentials
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&oboUserToken=${oboToken}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&oboUserToken=${oboToken}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -196,7 +196,7 @@ test.describe('Combined API Key and OBO Token Authentication', () => {
 
     // Navigate to app with both credentials
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&oboUserToken=${oboToken}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&oboUserToken=${oboToken}`
     );
     await page.waitForLoadState('networkidle');
 
@@ -239,7 +239,7 @@ test.describe('Combined API Key and OBO Token Authentication', () => {
 test.describe('Authentication Edge Cases', () => {
   test('should not include API key header when not provided', async ({ page }) => {
     // Navigate without API key
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Start new chat
@@ -274,7 +274,7 @@ test.describe('Authentication Edge Cases', () => {
     });
 
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${encodeURIComponent(apiKeyWithSpecialChars)}`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${encodeURIComponent(apiKeyWithSpecialChars)}`
     );
     await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /start a new chat/i }).click();

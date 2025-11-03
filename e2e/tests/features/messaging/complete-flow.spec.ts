@@ -11,7 +11,7 @@ const VALID_AGENT_CARD = {
   protocolVersion: '1.0',
   name: 'Test Agent',
   description: 'A test agent for E2E testing',
-  url: 'https://localhost:3001/api/agents/test',
+  url: 'http://localhost:3001/api/agents/test',
   version: '1.0.0',
   capabilities: {
     streaming: true,
@@ -169,8 +169,8 @@ test.describe('Complete Chat Flow', () => {
     });
 
     // Navigate to app
-    const agentCardUrl = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(agentCardUrl)}`);
+    const agentCardUrl = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(agentCardUrl)}`);
     await page.waitForLoadState('networkidle', { timeout: 10000 });
 
     // Verify empty state shows
@@ -257,8 +257,8 @@ test.describe('Complete Chat Flow', () => {
       await route.continue();
     });
 
-    const agentCardUrl = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(agentCardUrl)}`);
+    const agentCardUrl = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(agentCardUrl)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();

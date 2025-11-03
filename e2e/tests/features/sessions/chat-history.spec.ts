@@ -11,7 +11,7 @@
 import { test, expect } from '../../../fixtures/sse-fixtures';
 
 // Agent card URL - intercepted by our fixture
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('Chat History Loading', () => {
   test('should load list of existing chat sessions on initial load', async ({ page }) => {
@@ -23,7 +23,7 @@ test.describe('Chat History Loading', () => {
 
     // Navigate to app
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -41,7 +41,7 @@ test.describe('Chat History Loading', () => {
 
   test('should display existing sessions in the sidebar', async ({ page }) => {
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -73,7 +73,7 @@ test.describe('Chat History Loading', () => {
   test('should handle empty chat history gracefully', async ({ page }) => {
     // Navigate with emptyHistory=true to get empty sessions array
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&emptyHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&emptyHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -86,7 +86,7 @@ test.describe('Chat History Loading', () => {
 test.describe('Loading Messages for Historical Session', () => {
   test('should load messages when clicking on a historical session', async ({ page }) => {
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -120,7 +120,7 @@ test.describe('Loading Messages for Historical Session', () => {
   test('should display historical messages in correct order', async ({ page }) => {
     // Enable multi-session mode to load the multi-session UI with chat history
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -148,7 +148,7 @@ test.describe('Loading Messages for Historical Session', () => {
   test('should show both user and assistant messages from history', async ({ page }) => {
     // Enable multi-session mode to load the multi-session UI with chat history
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -180,7 +180,7 @@ test.describe('Session Switching', () => {
   test('should switch between different historical sessions', async ({ page }) => {
     // Enable multi-session mode to see session list
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -222,7 +222,7 @@ test.describe('Session Switching', () => {
   test('should preserve active session indicator', async ({ page }) => {
     // Enable multi-session mode to see session list
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -277,7 +277,7 @@ test.describe('Chat History with Authentication', () => {
     });
 
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -297,7 +297,7 @@ test.describe('Chat History with Authentication', () => {
     });
 
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&oboUserToken=${oboToken}&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -312,7 +312,7 @@ test.describe('Chat History with Authentication', () => {
 
     // Navigate with API key and multiSession mode
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&apiKey=${apiKey}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -344,7 +344,7 @@ test.describe('Chat History Error Handling', () => {
   test('should handle contexts/list failure gracefully', async ({ page }) => {
     // Use errorHistory=true to trigger an error response from contexts/list
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&errorHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&errorHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -360,7 +360,7 @@ test.describe('Chat History Error Handling', () => {
     // Use errorTasks=true to trigger an error response from tasks/list
     // Use multiSession mode to see the session list
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true&errorTasks=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true&errorTasks=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -386,7 +386,7 @@ test.describe('Creating New Chat with Existing History', () => {
   test('should allow creating new chat while history exists', async ({ page }) => {
     // Enable multiSession mode to see the "New Chat" button
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 
@@ -411,7 +411,7 @@ test.describe('Creating New Chat with Existing History', () => {
   test('should create new session when sending message in new chat', async ({ page }) => {
     // Enable multiSession mode
     await page.goto(
-      `https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
+      `http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}&multiSession=true&withHistory=true`
     );
     await page.waitForLoadState('networkidle');
 

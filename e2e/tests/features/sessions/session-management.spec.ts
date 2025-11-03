@@ -11,7 +11,7 @@ const AGENT_CARD = {
   protocolVersion: '1.0',
   name: 'Test Agent',
   description: 'A test agent for E2E testing',
-  url: 'https://localhost:3001/api/agents/test',
+  url: 'http://localhost:3001/api/agents/test',
   version: '1.0.0',
   capabilities: {
     streaming: true,
@@ -23,7 +23,7 @@ const AGENT_CARD = {
   skills: [],
 };
 
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('Session Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show empty state when no sessions exist', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Verify empty state UI
@@ -73,7 +73,7 @@ test.describe('Session Management', () => {
   });
 
   test('should create new chat session when clicking "Start a new chat"', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Click start new chat
@@ -90,7 +90,7 @@ test.describe('Session Management', () => {
   });
 
   test('should have "+ New Chat" button always visible in sidebar', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Find the "+ New Chat" button (there might be multiple buttons with "New Chat")
@@ -102,7 +102,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show message input with placeholder text', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -117,7 +117,7 @@ test.describe('Session Management', () => {
   });
 
   test('should enable send button when message is typed', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -132,7 +132,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show user message in chat after sending', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -151,7 +151,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show "Agent is typing..." indicator after sending message', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -164,7 +164,7 @@ test.describe('Session Management', () => {
   });
 
   test('should clear message input after sending', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -178,7 +178,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show agent name in header', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();
@@ -188,7 +188,7 @@ test.describe('Session Management', () => {
   });
 
   test('should show agent description in header', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();

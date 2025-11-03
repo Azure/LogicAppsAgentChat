@@ -13,12 +13,12 @@
 import { test, expect } from '../../../fixtures/sse-fixtures';
 
 // Agent card URL - intercepted by our fixture
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('SSE Response Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to app with mock agent card (fixture will intercept requests)
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     // Start new chat
@@ -217,7 +217,7 @@ test.describe('SSE Response Integration Tests', () => {
 
 test.describe('SSE Connection Management', () => {
   test('should reconnect if connection is lost', async ({ page }) => {
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /start a new chat/i }).click();

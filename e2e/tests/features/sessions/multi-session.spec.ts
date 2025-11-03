@@ -14,7 +14,7 @@ const AGENT_CARD = {
   protocolVersion: '1.0',
   name: 'Test Agent',
   description: 'A test agent for E2E testing',
-  url: 'https://localhost:3001/api/agents/test',
+  url: 'http://localhost:3001/api/agents/test',
   version: '1.0.0',
   capabilities: {
     streaming: true,
@@ -26,7 +26,7 @@ const AGENT_CARD = {
   skills: [],
 };
 
-const AGENT_CARD_URL = 'https://localhost:3001/api/agents/test/.well-known/agent-card.json';
+const AGENT_CARD_URL = 'http://localhost:3001/api/agents/test/.well-known/agent-card.json';
 
 test.describe('Multi-Session Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -57,7 +57,7 @@ test.describe('Multi-Session Management', () => {
       await route.continue();
     });
 
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
   });
 
@@ -211,7 +211,7 @@ test.describe('Session Switching', () => {
       await route.continue();
     });
 
-    await page.goto(`https://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
+    await page.goto(`http://localhost:3001/?agentCard=${encodeURIComponent(AGENT_CARD_URL)}`);
     await page.waitForLoadState('networkidle');
   });
 
