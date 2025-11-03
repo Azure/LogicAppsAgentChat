@@ -99,14 +99,15 @@ export default defineConfig({
     },
   ],
 
-  // Web server configuration - commented out to allow manual server start
-  // Start the dev server manually with: pnpm --filter @a2achat/iframe-app dev
-  // webServer: {
-  //   command: 'pnpm --filter @a2achat/iframe-app dev',
-  //   url: 'http://localhost:3001',
-  //   reuseExistingServer: true,
-  //   timeout: 120 * 1000,
-  //   stdout: 'ignore',
-  //   stderr: 'pipe',
-  // },
+  // Web server configuration - automatically starts dev server for E2E tests
+  // In CI: Server is always started fresh
+  // Locally: Reuses existing server if already running
+  webServer: {
+    command: 'pnpm --filter @a2achat/iframe-app dev',
+    url: 'https://localhost:3001',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+    stdout: 'ignore',
+    stderr: 'pipe',
+  },
 });
