@@ -423,12 +423,16 @@ export const useChatStore = create<ChatState>()(
 
         if (config.auth) {
           clientConfig.auth = config.auth;
-        } else if (config.apiKey) {
-          clientConfig.apiKey = config.apiKey;
-        } else if (config.oboUserToken) {
-          clientConfig.oboUserToken = config.oboUserToken;
         } else {
           clientConfig.auth = { type: 'cookie' };
+        }
+
+        if (config.apiKey) {
+          clientConfig.apiKey = config.apiKey;
+        }
+
+        if (config.oboUserToken) {
+          clientConfig.oboUserToken = config.oboUserToken;
         }
 
         // Create internal auth handler for OBO auth messages (separate from onAuthRequired callback)
