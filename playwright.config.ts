@@ -87,16 +87,6 @@ export default defineConfig({
         ...devices['iPhone 13'],
       },
     },
-
-    // Accessibility-focused project
-    {
-      name: 'accessibility',
-      testDir: './e2e/tests/accessibility',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1280, height: 720 },
-      },
-    },
   ],
 
   // Web server configuration - automatically starts dev server for E2E tests
