@@ -229,7 +229,7 @@ test.describe('Authentication Completion Flow', () => {
   });
 
   test('should show completed state after successful auth', async ({ page, context }) => {
-    await context.setDefaultTimeout(3000000);
+    await context.setDefaultTimeout(30000);
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
