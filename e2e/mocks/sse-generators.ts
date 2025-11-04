@@ -265,6 +265,82 @@ export function generateSSEResponse(
         },
       }),
     ];
+  } else if (userMessage.toLowerCase().includes('very long response')) {
+    // Generate a very long response (1000+ words)
+    const longResponseText =
+      'This is a very long response that contains a lot of information. ' +
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
+      'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ' +
+      'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. ' +
+      'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum. ' +
+      'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia. '.repeat(50) +
+      'This is the end of the very long response.';
+
+    messages = [
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: requestId,
+        result: {
+          taskId,
+          contextId,
+          status: { state: 'submitted', timestamp: new Date().toLocaleString('en-US') },
+          kind: 'status-update',
+          final: false,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: requestId,
+        result: {
+          taskId,
+          contextId,
+          status: { state: 'working', timestamp: new Date().toLocaleString('en-US') },
+          kind: 'status-update',
+          final: false,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: null,
+        result: {
+          taskId,
+          contextId,
+          artifact: {
+            artifactId,
+            parts: [{ text: '', kind: 'text' }],
+          },
+          kind: 'artifact-update',
+          append: false,
+          lastChunk: false,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: null,
+        result: {
+          taskId,
+          contextId,
+          artifact: {
+            artifactId,
+            parts: [{ text: longResponseText, kind: 'text' }],
+          },
+          kind: 'artifact-update',
+          append: true,
+          lastChunk: true,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: null,
+        result: {
+          taskId,
+          contextId,
+          status: { state: 'completed', timestamp: new Date().toLocaleString('en-US') },
+          kind: 'status-update',
+          final: true,
+        },
+      }),
+    ];
   } else if (userMessage.toLowerCase().includes('stream')) {
     const words = [
       'This',

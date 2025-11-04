@@ -56,6 +56,41 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     formatted = formatErrorMessage(error);
   }
 
+  // Check if this is an HTTP error message and extract status code
+  const httpErrorMatch = formatted.message.match(/HTTP error! status: (\d+)/);
+  if (httpErrorMatch) {
+    const statusCode = parseInt(httpErrorMatch[1], 10);
+    switch (statusCode) {
+      case 400:
+        return 'Invalid request. Please check your message and try again.';
+      case 401:
+        return 'Authentication required. Please sign in again.';
+      case 403:
+        return 'Access denied. You may not have permission to perform this action.';
+      case 404:
+        return 'Service not found. Please check your connection.';
+      case 408:
+        return 'Request timeout. Please try again.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
+      case 500:
+        return 'Server error. Please try again in a moment.';
+      case 502:
+        return 'Service unavailable. Please try again later.';
+      case 503:
+        return 'Service temporarily unavailable. Please try again later.';
+      case 504:
+        return 'Gateway timeout. Please try again.';
+      default:
+        return `Service error (${statusCode}). Please try again.`;
+    }
+  }
+
+  // Check for timeout errors
+  if (formatted.message.toLowerCase().includes('timeout')) {
+    return 'Request timed out. Please try again.';
+  }
+
   // For specific error codes, provide more helpful messages
   if (typeof formatted.code === 'string') {
     switch (formatted.code) {
