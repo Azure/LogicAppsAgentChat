@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import {
   Button,
   Text,
@@ -145,17 +144,12 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
         return;
       }
 
-      // Update state to show authenticating - use flushSync to force immediate render
-      flushSync(() => {
-        setAuthStates((prev) => {
-          const newStates = [...prev];
-          newStates[index] = { ...newStates[index], isAuthenticating: true, error: undefined };
-          return newStates;
-        });
+      // Update state to show authenticating
+      setAuthStates((prev) => {
+        const newStates = [...prev];
+        newStates[index] = { ...newStates[index], isAuthenticating: true, error: undefined };
+        return newStates;
       });
-
-      // Yield to browser to allow paint before opening popup
-      await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
         console.log('[AuthenticationMessage] Opening popup with URL:', authPart.consentLink);

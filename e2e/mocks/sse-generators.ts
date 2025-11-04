@@ -11,14 +11,19 @@ function createSSEMessage(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
-export function generateSSEResponse(requestId: string, userMessage: string): string {
+export function generateSSEResponse(
+  requestId: string,
+  userMessage: string,
+  messageType?: string
+): string {
   const contextId = `ctx-${randomUUID()}`;
   const taskId = `task-${randomUUID()}`;
   const artifactId = randomUUID();
 
   let messages: string[] = [];
-
+  console.log(`user message: ${userMessage}`);
   // Determine response type based on user message
+
   if (userMessage.toLowerCase().includes('code')) {
     const codeText =
       'Here\'s a code example:\n\n```typescript\nfunction hello(name: string): string {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(hello("World"));\n```\n\nThis is a simple TypeScript function.';
@@ -407,7 +412,7 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
               ],
             },
           },
-          final: false,
+          final: true,
         },
       }),
     ];
@@ -454,7 +459,7 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
                   kind: 'data',
                   data: {
                     messageType: 'InTaskAuthRequired',
-                    consentLink: 'http://localhost:3001/mock-consent',
+                    consentLink: 'https://microsoft.com',
                     status: 'Unauthenticated',
                     serviceName: 'Microsoft Graph',
                     serviceIcon: 'https://example.com/icons/graph.png',
@@ -475,11 +480,11 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
               ],
             },
           },
-          final: false,
+          final: true,
         },
       }),
     ];
-  } else if (userMessage.toLowerCase().includes('auth completed')) {
+  } else if (messageType === 'AuthenticationCompleted') {
     // Response after authentication is completed
     const responseText = 'Authentication successful! Here is your secured data.';
 
@@ -490,9 +495,35 @@ export function generateSSEResponse(requestId: string, userMessage: string): str
         result: {
           taskId,
           contextId,
+          status: { state: 'submitted', timestamp: new Date().toLocaleString('en-US') },
+          kind: 'status-update',
+          final: false,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: requestId,
+        result: {
+          taskId,
+          contextId,
           status: { state: 'working', timestamp: new Date().toLocaleString('en-US') },
           kind: 'status-update',
           final: false,
+        },
+      }),
+      createSSEMessage({
+        jsonrpc: '2.0',
+        id: null,
+        result: {
+          taskId,
+          contextId,
+          artifact: {
+            artifactId,
+            parts: [{ text: '', kind: 'text' }],
+          },
+          kind: 'artifact-update',
+          append: false,
+          lastChunk: false,
         },
       }),
       createSSEMessage({
