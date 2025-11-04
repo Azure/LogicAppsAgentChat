@@ -401,7 +401,11 @@ export function useChatSessions() {
         console.log('[useChatSessions] Deleting (archiving) server session:', sessionId);
 
         // Add to recently deleted IDs to prevent re-adding from server sync
-        setRecentlyDeletedIds((prev) => new Set(prev).add(sessionId));
+        setRecentlyDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.add(sessionId);
+          return next;
+        });
 
         // Optimistically remove from local state immediately for instant UI feedback
         setSessions((prevSessions) => prevSessions.filter((s) => s.id !== sessionId));
