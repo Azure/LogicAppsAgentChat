@@ -17,41 +17,37 @@ async function setupSSEMocking(page: Page) {
     }
   });
 
-  // Mock openPopupWindow to simulate successful authentication without real popups
-  await page.addInitScript(() => {
-    console.log('[MOCK] Init script running, about to override window.open');
+  // Intercept mock consent page requests
+  await page.route('**/mock-consent*', async (route) => {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Mock Consent</title>
+        </head>
+        <body>
+          <h1>Mock Authentication</h1>
+          <p>This window will close automatically in 4 seconds...</p>
+          <script>
+            // Notify opener that auth is complete
+            if (window.opener) {
+              window.opener.postMessage({ type: 'AUTH_COMPLETE' }, '*');
+            }
 
-    // Override window.open to return a mock window that appears closed after a brief delay
-    window.open = function (url?: string | URL, target?: string, features?: string) {
-      console.log(
-        '[MOCK] window.open called with:',
-        JSON.stringify({ url: url?.toString(), target })
-      );
+            // Auto-close after 4 seconds
+            setTimeout(() => {
+              window.close();
+            }, 4000);
+          </script>
+        </body>
+      </html>
+    `;
 
-      const startTime = Date.now();
-      const mockWindow = {
-        get closed() {
-          // Window appears closed after 600ms (after first poll interval)
-          const elapsed = Date.now() - startTime;
-          const isClosed = elapsed > 600;
-          if (isClosed) {
-            console.log(`[MOCK] window.closed getter returning true after ${elapsed}ms`);
-          }
-          return isClosed;
-        },
-        close: function () {
-          console.log('[MOCK] window.close() called');
-        },
-        focus: function () {
-          console.log('[MOCK] window.focus() called');
-        },
-      };
-
-      console.log('[MOCK] Returning mock window object');
-      return mockWindow as any;
-    };
-
-    console.log('[MOCK] window.open override complete');
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: html,
+    });
   });
 
   // Intercept agent card requests
@@ -257,7 +253,7 @@ async function setupSSEMocking(page: Page) {
 
       // Return context-specific mock tasks/messages
       // NOTE: transformTasksToMessages reads from task.history array, not taskStatus.message
-      let mockTasks;
+      let mockTasks: any[];
 
       if (contextId === 'session-1') {
         // Session 1: "Project Discussion" messages
@@ -510,9 +506,12 @@ async function setupSSEMocking(page: Page) {
 
     // Handle message/stream with SSE
     if (method === 'message/stream') {
-      const userMessage = params?.message?.parts?.[0]?.text || '';
-      console.log('[SSE FIXTURE] Generating SSE response for message:', userMessage);
-      const sseContent = generateSSEResponse(id, userMessage);
+      console.log(`message full: ${JSON.stringify(params?.message?.parts?.[0], null, 2)}`);
+      const userMessage = params?.message?.parts?.[0]?.text ?? '';
+      const messageType = params?.message.parts?.[0]?.data?.messageType ?? '';
+      console.log(`messageType ${messageType}`);
+      console.log('[SSE FIXTURE] Generating SSE response for message:', userMessage, messageType);
+      const sseContent = generateSSEResponse(id, userMessage, messageType);
 
       // Log the first 500 chars of the response
       console.log('[SSE FIXTURE] SSE response (first 500 chars):', sseContent.substring(0, 500));

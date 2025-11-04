@@ -95,7 +95,7 @@ test.describe('Authentication Flows', () => {
     await expect(signInButtons).toHaveCount(2);
   });
 
-  test.skip('should open popup when sign in button is clicked', async ({ page, context }) => {
+  test('should open popup when sign in button is clicked', async ({ page, context }) => {
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -109,20 +109,20 @@ test.describe('Authentication Flows', () => {
     const popupPromise = context.waitForEvent('page');
 
     // Click sign in button
-    const signInButton = page.getByRole('button', { name: /Sign In/i });
+    const signInButton = await page.getByRole('button', { name: 'Sign In' });
     await signInButton.click();
 
     // Wait for popup to open
     const popup = await popupPromise;
 
-    // Verify popup URL (now using microsoft.com as a real reachable URL)
-    expect(popup.url()).toContain('microsoft.com');
+    // Verify popup URL points to mock consent page
+    expect(popup.url()).toContain('/mock-consent');
 
     // Close popup to clean up
     await popup.close();
   });
 
-  test.skip('should show authenticating state when popup is open', async ({ page }) => {
+  test('should show authenticating state when popup is open', async ({ page, context }) => {
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -130,14 +130,21 @@ test.describe('Authentication Flows', () => {
     await sendButton.click();
 
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
-
+    await page.waitForTimeout(500);
     const signInButton = page.getByRole('button', { name: /Sign In/i });
-    await signInButton.click();
 
-    // Wait for authentication to complete (mocked popup closes automatically)
-    // The button should transition from "Sign In" -> "Authenticating..." -> "Authenticated"
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
-    await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
+    // CRITICAL: Use Promise.all to ensure popup event is captured synchronously with the click
+    const [popup] = await Promise.all([
+      context.waitForEvent('page', { timeout: 5000 }),
+      signInButton.click(),
+    ]);
+
+    // The button should transition to "Authenticating..." state while popup is open
+    const authenticatingButton = page.getByRole('button', { name: /Authenticating/i });
+    await expect(authenticatingButton).toBeVisible({ timeout: 2000 });
+
+    // Clean up - close the popup
+    await popup.close();
   });
 
   test('should handle cancel authentication', async ({ page }) => {
@@ -158,7 +165,7 @@ test.describe('Authentication Flows', () => {
     await expect(page.getByText(/Authentication Canceled/i)).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should disable cancel button while authenticating', async ({ page }) => {
+  test('should disable cancel button while authenticating', async ({ page, context }) => {
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -166,20 +173,25 @@ test.describe('Authentication Flows', () => {
     await sendButton.click();
 
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(500);
 
     // Cancel button should be enabled before auth starts
     const cancelButton = page.getByRole('button', { name: /Cancel Authentication/i });
     await expect(cancelButton).toBeEnabled({ timeout: 2000 });
 
     const signInButton = page.getByRole('button', { name: /Sign In/i });
-    await signInButton.click();
 
-    // Wait for authentication to complete (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
-    await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
+    // CRITICAL: Use Promise.all to ensure popup event is captured synchronously with the click
+    const [popup] = await Promise.all([
+      context.waitForEvent('page', { timeout: 5000 }),
+      signInButton.click(),
+    ]);
 
-    // After auth completes, cancel button should not be visible
-    await expect(cancelButton).not.toBeVisible({ timeout: 5000 });
+    // While popup is open (during authentication), cancel button should be disabled
+    await expect(cancelButton).toBeDisabled({ timeout: 2000 });
+
+    // Clean up - close the popup
+    await popup.close();
   });
 
   test('should handle popup blocker scenario', async ({ page }) => {
@@ -216,21 +228,24 @@ test.describe('Authentication Completion Flow', () => {
     await expect(page.locator('textarea').first()).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should show completed state after successful auth', async ({ page }) => {
+  test('should show completed state after successful auth', async ({ page, context }) => {
+    await context.setDefaultTimeout(30000);
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
     await messageInput.fill('require auth');
     await sendButton.click();
 
+    await page.waitForTimeout(500);
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
-
+    const popupPromise = context.waitForEvent('page');
     const signInButton = page.getByRole('button', { name: /Sign In/i });
     await signInButton.click();
-
+    const popup = await popupPromise;
+    await popup.close();
     // Wait for authentication to complete (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
-    await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
+    const authenticatedButton = page.getByText('Authenticated', { exact: true });
+    await expect(authenticatedButton).toBeVisible({ timeout: 8000 });
 
     // Should show completion badge
     await expect(page.getByText(/All services authenticated successfully/i)).toBeVisible({
@@ -238,7 +253,7 @@ test.describe('Authentication Completion Flow', () => {
     });
   });
 
-  test.skip('should send authentication completed message', async ({ page }) => {
+  test('should send authentication completed message', async ({ page, context }) => {
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -247,22 +262,23 @@ test.describe('Authentication Completion Flow', () => {
     await sendButton.click();
 
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(500);
 
-    const signInButton = page.getByRole('button', { name: /Sign In/i });
-    await signInButton.click();
+    // Open popup and wait for it to close (which triggers auth completion)
+    const [popup] = await Promise.all([
+      context.waitForEvent('page', { timeout: 5000 }),
+      page.getByRole('button', { name: /Sign In/i }).click(),
+    ]);
 
-    // Wait for authenticated state (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
+    // Wait for popup to close (mock consent page closes automatically)
+    await popup.close();
+
+    // Wait for authenticated state
+    const authenticatedButton = page.getByText('Authenticated', { exact: true });
     await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
 
-    // Now send the auth completed message to resume the task
-    // In the real implementation, this would happen automatically
-    // For testing, we'll manually trigger it
-    await expect(messageInput).toBeEnabled({ timeout: 5000 });
-    await messageInput.fill('auth completed');
-    await sendButton.click();
-
-    // Should receive the secured data response
+    // The system should automatically resume the task after authentication
+    // and return the secured data WITHOUT requiring manual user input
     await expect(
       page.getByText(/Authentication successful! Here is your secured data/i)
     ).toBeVisible({
@@ -270,7 +286,11 @@ test.describe('Authentication Completion Flow', () => {
     });
   });
 
-  test.skip('should handle multiple auth completions in sequence', async ({ page }) => {
+  test('should handle multiple auth completions in sequence', async ({ page, context }) => {
+    // TODO: This test depends on automatic auth completion messaging (see test above).
+    // Once that feature is implemented, this test should verify that multiple
+    // authentication requirements are handled correctly in sequence.
+
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -279,18 +299,24 @@ test.describe('Authentication Completion Flow', () => {
 
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
 
+    await page.waitForTimeout(500);
     // Authenticate first service
-    const signInButtons = page.getByRole('button', { name: /Sign In/i });
+
+    let popUpPromise = context.waitForEvent('page');
+    let signInButtons = page.getByRole('button', { name: /Sign In/i });
 
     // First auth (mocked popup closes automatically)
     await signInButtons.first().click();
+    let popup = await popUpPromise;
+    popup.close();
 
-    // Wait for first button to show "Authenticated"
-    await expect(signInButtons.first()).toHaveText(/Authenticated/, { timeout: 5000 });
-
+    await expect(page.getByRole('button', { name: 'Authenticated' })).toBeDisabled();
+    signInButtons = page.getByRole('button', { name: /Sign In/i });
+    popUpPromise = context.waitForEvent('page');
     // Second auth (mocked popup closes automatically)
-    await signInButtons.nth(1).click();
-
+    await signInButtons.first().click();
+    popup = await popUpPromise;
+    popup.close();
     // Both should show authenticated and completion message
     await expect(page.getByText(/All services authenticated successfully/i)).toBeVisible({
       timeout: 5000,
@@ -306,7 +332,7 @@ test.describe('Authentication Edge Cases', () => {
     await expect(page.locator('textarea').first()).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should handle rapid authentication attempts', async ({ page }) => {
+  test('should maintain auth state after page interactions', async ({ page, context }) => {
     const messageInput = page.locator('textarea').first();
     const sendButton = page.locator('button:has(svg)').last();
 
@@ -314,59 +340,15 @@ test.describe('Authentication Edge Cases', () => {
     await sendButton.click();
 
     await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
-
-    const signInButton = page.getByRole('button', { name: /Sign In/i });
-
-    // Click sign in button
-    await signInButton.click();
-
-    // Wait for authentication to complete (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
-    await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
-  });
-
-  test.skip('should handle auth required during another auth', async ({ page }) => {
-    const messageInput = page.locator('textarea').first();
-    const sendButton = page.locator('button:has(svg)').last();
-
-    // Trigger first auth
-    await messageInput.fill('require auth');
-    await sendButton.click();
-
-    await expect(page.getByText(/Authentication Required/i).first()).toBeVisible({
-      timeout: 10000,
-    });
-
+    await page.waitForTimeout(500);
+    const popupPromise = context.waitForEvent('page');
     const signInButton = page.getByRole('button', { name: /Sign In/i });
     await signInButton.click();
 
-    // While auth is processing, try to send another message (simulating concurrent auth needs)
-    // Note: The input might be disabled during auth in the actual implementation
-    const inputEnabled = await messageInput.isEnabled();
-    if (inputEnabled) {
-      await messageInput.fill('another message');
-      // Input might not allow sending during auth
-    }
-
-    // First auth should complete normally (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
-    await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
-  });
-
-  test.skip('should maintain auth state after page interactions', async ({ page }) => {
-    const messageInput = page.locator('textarea').first();
-    const sendButton = page.locator('button:has(svg)').last();
-
-    await messageInput.fill('require auth');
-    await sendButton.click();
-
-    await expect(page.getByText(/Authentication Required/i)).toBeVisible({ timeout: 10000 });
-
-    const signInButton = page.getByRole('button', { name: /Sign In/i });
-    await signInButton.click();
-
+    const popup = await popupPromise;
+    popup.close();
     // Wait for authenticated state (mocked popup closes automatically)
-    const authenticatedButton = page.getByRole('button', { name: /^Authenticated$/i });
+    const authenticatedButton = page.getByText('Authenticated', { exact: true });
     await expect(authenticatedButton).toBeVisible({ timeout: 5000 });
 
     // Scroll the page (simulate user interaction)
