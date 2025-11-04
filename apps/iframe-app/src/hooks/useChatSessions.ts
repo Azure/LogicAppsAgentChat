@@ -27,6 +27,9 @@ export function useChatSessions() {
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Track recently deleted sessions to prevent them from being re-added by server sync
+  const [recentlyDeletedIds, setRecentlyDeletedIds] = useState<Set<string>>(new Set());
+
   // Sync server sessions to local state whenever they change
   useEffect(() => {
     if (serverSessions.length > 0) {
@@ -49,17 +52,20 @@ export function useChatSessions() {
           );
         }
 
-        const serverSessionsData = serverSessions.map((session) => ({
-          id: session.id,
-          name: session.name || 'Untitled Chat',
-          createdAt: session.createdAt.getTime(),
-          updatedAt: session.updatedAt.getTime(),
-          status: session.status,
-          lastMessage:
-            session.lastMessage?.content
-              ?.map((part) => (part.type === 'text' ? part.text : ''))
-              .join(' ') || '',
-        }));
+        // Filter out recently deleted sessions to prevent them from being re-added
+        const serverSessionsData = serverSessions
+          .filter((session) => !recentlyDeletedIds.has(session.id))
+          .map((session) => ({
+            id: session.id,
+            name: session.name || 'Untitled Chat',
+            createdAt: session.createdAt.getTime(),
+            updatedAt: session.updatedAt.getTime(),
+            status: session.status,
+            lastMessage:
+              session.lastMessage?.content
+                ?.map((part) => (part.type === 'text' ? part.text : ''))
+                .join(' ') || '',
+          }));
 
         // Keep local sessions (pending and newly migrated) at the top, sorted by recency
         // Then add server sessions below, also sorted by recency
@@ -86,6 +92,23 @@ export function useChatSessions() {
         }
       }
 
+      // Clean up recently deleted IDs that are confirmed not present in server sessions
+      // This prevents unbounded growth of the tracking set
+      if (recentlyDeletedIds.size > 0) {
+        const serverSessionIds = new Set(serverSessions.map((s) => s.id));
+        setRecentlyDeletedIds((prev) => {
+          const updated = new Set(prev);
+          for (const deletedId of prev) {
+            // If the session is not in server sessions, it's been successfully archived
+            // and we can stop tracking it
+            if (!serverSessionIds.has(deletedId)) {
+              updated.delete(deletedId);
+            }
+          }
+          return updated;
+        });
+      }
+
       setIsLoading(false);
     } else {
       // No server sessions available - keep local sessions (both pending and real) sorted by updatedAt
@@ -98,7 +121,7 @@ export function useChatSessions() {
       });
       setIsLoading(false);
     }
-  }, [serverSessions, activeSessionId]);
+  }, [serverSessions, activeSessionId, recentlyDeletedIds]);
 
   // Auto-select first session or create one if none exist
   useEffect(() => {
@@ -344,6 +367,24 @@ export function useChatSessions() {
           }
         } else {
           console.log('[useChatSessions] Renaming server session:', sessionId);
+
+          // Optimistically update local state immediately for instant UI feedback
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === sessionId
+                ? { ...session, name: newName, updatedAt: Date.now() }
+                : session
+            )
+          );
+
+          // Update active session if it's the one being renamed
+          if (activeSessionId === sessionId) {
+            setActiveSession((prev) =>
+              prev ? { ...prev, name: newName, updatedAt: Date.now() } : prev
+            );
+          }
+
+          // Then update the server - server sync will confirm the change later
           const chatStoreRenameSession = useChatStore.getState().renameSession;
           await chatStoreRenameSession(sessionId, newName);
         }
@@ -358,10 +399,15 @@ export function useChatSessions() {
     async (sessionId: string) => {
       try {
         console.log('[useChatSessions] Deleting (archiving) server session:', sessionId);
-        const chatStoreDeleteSession = useChatStore.getState().deleteSession;
-        await chatStoreDeleteSession(sessionId);
 
-        // Immediately remove from local state to prevent sync effect from preserving it
+        // Add to recently deleted IDs to prevent re-adding from server sync
+        setRecentlyDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.add(sessionId);
+          return next;
+        });
+
+        // Optimistically remove from local state immediately for instant UI feedback
         setSessions((prevSessions) => prevSessions.filter((s) => s.id !== sessionId));
 
         // If we deleted the active session, switch to another one
@@ -375,6 +421,10 @@ export function useChatSessions() {
             setActiveSession(null);
           }
         }
+
+        // Then update the server - server sync will confirm the change later
+        const chatStoreDeleteSession = useChatStore.getState().deleteSession;
+        await chatStoreDeleteSession(sessionId);
       } catch (error) {
         console.error('[useChatSessions] Error deleting session:', error);
       }
