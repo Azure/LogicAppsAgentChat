@@ -183,6 +183,8 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
 
         // Create a custom auth handler that adds auth messages to the UI
         const authHandler: AuthRequiredHandler = async (event) => {
+          console.log('[useA2A] authHandler called with event:', event);
+
           // Store the task ID for when we send the authentication completed message
           authTaskIdRef.current = event.taskId;
 
@@ -205,8 +207,11 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             },
           };
 
+          console.log('[useA2A] Created auth message:', authMessage);
+
           setMessages((prev) => {
             const newMessages = [...prev, authMessage];
+            console.log('[useA2A] Updated messages, total count:', newMessages.length);
 
             // Persist messages
             if (options.persistSession && options.sessionKey) {
@@ -223,9 +228,11 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
             isRequired: true,
             authEvent: event,
           });
+          console.log('[useA2A] Set auth state to required');
 
           // Call the original handler if provided
           if (options.onAuthRequired) {
+            console.log('[useA2A] Calling custom onAuthRequired handler');
             return options.onAuthRequired(event);
           }
         };

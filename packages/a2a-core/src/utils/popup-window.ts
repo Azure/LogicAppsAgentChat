@@ -47,39 +47,51 @@ export async function openPopupWindow(
   popup.focus();
 
   return new Promise<PopupWindowResult>((resolve) => {
+    let resolved = false;
+
+    const handleClose = () => {
+      if (!resolved) {
+        resolved = true;
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+        resolve({ closed: true });
+      }
+    };
+
+    // Immediate check - popup may close very quickly in automated tests
+    if (popup.closed) {
+      handleClose();
+      return;
+    }
+
     const checkInterval = setInterval(() => {
       try {
         if (popup.closed) {
-          clearInterval(checkInterval);
-          resolve({ closed: true });
+          handleClose();
         }
       } catch (error) {
         // Cross-origin errors are expected when checking the popup
         // We can safely ignore them and continue checking if the window is closed
       }
-    }, 500);
+    }, 100); // Reduced from 500ms to 100ms for faster detection
 
     // Optional: Add a timeout to prevent indefinite waiting
     const timeout = setTimeout(
       () => {
-        clearInterval(checkInterval);
-        if (!popup.closed) {
-          popup.close();
+        if (!resolved) {
+          resolved = true;
+          clearInterval(checkInterval);
+          if (!popup.closed) {
+            popup.close();
+          }
+          resolve({
+            closed: true,
+            error: new Error('Authentication timeout - window was closed automatically'),
+          });
         }
-        resolve({
-          closed: true,
-          error: new Error('Authentication timeout - window was closed automatically'),
-        });
       },
       10 * 60 * 1000
     ); // 10 minutes timeout
-
-    // Clean up timeout if window closes normally
-    const originalResolve = resolve;
-    resolve = (result) => {
-      clearTimeout(timeout);
-      originalResolve(result);
-    };
   });
 }
 

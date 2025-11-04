@@ -129,7 +129,18 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
   const handleAuthenticate = useCallback(
     async (index: number) => {
       const authPart = authStates[index];
+      console.log('[AuthenticationMessage] handleAuthenticate called:', {
+        index,
+        hasAuthPart: !!authPart,
+        consentLink: authPart?.consentLink,
+        isAuthenticated: authPart?.isAuthenticated,
+        isAuthenticating: authPart?.isAuthenticating,
+      });
+
       if (!authPart || authPart.isAuthenticated || authPart.isAuthenticating) {
+        console.log(
+          '[AuthenticationMessage] Skipping authentication - already authenticated or authenticating'
+        );
         return;
       }
 
@@ -141,11 +152,13 @@ export const AuthenticationMessage: React.FC<AuthenticationMessageProps> = ({
       });
 
       try {
+        console.log('[AuthenticationMessage] Opening popup with URL:', authPart.consentLink);
         // Open popup for authentication
         const result = await openPopupWindow(authPart.consentLink, `auth-${index}`, {
           width: 800,
           height: 600,
         });
+        console.log('[AuthenticationMessage] Popup closed with result:', result);
 
         if (result.closed && !result.error) {
           // Authentication successful

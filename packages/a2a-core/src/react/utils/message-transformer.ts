@@ -14,6 +14,19 @@ export const transformStorageMessageToUI = (storageMessage: StorageMessage): UIM
     .map((part) => (part.type === 'text' ? part.text : ''))
     .join('\n');
 
+  // When loading auth messages from history, they should be marked as completed
+  // since they're historical - the user can't interact with them anymore
+  const authEvent = storageMessage.authEvent
+    ? {
+        ...storageMessage.authEvent,
+        authParts: storageMessage.authEvent.authParts.map((part) => ({
+          ...part,
+          status: 'completed',
+        })),
+        status: 'completed' as const,
+      }
+    : undefined;
+
   return {
     id: storageMessage.id,
     content: textContent,
@@ -21,6 +34,8 @@ export const transformStorageMessageToUI = (storageMessage: StorageMessage): UIM
     sender: storageMessage.role === 'assistant' ? 'assistant' : 'user',
     // Preserve contextId in metadata for session continuity
     metadata: storageMessage.contextId ? { contextId: storageMessage.contextId } : undefined,
+    // Preserve authEvent for authentication messages from history, but mark as completed
+    authEvent,
   };
 };
 

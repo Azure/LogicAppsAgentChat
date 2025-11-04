@@ -57,8 +57,9 @@ export const transformTasksToMessages = (serverTasks: ServerTask[]): Message[] =
 
   // Flatten all task histories
   for (const task of serverTasks) {
+    const taskState = task.taskStatus?.state;
     for (const serverMessage of task.history) {
-      messages.push(transformMessage(serverMessage));
+      messages.push(transformMessage(serverMessage, taskState));
     }
   }
 
@@ -82,10 +83,11 @@ export const transformTasksToMessages = (serverTasks: ServerTask[]): Message[] =
  * Transform a server message to internal Message format
  *
  * @param serverMessage - Message from server
+ * @param taskState - Optional task state to detect auth-required messages
  * @returns Internal Message representation
  */
-export const transformMessage = (serverMessage: ServerMessage): Message => {
-  return {
+export const transformMessage = (serverMessage: ServerMessage, taskState?: string): Message => {
+  const message: Message = {
     id: serverMessage.messageId,
     // Transform 'agent' -> 'assistant' for consistency with AI chat conventions
     role: serverMessage.role === 'agent' ? 'assistant' : 'user',
@@ -93,6 +95,48 @@ export const transformMessage = (serverMessage: ServerMessage): Message => {
     timestamp: parseServerDate(serverMessage.metadata.timestamp),
     contextId: serverMessage.contextId || '',
   };
+
+  // Detect auth-required messages from history
+  // These come from the server with text like: "Please authenticate using links: [{...}]."
+  // For historical messages, we show them as simple informational text since the auth already happened
+  // Only show interactive auth UI for live messages with taskState === 'auth-required'
+  if (isAuthRequiredMessage(serverMessage)) {
+    if (taskState === 'auth-required') {
+      // Live auth-required message - show interactive UI
+      const authEvent = extractAuthEventFromMessage(serverMessage);
+      if (authEvent) {
+        message.authEvent = authEvent;
+        // Override content to show a user-friendly message
+        message.content = [
+          {
+            type: 'text',
+            text: 'Authentication required',
+          },
+        ];
+      }
+    } else {
+      // Historical auth message from server history - show as simple informational message with service names
+      const authEvent = extractAuthEventFromMessage(serverMessage);
+      if (authEvent && authEvent.authParts && authEvent.authParts.length > 0) {
+        const serviceNames = authEvent.authParts.map((part: any) => part.serviceName).join(', ');
+        message.content = [
+          {
+            type: 'text',
+            text: `Authentication was required for ${serviceNames}`,
+          },
+        ];
+      } else {
+        message.content = [
+          {
+            type: 'text',
+            text: 'Authentication was required for this request',
+          },
+        ];
+      }
+    }
+  }
+
+  return message;
 };
 
 /**
@@ -189,4 +233,61 @@ export const transformMessageToServer = (
       }
     }),
   };
+};
+
+/**
+ * Detect if a message is an auth-required message
+ *
+ * Auth messages from history have text like: "Please authenticate using links: [{...}]."
+ */
+const isAuthRequiredMessage = (serverMessage: ServerMessage): boolean => {
+  // Check if message has text parts that start with "Please authenticate using links:"
+  return serverMessage.parts.some(
+    (part) => part.kind === 'text' && part.text.startsWith('Please authenticate using links:')
+  );
+};
+
+/**
+ * Extract auth event from a server message
+ *
+ * Parses the JSON array from the text part containing authentication details
+ */
+const extractAuthEventFromMessage = (serverMessage: ServerMessage): any | null => {
+  try {
+    // Find the text part with auth details
+    const authPart = serverMessage.parts.find(
+      (part) => part.kind === 'text' && part.text.startsWith('Please authenticate using links:')
+    );
+
+    if (!authPart || authPart.kind !== 'text') {
+      return null;
+    }
+
+    // Extract the JSON array from the text
+    // Format: "Please authenticate using links: [{...}]."
+    const jsonMatch = authPart.text.match(/Please authenticate using links:\s*(\[[\s\S]*\])\./);
+    if (!jsonMatch || !jsonMatch[1]) {
+      return null;
+    }
+
+    const authDetails = JSON.parse(jsonMatch[1]);
+
+    // Transform to the format expected by the UI
+    // Server format: { ApiDetails: {...}, Link: "...", Status: "..." }
+    // UI format: { serviceName, serviceIcon, consentLink, description }
+    const authParts = authDetails.map((detail: any) => ({
+      serviceName: detail.ApiDetails?.ApiDisplayName || 'External Service',
+      serviceIcon: detail.ApiDetails?.ApiIconUri,
+      consentLink: detail.Link,
+      description: 'Authentication required for this service',
+    }));
+
+    return {
+      authParts,
+      status: 'pending' as const,
+    };
+  } catch (error) {
+    console.error('[history-transformers] Failed to parse auth message:', error);
+    return null;
+  }
 };

@@ -177,7 +177,7 @@ export function useChatSessions() {
             : lastMigration.suggestedName || lastMigration.to,
           createdAt: pendingSession?.createdAt || Date.now(),
           updatedAt: Date.now(),
-          status: 'active',
+          status: 'Running', // Match server convention for active chats
           lastMessage: '',
         };
 
@@ -293,7 +293,7 @@ export function useChatSessions() {
           name: name || 'New Chat',
           createdAt: now,
           updatedAt: now,
-          status: 'active',
+          status: 'Running', // Match server convention for active chats
           lastMessage: '',
         };
 
