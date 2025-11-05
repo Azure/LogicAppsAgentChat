@@ -1,7 +1,7 @@
 import { MultiSessionChat } from './MultiSessionChat';
 import { SessionExpiredModal } from './SessionExpiredModal';
 import { useSessionExpiredHandler } from '../hooks/useSessionExpiredHandler';
-import type { ChatWidgetProps } from '@microsoft/a2achat-core/react';
+import type { ChatWidgetProps } from '@microsoft/a2achat-core';
 
 interface MultiSessionChatWithAuthProps extends Omit<ChatWidgetProps, 'agentCard'> {
   apiUrl: string;

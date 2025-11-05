@@ -6,7 +6,7 @@ import {
   StorageConfig,
   useChatStore,
   ServerHistoryStorage,
-} from '@microsoft/a2achat-core/react';
+} from '@microsoft/a2achat-core';
 import { AgentCard, isDirectAgentCardUrl } from '@microsoft/a2achat-core';
 import {
   FluentProvider,

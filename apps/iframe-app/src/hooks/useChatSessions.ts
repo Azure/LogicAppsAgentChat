@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useChatStore } from '@microsoft/a2achat-core/react';
+import { useChatStore } from '@microsoft/a2achat-core';
 
 // Local type definitions for session metadata
 export interface SessionMetadata {

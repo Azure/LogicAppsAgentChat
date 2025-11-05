@@ -14,8 +14,8 @@ import {
 } from '@fluentui/react-components';
 import { AddRegular, EditRegular, ArchiveRegular, WarningRegular } from '@fluentui/react-icons';
 import type { SessionMetadata } from '../hooks/useChatSessions';
-import type { ChatTheme } from '@microsoft/a2achat-core/react';
-import { useChatStore } from '@microsoft/a2achat-core/react';
+import type { ChatTheme } from '@microsoft/a2achat-core';
+import { useChatStore } from '@microsoft/a2achat-core';
 
 const useStyles = makeStyles({
   sessionList: {

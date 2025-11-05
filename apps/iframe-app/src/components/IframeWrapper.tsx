@@ -1,9 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import {
-  ChatWidget,
-  type ChatWidgetProps,
-  type StorageConfig,
-} from '@microsoft/a2achat-core/react';
+import { ChatWidget, type ChatWidgetProps, type StorageConfig } from '@microsoft/a2achat-core';
 import { MultiSessionChat } from './MultiSessionChat';
 import { LoadingDisplay } from './LoadingDisplay';
 import { useFrameBlade } from '../lib/hooks/useFrameBlade';
