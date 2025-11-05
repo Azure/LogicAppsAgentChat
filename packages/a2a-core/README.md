@@ -1,16 +1,16 @@
 # @microsoft/a2achat-core
 
-Framework-agnostic TypeScript SDK for building chat interfaces that connect to A2A (Agent-to-Agent) protocol agents.
+React SDK for building chat interfaces that connect to AI agents.
 
 ## Features
 
+- ⚛️ **React 19+ compatible**: Built for modern React applications
 - 🚀 **Small bundle size**: ~45KB with React as peer dependency
-- 📦 **Multiple entry points**: Core APIs, React components, React hooks, and event-driven interface
+- 📦 **Complete React toolkit**: Components, hooks, and utilities
 - 📝 **Markdown support**: Rich text formatting with syntax highlighting
 - 📎 **File uploads**: Built-in file attachment support with progress tracking
 - 🏢 **Company branding**: Add your logo to the chat interface
-- ⚛️ **React 19+ compatible**: Works seamlessly with modern React applications
-- 🤖 **A2A Protocol**: Built on the official A2A protocol specification
+- 🤖 **Agent-to-Agent Protocol**: Built on the A2A protocol (implementation detail)
 - 🔐 **Authentication**: Bearer, API Key, OAuth2, Cookie, and custom handlers
 - 🌊 **Real-time streaming**: Server-Sent Events (SSE) for real-time agent responses
 - 💾 **Chat history**: Client-side (IndexedDB) or server-side storage
@@ -31,42 +31,23 @@ yarn add @microsoft/a2achat-core
 
 **Peer Dependencies:**
 
-- `react` >= 19.2.0 (only required if using `/react` entry point)
+- `react` >= 19.2.0
 
-## Package Exports
+## What's Included
 
-This package provides multiple entry points for different use cases:
+React components and hooks for building chat interfaces:
 
-### Main Entry (`@microsoft/a2achat-core`)
+- **Components**: `ChatWidget`, `ChatWindow`, `MessageList`, `MessageInput`, etc.
+- **Hooks**: `useA2A`, `useChatWidget`, `useTheme`, `useChatStore`
+- **Utilities**: Message helpers, file handling, theming
+- **Storage**: Client-side (IndexedDB) and server-side chat history
+- **Styles**: Pre-built CSS with customizable themes
 
-Framework-agnostic core APIs:
+**Import styles:**
 
-- `A2AClient` - Main client for agent communication
-- `HttpClient`, `SSEClient` - HTTP and SSE communication
-- `SessionManager` - Session management
-- `AgentDiscovery` - Agent card resolution
-- `PluginManager` - Plugin system
-- Types, schemas, and utilities
-
-### React Entry (`@microsoft/a2achat-core/react`)
-
-React components and hooks:
-
-- `ChatWidget`, `ChatWindow` - Full-featured chat components
-- `useA2A` - Main React hook for chat functionality
-- `useChatWidget`, `useTheme` - Additional hooks
-- `useChatStore` - Zustand store for state management
-- Individual components: `MessageList`, `MessageInput`, `Message`, etc.
-- Theming utilities and storage helpers
-
-**Styles:** `@microsoft/a2achat-core/react/styles.css`
-
-### Chat Entry (`@microsoft/a2achat-core/chat`)
-
-Event-driven chat interface:
-
-- `ChatInterface` - Event-emitting chat abstraction
-- Types: `ChatMessage`, `ChatRole`, `ChatOptions`, etc.
+```tsx
+import '@microsoft/a2achat-core/styles.css';
+```
 
 ## Quick Start
 
@@ -75,8 +56,8 @@ Event-driven chat interface:
 Full-featured UI with built-in state management:
 
 ```tsx
-import { ChatWidget } from '@microsoft/a2achat-core/react';
-import '@microsoft/a2achat-core/react/styles.css';
+import { ChatWidget } from '@microsoft/a2achat-core';
+import '@microsoft/a2achat-core/styles.css';
 
 export default function App() {
   return (
@@ -109,7 +90,7 @@ export default function App() {
 For custom UI implementations:
 
 ```tsx
-import { useA2A } from '@microsoft/a2achat-core/react';
+import { useA2A } from '@microsoft/a2achat-core';
 
 function CustomChat() {
   const { messages, isLoading, isConnected, sendMessage, clearMessages, authState } = useA2A({
@@ -146,157 +127,11 @@ function CustomChat() {
 }
 ```
 
-### 3. Core Client API
-
-Framework-agnostic for any JavaScript environment:
-
-```typescript
-import { A2AClient } from '@microsoft/a2achat-core';
-
-// Create client
-const client = new A2AClient({
-  agentCard: 'https://api.example.com',
-  auth: { type: 'bearer', token: 'token' },
-});
-
-// Send a message
-const task = await client.message.send({
-  message: {
-    role: 'user',
-    parts: [{ kind: 'text', text: 'Hello, agent!' }],
-  },
-});
-
-// Wait for completion
-const completedTask = await client.task.waitForCompletion(task.id);
-console.log('Result:', completedTask.result);
-
-// Stream responses
-const stream = await client.message.stream({
-  message: {
-    role: 'user',
-    parts: [{ kind: 'text', text: 'Tell me a story' }],
-  },
-});
-
-for await (const chunk of stream) {
-  if (chunk.kind === 'text') {
-    console.log('Text:', chunk.text);
-  } else if (chunk.kind === 'data') {
-    console.log('Data:', chunk.data);
-  }
-}
-```
-
-### 4. Event-Driven Interface
-
-For event-based architectures:
-
-```typescript
-import { ChatInterface } from '@microsoft/a2achat-core/chat';
-
-const chat = new ChatInterface({
-  agentCard: 'https://api.example.com',
-  auth: { type: 'bearer', token: 'token' },
-});
-
-// Subscribe to events
-chat.on('message-sent', (msg) => console.log('Sent:', msg));
-chat.on('message-received', (msg) => console.log('Received:', msg));
-chat.on('error', (err) => console.error('Error:', err));
-
-// Send a message
-await chat.sendMessage('Hello, agent!');
-
-// Export conversation
-const exportData = await chat.exportConversation();
-console.log('Conversation:', exportData);
-```
-
 ## API Reference
 
-### Core APIs
+> **Note**: This library is built on the A2A (Agent-to-Agent) protocol, but the protocol details are abstracted away. You work with React components and hooks - the underlying communication protocol is an implementation detail.
 
-#### A2AClient
-
-Main client for communicating with A2A agents:
-
-```typescript
-class A2AClient {
-  constructor(config: A2AClientConfig);
-
-  // Agent information
-  getAgentCard(): AgentCard;
-  getCapabilities(): AgentCapabilities;
-  getServiceEndpoint(): string;
-  hasCapability(capabilityName: keyof AgentCapabilities): boolean;
-
-  // Message operations
-  message: {
-    send(request: MessageSendRequest): Promise<Task>;
-    stream(request: MessageStreamRequest): Promise<AsyncIterable<StreamMessage>>;
-  };
-
-  // Task operations
-  task: {
-    get(taskId: string): Promise<Task>;
-    cancel(taskId: string): Promise<void>;
-    waitForCompletion(taskId: string, options?: WaitForCompletionOptions): Promise<Task>;
-  };
-}
-
-interface A2AClientConfig {
-  agentCard: string | AgentCard;
-  auth?: AuthConfig;
-  httpOptions?: HttpClientOptions;
-  onAuthRequired?: (event: AuthRequiredEvent) => void;
-  onUnauthorized?: (event: UnauthorizedEvent) => void;
-  onTokenRefreshRequired?: () => void | Promise<void>;
-  apiKey?: string;
-  oboUserToken?: string;
-}
-```
-
-#### Authentication
-
-```typescript
-type AuthConfig =
-  | { type: 'bearer'; token: string }
-  | { type: 'oauth2'; accessToken: string; tokenType?: string }
-  | { type: 'api-key'; key: string; header: string }
-  | { type: 'cookie' }
-  | { type: 'custom'; handler: (request: Request) => Promise<Request> | Request }
-  | { type: 'none' };
-```
-
-#### Agent Discovery
-
-```typescript
-class AgentDiscovery {
-  static async resolve(agentUrl: string): Promise<AgentCard>;
-}
-
-// Automatically resolves agent cards from URLs
-const agentCard = await AgentDiscovery.resolve('https://api.example.com');
-```
-
-#### Session Management
-
-```typescript
-class SessionManager extends EventEmitter<SessionEventMap> {
-  get(key: string): unknown;
-  set(key: string, value: unknown): void;
-  remove(key: string): void;
-  clear(): void;
-}
-
-// Events
-sessionManager.on('session:set', (key, value) => {});
-sessionManager.on('session:remove', (key) => {});
-sessionManager.on('session:clear', () => {});
-```
-
-### React Components
+### React Components & Hooks
 
 #### ChatWidget / ChatWindow
 
@@ -491,7 +326,7 @@ interface ChatHistoryStorage {
 #### Usage
 
 ```typescript
-import { createHistoryStorage, ServerHistoryStorage } from '@microsoft/a2achat-core/react';
+import { createHistoryStorage, ServerHistoryStorage } from '@microsoft/a2achat-core';
 
 // Client-side (IndexedDB)
 const clientStorage = createHistoryStorage({ type: 'indexeddb' });
@@ -569,7 +404,7 @@ import {
   defaultLightTheme,
   defaultDarkTheme,
   ChatThemeProvider,
-} from '@microsoft/a2achat-core/react';
+} from '@microsoft/a2achat-core';
 
 // Create custom theme
 const myTheme = createCustomTheme({
@@ -583,83 +418,12 @@ const myTheme = createCustomTheme({
 </ChatThemeProvider>
 ```
 
-### Plugin System
-
-#### Plugin Interface
-
-```typescript
-interface Plugin {
-  name: string;
-  version: string;
-  description?: string;
-  install: (context: PluginContext) => void;
-  uninstall?: () => void;
-  hooks?: PluginHooks;
-}
-
-interface PluginHooks {
-  beforeRequest?: (request: any) => any | Promise<any>;
-  afterResponse?: (response: any) => any | Promise<any>;
-  beforeMessageSend?: (message: Message) => Message | Promise<Message>;
-  afterMessageReceive?: (message: Message) => Message | Promise<Message>;
-  onTaskCreated?: (task: Task) => void | Promise<void>;
-  onTaskCompleted?: (task: Task) => void | Promise<void>;
-  onTaskFailed?: (task: Task) => void | Promise<void>;
-  onError?: (error: Error) => void | Promise<void>;
-  onStart?: () => void | Promise<void>;
-  onStop?: () => void | Promise<void>;
-}
-```
-
-#### PluginManager
-
-```typescript
-class PluginManager {
-  constructor(client: A2AClient);
-
-  register(plugin: Plugin): void;
-  unregister(pluginName: string): void;
-  getPlugin(pluginName: string): Plugin | undefined;
-  getAllPlugins(): Plugin[];
-}
-```
-
-#### Built-in Plugins
-
-```typescript
-// Analytics plugin
-import { AnalyticsPlugin } from '@microsoft/a2achat-core';
-
-const analyticsPlugin = new AnalyticsPlugin({
-  trackEvent: (name, data) => {
-    // Send to your analytics service
-    analytics.track(name, data);
-  },
-});
-
-// Logger plugin
-import { LoggerPlugin } from '@microsoft/a2achat-core';
-
-const loggerPlugin = new LoggerPlugin({
-  level: 'info', // 'debug' | 'info' | 'warn' | 'error'
-  logger: console,
-});
-
-// Register plugins
-const client = new A2AClient({
-  /* config */
-});
-const pluginManager = new PluginManager(client);
-pluginManager.register(analyticsPlugin);
-pluginManager.register(loggerPlugin);
-```
-
 ### Utilities
 
 #### Message Utilities
 
 ```typescript
-import { generateMessageId, createMessage, formatCodeContent } from '@microsoft/a2achat-core/react';
+import { generateMessageId, createMessage, formatCodeContent } from '@microsoft/a2achat-core';
 
 // Generate unique message ID
 const id = generateMessageId();
@@ -677,7 +441,7 @@ const formatted = formatCodeContent(code, 'typescript');
 #### File Utilities
 
 ```typescript
-import { downloadFile, getMimeType } from '@microsoft/a2achat-core/react';
+import { downloadFile, getMimeType } from '@microsoft/a2achat-core';
 
 // Download file
 downloadFile(blob, 'filename.txt');
@@ -689,7 +453,7 @@ const mimeType = getMimeType('.pdf'); // 'application/pdf'
 #### Popup Window
 
 ```typescript
-import { openPopupWindow } from '@microsoft/a2achat-core/react';
+import { openPopupWindow } from '@microsoft/a2achat-core';
 
 // Open popup for OAuth or consent
 const popup = openPopupWindow({
