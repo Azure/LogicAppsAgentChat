@@ -181,7 +181,7 @@ test.describe('Server Error Responses', () => {
         // Hang the request - don't respond at all (simulates timeout)
         // This will trigger client-side timeout handling
 
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait longer than any reasonable timeout
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms to simulate a delayed response and trigger client-side timeout
         await route.abort('timedout');
         return;
       }
