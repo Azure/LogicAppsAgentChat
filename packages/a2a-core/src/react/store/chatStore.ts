@@ -875,9 +875,8 @@ export const useChatStore = create<ChatState>()(
           return {};
         });
 
-        // Throw the error so calling code can detect failure and take appropriate action
-        // The message is already marked as error in state for UI display
-        throw error;
+        // Don't throw - error is already logged and message is marked as error
+        // Throwing can interfere with state updates and UI rendering
       }
     },
 
