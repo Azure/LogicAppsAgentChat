@@ -7,8 +7,8 @@ import {
   type Attachment,
   type AuthConfig,
   type AgentCard,
-} from '@microsoft/a2achat-core';
-import '@microsoft/a2achat-core/styles.css';
+} from '@microsoft/logicAppsChat';
+import '@microsoft/logicAppsChat/styles.css';
 import '../styles/base.css';
 
 // Re-export everything from the core library

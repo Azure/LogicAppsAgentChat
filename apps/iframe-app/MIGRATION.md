@@ -1,12 +1,12 @@
-# Migration to @microsoft/a2achat-core React Library
+# Migration to @microsoft/logicAppsChat React Library
 
-This document summarizes the changes made to migrate the iframe-app from using local React components to using the shared components from `@microsoft/a2achat-core/react`.
+This document summarizes the changes made to migrate the iframe-app from using local React components to using the shared components from `@microsoft/logicAppsChat/react`.
 
 ## Changes Made
 
 ### 1. Updated Imports
 
-- Changed from importing local `ChatWindow` component to importing `ChatWidget` from `@microsoft/a2achat-core/react`
+- Changed from importing local `ChatWindow` component to importing `ChatWidget` from `@microsoft/logicAppsChat/react`
 - Updated all type imports to use types from the core library
 
 ### 2. Component Usage
@@ -36,13 +36,13 @@ Removed unnecessary dependencies from `package.json`:
 
 Kept only essential dependencies:
 
-- `@microsoft/a2achat-core` - The core library with all React components
+- `@microsoft/logicAppsChat` - The core library with all React components
 - `react`, `react-dom` - Required peer dependencies
 - Build tools (Vite, TypeScript)
 
 ### 5. Updated Tests
 
-- Updated test mocks to reference `@microsoft/a2achat-core/react` instead of local components
+- Updated test mocks to reference `@microsoft/logicAppsChat/react` instead of local components
 - Tests now verify integration with the core library
 
 ## Benefits

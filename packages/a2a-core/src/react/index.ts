@@ -30,7 +30,13 @@ export type {
   AuthConfig,
 } from './types';
 
-export type { AuthRequiredEvent, AuthRequiredPart, AuthRequiredHandler } from '../client/types';
+export type {
+  AuthRequiredEvent,
+  AuthRequiredPart,
+  AuthRequiredHandler,
+  UnauthorizedEvent,
+  UnauthorizedHandler,
+} from '../client/types';
 
 // Individual components (for advanced usage)
 export { MessageList } from './components/MessageList';

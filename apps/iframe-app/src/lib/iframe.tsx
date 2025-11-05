@@ -18,7 +18,7 @@ import { createRoot } from 'react-dom/client';
 import { IframeWrapper } from '../components/IframeWrapper';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { useIframeConfig } from './hooks/useIframeConfig';
-import '@microsoft/a2achat-core/styles.css';
+import '@microsoft/logicAppsChat/styles.css';
 import '../styles/base.css';
 
 // Main application component that uses the configuration

@@ -1,4 +1,4 @@
-# @microsoft/a2achat-core
+# @microsoft/logicAppsChat
 
 React SDK for building chat interfaces that connect to AI agents.
 
@@ -22,11 +22,11 @@ React SDK for building chat interfaces that connect to AI agents.
 ## Installation
 
 ```bash
-npm install @microsoft/a2achat-core
+npm install @microsoft/logicAppsChat
 # or
-pnpm add @microsoft/a2achat-core
+pnpm add @microsoft/logicAppsChat
 # or
-yarn add @microsoft/a2achat-core
+yarn add @microsoft/logicAppsChat
 ```
 
 **Peer Dependencies:**
@@ -46,7 +46,7 @@ React components and hooks for building chat interfaces:
 **Import styles:**
 
 ```tsx
-import '@microsoft/a2achat-core/styles.css';
+import '@microsoft/logicAppsChat/styles.css';
 ```
 
 ## Quick Start
@@ -56,8 +56,8 @@ import '@microsoft/a2achat-core/styles.css';
 Full-featured UI with built-in state management:
 
 ```tsx
-import { ChatWidget } from '@microsoft/a2achat-core';
-import '@microsoft/a2achat-core/styles.css';
+import { ChatWidget } from '@microsoft/logicAppsChat';
+import '@microsoft/logicAppsChat/styles.css';
 
 export default function App() {
   return (
@@ -90,7 +90,7 @@ export default function App() {
 For custom UI implementations:
 
 ```tsx
-import { useA2A } from '@microsoft/a2achat-core';
+import { useA2A } from '@microsoft/logicAppsChat';
 
 function CustomChat() {
   const { messages, isLoading, isConnected, sendMessage, clearMessages, authState } = useA2A({
@@ -326,7 +326,7 @@ interface ChatHistoryStorage {
 #### Usage
 
 ```typescript
-import { createHistoryStorage, ServerHistoryStorage } from '@microsoft/a2achat-core';
+import { createHistoryStorage, ServerHistoryStorage } from '@microsoft/logicAppsChat';
 
 // Client-side (IndexedDB)
 const clientStorage = createHistoryStorage({ type: 'indexeddb' });
@@ -404,7 +404,7 @@ import {
   defaultLightTheme,
   defaultDarkTheme,
   ChatThemeProvider,
-} from '@microsoft/a2achat-core';
+} from '@microsoft/logicAppsChat';
 
 // Create custom theme
 const myTheme = createCustomTheme({
@@ -423,7 +423,7 @@ const myTheme = createCustomTheme({
 #### Message Utilities
 
 ```typescript
-import { generateMessageId, createMessage, formatCodeContent } from '@microsoft/a2achat-core';
+import { generateMessageId, createMessage, formatCodeContent } from '@microsoft/logicAppsChat';
 
 // Generate unique message ID
 const id = generateMessageId();
@@ -441,7 +441,7 @@ const formatted = formatCodeContent(code, 'typescript');
 #### File Utilities
 
 ```typescript
-import { downloadFile, getMimeType } from '@microsoft/a2achat-core';
+import { downloadFile, getMimeType } from '@microsoft/logicAppsChat';
 
 // Download file
 downloadFile(blob, 'filename.txt');
@@ -453,7 +453,7 @@ const mimeType = getMimeType('.pdf'); // 'application/pdf'
 #### Popup Window
 
 ```typescript
-import { openPopupWindow } from '@microsoft/a2achat-core';
+import { openPopupWindow } from '@microsoft/logicAppsChat';
 
 // Open popup for OAuth or consent
 const popup = openPopupWindow({
@@ -496,13 +496,13 @@ import type {
   ChatHistoryStorage,
   SaveMessageOptions,
   ListSessionsOptions,
-} from '@microsoft/a2achat-core';
+} from '@microsoft/logicAppsChat';
 ```
 
 All types are derived from Zod schemas for runtime validation:
 
 ```typescript
-import { MessageSchema, AgentCardSchema } from '@microsoft/a2achat-core';
+import { MessageSchema, AgentCardSchema } from '@microsoft/logicAppsChat';
 
 // Validate at runtime
 const result = MessageSchema.safeParse(data);

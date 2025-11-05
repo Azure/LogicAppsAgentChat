@@ -1,5 +1,5 @@
 {
-  "name": "@microsoft/a2achat-core",
+  "name": "@microsoft/logicAppsChat",
   "version": "0.1.0",
   "description": "React SDK for building chat interfaces that connect to AI agents",
   "type": "module",

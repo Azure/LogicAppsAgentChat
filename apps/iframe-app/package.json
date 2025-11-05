@@ -17,7 +17,7 @@
   "dependencies": {
     "@fluentui/react-components": "^9.66.7",
     "@fluentui/react-icons": "^2.0.306",
-    "@microsoft/a2achat-core": "workspace:*",
+    "@microsoft/logicAppsChat": "workspace:*",
     "idb": "^8.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

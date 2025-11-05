@@ -1,4 +1,4 @@
-import type { ChatWidgetProps, ChatTheme } from '@microsoft/a2achat-core';
+import type { ChatWidgetProps, ChatTheme } from '@microsoft/logicAppsChat';
 import { THEME_PRESETS } from './theme-presets';
 
 export interface IframeConfig {

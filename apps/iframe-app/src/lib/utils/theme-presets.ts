@@ -1,4 +1,4 @@
-import type { ChatTheme } from '@microsoft/a2achat-core';
+import type { ChatTheme } from '@microsoft/logicAppsChat';
 
 export const THEME_PRESETS: Record<string, Partial<ChatTheme['colors']>> = {
   default: {

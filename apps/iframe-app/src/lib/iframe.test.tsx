@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 // Mock dependencies
 vi.mock('react-dom/client');
-vi.mock('@microsoft/a2achat-core', () => ({
+vi.mock('@microsoft/logicAppsChat', () => ({
   ChatWidget: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));

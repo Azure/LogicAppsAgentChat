@@ -4,10 +4,10 @@
  */
 
 // Example imports you would use:
-// import { A2AClient } from '@microsoft/a2achat-core';
-// import { openPopupWindow } from '@microsoft/a2achat-core';
-// import type { AuthRequiredEvent, AuthRequiredHandler } from '@microsoft/a2achat-core';
-// import type { AgentCard } from '@microsoft/a2achat-core';
+// import { A2AClient } from '@microsoft/logicAppsChat';
+// import { openPopupWindow } from '@microsoft/logicAppsChat';
+// import type { AuthRequiredEvent, AuthRequiredHandler } from '@microsoft/logicAppsChat';
+// import type { AgentCard } from '@microsoft/logicAppsChat';
 
 // Create an auth handler that opens the consent link in a popup
 // Example handler shown for documentation purposes

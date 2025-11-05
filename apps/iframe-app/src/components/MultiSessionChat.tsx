@@ -6,8 +6,8 @@ import {
   StorageConfig,
   useChatStore,
   ServerHistoryStorage,
-} from '@microsoft/a2achat-core';
-import { AgentCard, isDirectAgentCardUrl } from '@microsoft/a2achat-core';
+} from '@microsoft/logicAppsChat';
+import { AgentCard, isDirectAgentCardUrl } from '@microsoft/logicAppsChat';
 import {
   FluentProvider,
   makeStyles,

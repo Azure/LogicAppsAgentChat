@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatWidget } from '@microsoft/a2achat-core/react';
+import { ChatWidget } from '@microsoft/logicAppsChat/react';
 
 /**
  * Demo showcasing the chat blocking features:
