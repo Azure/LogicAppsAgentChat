@@ -229,7 +229,7 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    expect(screen.getByText('Failed to send')).toBeInTheDocument();
+    expect(screen.getByText('Failed to send message')).toBeInTheDocument();
   });
 
   it('renders error with JsonRpcError details', () => {
@@ -244,8 +244,8 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Error message is truncated to 20 characters
-    expect(screen.getByText('Invalid parameters. ...')).toBeInTheDocument();
+    // User-friendly error message for -32602 code
+    expect(screen.getByText('Invalid parameters. Please check your input.')).toBeInTheDocument();
   });
 
   it('renders content filter error with user-friendly message', () => {
@@ -261,8 +261,10 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Error message is truncated to 20 characters
-    expect(screen.getByText('Your message was fil...')).toBeInTheDocument();
+    // User-friendly error message for content filter
+    expect(
+      screen.getByText('Your message was filtered by content policy. Please modify and try again.')
+    ).toBeInTheDocument();
   });
 
   it('renders custom error code with user-friendly message', () => {
@@ -277,8 +279,10 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Error message is truncated to 20 characters
-    expect(screen.getByText('Unable to complete t...')).toBeInTheDocument();
+    // User-friendly error message for AgentLoopChatCompletionFailed
+    expect(
+      screen.getByText('Unable to complete the request. Please try again with different content.')
+    ).toBeInTheDocument();
   });
 
   it('shows full error message in tooltip', async () => {
@@ -294,11 +298,12 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Get the truncated error text element
-    const errorText = screen.getByText('Your message was fil...');
+    // Get the user-friendly error text element
+    const errorText = screen.getByText(
+      'Your message was filtered by content policy. Please modify and try again.'
+    );
 
-    // The tooltip content should be available via Fluent UI's Tooltip
-    // We verify the tooltip trigger exists
+    // The error message should be displayed
     expect(errorText).toBeInTheDocument();
   });
 
@@ -314,8 +319,8 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Error message is truncated to 20 characters
-    expect(screen.getByText('Database connection ...')).toBeInTheDocument();
+    // For -32603 internal errors without content_filter, shows the original message
+    expect(screen.getByText('Database connection failed')).toBeInTheDocument();
   });
 
   it('handles error with nested data structure', () => {
@@ -334,8 +339,10 @@ describe('Message', () => {
 
     render(<Message message={errorMessage} />);
 
-    // Should show user-friendly message for content_filter, truncated to 20 characters
-    expect(screen.getByText('Your message was fil...')).toBeInTheDocument();
+    // Should show user-friendly message for content_filter
+    expect(
+      screen.getByText('Your message was filtered by content policy. Please modify and try again.')
+    ).toBeInTheDocument();
   });
 
   it('does not render error status for sent messages', () => {
