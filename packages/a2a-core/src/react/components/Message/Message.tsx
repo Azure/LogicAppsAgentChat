@@ -18,6 +18,8 @@ import {
   EyeOffRegular,
   FolderRegular,
   DocumentMultipleRegular,
+  ErrorCircleRegular,
+  ArrowClockwiseRegular,
 } from '@fluentui/react-icons';
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
@@ -280,6 +282,28 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.padding(tokens.spacingVerticalM),
   },
+  errorBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalS),
+    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
+    backgroundColor: tokens.colorPaletteRedBackground1,
+    ...shorthands.border('1px', 'solid', tokens.colorPaletteRedBorder1),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    marginTop: tokens.spacingVerticalS,
+  },
+  errorIcon: {
+    color: tokens.colorPaletteRedForeground1,
+    flexShrink: 0,
+  },
+  errorMessage: {
+    color: tokens.colorPaletteRedForeground1,
+    fontSize: tokens.fontSizeBase300,
+    flex: 1,
+  },
+  retryButton: {
+    flexShrink: 0,
+  },
   groupedHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -320,6 +344,7 @@ interface MessageProps {
   userName?: string;
   onAuthCompleted?: () => void;
   onAuthCanceled?: () => void;
+  onRetry?: (messageId: string) => void;
 }
 
 function MessageComponent({
@@ -328,6 +353,7 @@ function MessageComponent({
   userName = 'You',
   onAuthCompleted,
   onAuthCanceled,
+  onRetry,
 }: MessageProps) {
   const styles = useStyles();
 
@@ -712,26 +738,30 @@ function MessageComponent({
           </div>
           {!isUser && <div className={styles.messageTail} />}
         </div>
+        {message.status === 'error' && (
+          <div className={styles.errorBanner} role="alert" aria-live="polite">
+            <ErrorCircleRegular className={styles.errorIcon} />
+            <Text className={styles.errorMessage}>
+              {message.error
+                ? getUserFriendlyErrorMessage(message.error)
+                : 'Failed to send message'}
+            </Text>
+            {onRetry && (
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<ArrowClockwiseRegular />}
+                onClick={() => onRetry(message.id)}
+                className={styles.retryButton}
+                aria-label="Retry sending message"
+              >
+                Retry
+              </Button>
+            )}
+          </div>
+        )}
         <div className={styles.metadata}>
           <Caption1 className={styles.time}>{formatTime(message.timestamp)}</Caption1>
-          {message.status === 'error' &&
-            (() => {
-              const fullErrorMessage = message.error
-                ? getUserFriendlyErrorMessage(message.error)
-                : 'Failed to send';
-              const maxLength = 20;
-              const displayMessage =
-                fullErrorMessage.length > maxLength
-                  ? `${fullErrorMessage.substring(0, maxLength)}...`
-                  : fullErrorMessage;
-              const fullTechnicalError = message.error?.message || 'Failed to send message';
-
-              return (
-                <Tooltip content={fullTechnicalError} relationship="label">
-                  <Caption1 className={styles.error}>{displayMessage}</Caption1>
-                </Tooltip>
-              );
-            })()}
         </div>
       </div>
     </div>

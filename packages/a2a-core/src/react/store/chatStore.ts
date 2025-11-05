@@ -25,6 +25,7 @@ interface SessionConnectionConfig {
   oboUserToken?: string;
   onAuthRequired?: AuthRequiredHandler;
   onUnauthorized?: UnauthorizedHandler;
+  streamTimeoutMs?: number;
 }
 
 interface ChatState {
@@ -655,144 +656,165 @@ export const useChatStore = create<ChatState>()(
           return { typingByContext: newTyping };
         });
 
-        // Stream response
+        // Get stream timeout from config (for testing), default to no timeout for production
+        const sessionConfig = state.sessionConfigs.get(sessionId);
+        const streamTimeoutMs = sessionConfig?.streamTimeoutMs;
         const stream = client.message.stream(messageRequest);
 
-        for await (const task of stream) {
-          // Capture context ID from the server response
-          if (!contextId) {
-            const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
-            if (serverContextId) {
-              contextId = serverContextId as string;
+        // Process stream with optional timeout
+        const processStream = async () => {
+          for await (const task of stream) {
+            // Capture context ID from the server response
+            if (!contextId) {
+              const serverContextId = (task as any).contextId || task.metadata?.['contextId'];
+              if (serverContextId) {
+                contextId = serverContextId as string;
 
-              // Check if this is a pending session that needs migration
-              const isPendingSession = sessionId.startsWith('pending-');
-              if (isPendingSession) {
-                console.log(
-                  `[chatStore] Context ID received for pending session ${sessionId}: ${contextId}`
-                );
-                // Perform migration and wait for it to complete before continuing
-                // This prevents race conditions where messages are stored under the wrong ID
-                try {
-                  await get().migratePendingSessionToRealId(sessionId, contextId);
-                  // Update sessionId for the rest of the stream processing
-                  sessionId = contextId;
-                } catch (error) {
-                  console.error('[chatStore] Error migrating pending session:', error);
-                  // Don't reassign sessionId if migration failed
+                // Check if this is a pending session that needs migration
+                const isPendingSession = sessionId.startsWith('pending-');
+                if (isPendingSession) {
+                  console.log(
+                    `[chatStore] Context ID received for pending session ${sessionId}: ${contextId}`
+                  );
+                  // Perform migration and wait for it to complete before continuing
+                  // This prevents race conditions where messages are stored under the wrong ID
+                  try {
+                    await get().migratePendingSessionToRealId(sessionId, contextId);
+                    // Update sessionId for the rest of the stream processing
+                    sessionId = contextId;
+                  } catch (error) {
+                    console.error('[chatStore] Error migrating pending session:', error);
+                    // Don't reassign sessionId if migration failed
+                  }
                 }
-              }
 
-              // Store contextId in user message metadata for future reference
-              set((draft) => {
-                const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
-                const msgIndex = sessionMsgs.findIndex((m) => m.id === userMessage.id);
-                if (msgIndex >= 0) {
-                  const newMessages = [...sessionMsgs];
-                  newMessages[msgIndex] = {
-                    ...newMessages[msgIndex],
-                    metadata: { ...newMessages[msgIndex].metadata, contextId },
-                  };
-                  const newSessionMessages = new Map(draft.sessionMessages);
-                  newSessionMessages.set(sessionId, newMessages);
-                  return { sessionMessages: newSessionMessages };
-                }
-                return {};
-              });
-            }
-          }
-
-          // Process messages from the task
-          if (task.messages && task.messages.length > 0) {
-            for (let i = 0; i < task.messages.length; i++) {
-              const message = task.messages[i];
-              if (!message) continue;
-
-              const contentParts = message.content || [];
-              const textContent = contentParts
-                .filter((part: A2APart) => part.type === 'text')
-                .map((part: A2APart) => (part.type === 'text' ? part.content : ''))
-                .join('');
-
-              if (textContent) {
-                const messageId = `${message.role}-${task.id}-${i}`;
-                const isStreaming = task.state === 'running' || task.state === 'pending';
-
+                // Store contextId in user message metadata for future reference
                 set((draft) => {
                   const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
-
-                  // Skip if this is a user message that we already have
-                  if (message.role === 'user') {
-                    const isDuplicate = sessionMsgs.some(
-                      (msg) => msg.sender === 'user' && msg.content === textContent
-                    );
-                    if (isDuplicate) {
-                      return {};
-                    }
-                  }
-
-                  const existingIndex = sessionMsgs.findIndex((msg) => msg.id === messageId);
-
-                  const newMessages = [...sessionMsgs];
-                  let updatedUnreadCounts: Map<string, number> | undefined;
-
-                  if (existingIndex >= 0) {
-                    // Update existing message
-                    newMessages[existingIndex] = {
-                      ...newMessages[existingIndex],
-                      content: textContent,
-                      metadata: {
-                        ...newMessages[existingIndex].metadata,
-                        isStreaming,
-                        taskId: task.id,
-                      },
+                  const msgIndex = sessionMsgs.findIndex((m) => m.id === userMessage.id);
+                  if (msgIndex >= 0) {
+                    const newMessages = [...sessionMsgs];
+                    newMessages[msgIndex] = {
+                      ...newMessages[msgIndex],
+                      metadata: { ...newMessages[msgIndex].metadata, contextId },
                     };
-                  } else {
-                    // Add new message
-                    const newMessage: Message = {
-                      id: messageId,
-                      content: textContent,
-                      sender: message.role === 'user' ? 'user' : 'assistant',
-                      timestamp: new Date(),
-                      status: 'sent',
-                      metadata: {
-                        isStreaming,
-                        taskId: task.id,
-                        contextId,
-                      },
-                    };
-                    newMessages.push(newMessage);
-
-                    // Increment unread count for assistant messages if this session is not currently viewed
-                    if (message.role === 'assistant' && draft.viewedSessionId !== sessionId) {
-                      const newUnreadCounts = new Map(draft.unreadCounts);
-                      const currentCount = newUnreadCounts.get(sessionId) || 0;
-                      newUnreadCounts.set(sessionId, currentCount + 1);
-                      updatedUnreadCounts = newUnreadCounts;
-                    }
+                    const newSessionMessages = new Map(draft.sessionMessages);
+                    newSessionMessages.set(sessionId, newMessages);
+                    return { sessionMessages: newSessionMessages };
                   }
-
-                  const newSessionMessages = new Map(draft.sessionMessages);
-                  newSessionMessages.set(sessionId, newMessages);
-
-                  // Return both updated values (don't mix mutation and return)
-                  return updatedUnreadCounts
-                    ? { sessionMessages: newSessionMessages, unreadCounts: updatedUnreadCounts }
-                    : { sessionMessages: newSessionMessages };
+                  return {};
                 });
+              }
+            }
 
-                addedMessageIds.add(messageId);
+            // Process messages from the task
+            if (task.messages && task.messages.length > 0) {
+              for (let i = 0; i < task.messages.length; i++) {
+                const message = task.messages[i];
+                if (!message) continue;
+
+                const contentParts = message.content || [];
+                const textContent = contentParts
+                  .filter((part: A2APart) => part.type === 'text')
+                  .map((part: A2APart) => (part.type === 'text' ? part.content : ''))
+                  .join('');
+
+                if (textContent) {
+                  const messageId = `${message.role}-${task.id}-${i}`;
+                  const isStreaming = task.state === 'running' || task.state === 'pending';
+
+                  set((draft) => {
+                    const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
+
+                    // Skip if this is a user message that we already have
+                    if (message.role === 'user') {
+                      const isDuplicate = sessionMsgs.some(
+                        (msg) => msg.sender === 'user' && msg.content === textContent
+                      );
+                      if (isDuplicate) {
+                        return {};
+                      }
+                    }
+
+                    const existingIndex = sessionMsgs.findIndex((msg) => msg.id === messageId);
+
+                    const newMessages = [...sessionMsgs];
+                    let updatedUnreadCounts: Map<string, number> | undefined;
+
+                    if (existingIndex >= 0) {
+                      // Update existing message
+                      newMessages[existingIndex] = {
+                        ...newMessages[existingIndex],
+                        content: textContent,
+                        metadata: {
+                          ...newMessages[existingIndex].metadata,
+                          isStreaming,
+                          taskId: task.id,
+                        },
+                      };
+                    } else {
+                      // Add new message
+                      const newMessage: Message = {
+                        id: messageId,
+                        content: textContent,
+                        sender: message.role === 'user' ? 'user' : 'assistant',
+                        timestamp: new Date(),
+                        status: 'sent',
+                        metadata: {
+                          isStreaming,
+                          taskId: task.id,
+                          contextId,
+                        },
+                      };
+                      newMessages.push(newMessage);
+
+                      // Increment unread count for assistant messages if this session is not currently viewed
+                      if (message.role === 'assistant' && draft.viewedSessionId !== sessionId) {
+                        const newUnreadCounts = new Map(draft.unreadCounts);
+                        const currentCount = newUnreadCounts.get(sessionId) || 0;
+                        newUnreadCounts.set(sessionId, currentCount + 1);
+                        updatedUnreadCounts = newUnreadCounts;
+                      }
+                    }
+
+                    const newSessionMessages = new Map(draft.sessionMessages);
+                    newSessionMessages.set(sessionId, newMessages);
+
+                    // Return both updated values (don't mix mutation and return)
+                    return updatedUnreadCounts
+                      ? { sessionMessages: newSessionMessages, unreadCounts: updatedUnreadCounts }
+                      : { sessionMessages: newSessionMessages };
+                  });
+
+                  addedMessageIds.add(messageId);
+                }
               }
             }
           }
-        }
+        };
 
-        // Clear typing indicator
-        set((draft) => {
-          const newTyping = new Map(draft.typingByContext);
-          newTyping.set(sessionId, false);
-          return { typingByContext: newTyping };
-        });
+        // Process stream with optional timeout
+        try {
+          if (streamTimeoutMs) {
+            // Create timeout promise only when configured (for testing)
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => {
+                reject(new Error('Stream timeout: No response received'));
+              }, streamTimeoutMs);
+            });
+            await Promise.race([processStream(), timeoutPromise]);
+          } else {
+            // No timeout for production - let server control timeout
+            await processStream();
+          }
+        } finally {
+          // Always clear typing indicator when stream ends (success, error, or timeout)
+          set((draft) => {
+            const newTyping = new Map(draft.typingByContext);
+            newTyping.set(sessionId, false);
+            return { typingByContext: newTyping };
+          });
+        }
       } catch (error) {
         console.error(`[chatStore] Error sending message to session ${sessionId}:`, error);
         console.log(`[chatStore] Error details:`, {
@@ -801,12 +823,7 @@ export const useChatStore = create<ChatState>()(
           receivedMessageCount: addedMessageIds.size,
         });
 
-        // Clear typing indicator
-        set((draft) => {
-          const newTyping = new Map(draft.typingByContext);
-          newTyping.set(sessionId, false);
-          return { typingByContext: newTyping };
-        });
+        // Note: typing indicator is cleared in finally block above
 
         // Detect if this is a navigation/connection abort
         const errorMessage =
@@ -846,7 +863,11 @@ export const useChatStore = create<ChatState>()(
           const msgIndex = sessionMsgs.findIndex((m) => m.id === userMessage.id);
           if (msgIndex >= 0) {
             const newMessages = [...sessionMsgs];
-            newMessages[msgIndex] = { ...newMessages[msgIndex], status: 'error' };
+            newMessages[msgIndex] = {
+              ...newMessages[msgIndex],
+              status: 'error',
+              error: error instanceof Error ? error : new Error(String(error)),
+            };
             const newSessionMessages = new Map(draft.sessionMessages);
             newSessionMessages.set(sessionId, newMessages);
             return { sessionMessages: newSessionMessages };
@@ -854,7 +875,8 @@ export const useChatStore = create<ChatState>()(
           return {};
         });
 
-        throw error;
+        // Don't throw - error is already logged and message is marked as error
+        // Throwing can interfere with state updates and UI rendering
       }
     },
 

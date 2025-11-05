@@ -99,8 +99,9 @@ export class SSEClient {
               console.log('Retrying SSE connection after authentication refresh...');
               return this.connect(true);
             }
-            throw new Error(`HTTP error! status: ${response.status}`);
           }
+          // Throw error for all non-OK responses (401, 500, 503, etc.)
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         if (!response.body) {
