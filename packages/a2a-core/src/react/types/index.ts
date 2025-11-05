@@ -106,7 +106,7 @@ export interface ChatConfig {
   /** User ID for tracking */
   userId?: string;
   /** Custom metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   /** Placeholder text for message input */
   placeholder?: string;
   /** Welcome message to show on first load */
