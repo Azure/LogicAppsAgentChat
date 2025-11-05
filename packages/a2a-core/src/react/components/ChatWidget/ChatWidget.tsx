@@ -26,7 +26,7 @@ const useStyles = makeStyles({
  *
  * @example
  * ```tsx
- * import { ChatWidget } from '@microsoft/a2achat-core/react';
+ * import { ChatWidget } from '@microsoft/logicAppsChat/react';
  *
  * function App() {
  *   return (

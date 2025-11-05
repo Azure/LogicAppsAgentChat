@@ -1,7 +1,7 @@
 {
-  "name": "@microsoft/a2achat-core",
+  "name": "@microsoft/logicAppsChat",
   "version": "0.1.0",
-  "description": "TypeScript SDK for browser user interaction with AI Agents through the A2A protocol",
+  "description": "React SDK for building chat interfaces that connect to AI agents",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -11,15 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./chat": {
-      "types": "./dist/chat/index.d.ts",
-      "import": "./dist/chat/index.js"
-    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
     },
-    "./react/styles.css": {
+    "./styles.css": {
       "import": "./dist/react/styles.css",
       "require": "./dist/react/styles.css"
     }

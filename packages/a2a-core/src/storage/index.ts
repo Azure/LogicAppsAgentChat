@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * import { createHistoryStorage } from '@microsoft/a2achat-core/storage';
+ * import { createHistoryStorage } from '@microsoft/logicAppsChat/storage';
  *
  * const storage = createHistoryStorage({
  *   type: 'server',

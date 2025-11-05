@@ -1,41 +1,49 @@
-// Main entry point for @a2a/browser-sdk
+/**
+ * @a2achat/react - React SDK for building chat interfaces
+ *
+ * This library provides React components and hooks for building chat interfaces
+ * that connect to A2A (Agent-to-Agent) protocol agents. The A2A protocol is an
+ * implementation detail - you work with React components and hooks.
+ *
+ * ## Quick Start
+ *
+ * ```tsx
+ * import { ChatWidget } from '@a2achat/react';
+ *
+ * function App() {
+ *   return (
+ *     <ChatWidget
+ *       agentCard="https://your-agent.com/agent-card"
+ *       welcomeMessage="Hello! How can I help you today?"
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * For more control, use the hooks:
+ *
+ * ```tsx
+ * import { useChat, ChatWindow } from '@a2achat/react';
+ *
+ * function CustomChat() {
+ *   const chat = useChat({ agentUrl: 'https://your-agent.com' });
+ *
+ *   return (
+ *     <ChatWindow
+ *       messages={chat.messages}
+ *       onSendMessage={chat.sendMessage}
+ *       isLoading={chat.isLoading}
+ *     />
+ *   );
+ * }
+ * ```
+ */
 
-// Export types
-export * from './types';
+// Primary exports - React components and hooks
+export * from './react';
 
-// Export discovery
-export * from './discovery';
+// Export commonly needed types for configuration
+export type { ChatConfig, AgentConfig, ChatTheme, Branding } from './react/types';
 
-// Export client
-export * from './client';
-
-// Export streaming
-export * from './streaming';
-
-// Export session
-export * from './session';
-
-// Export plugins
-export * from './plugins';
-
-// Export utils
-export * from './utils/popup-window';
-export {
-  getAgentMessagesStorageKey,
-  getAgentContextStorageKey,
-  getAgentStorageIdentifier,
-} from './utils/storage-keys';
-export { isDirectAgentCardUrl } from './utils/agentUrlUtils';
-
-// Re-export commonly used items at top level for convenience
-export { A2AClient } from './client/a2a-client';
-export { AgentDiscovery } from './discovery/agent-discovery';
-export { HttpClient } from './client/http-client';
-export { SSEClient } from './streaming/sse-client';
-export { SessionManager, LocalStoragePlugin } from './session/session-manager';
-export { ChatInterface } from './chat/chat-interface';
-export { PluginManager } from './plugins/plugin-manager';
-export { AnalyticsPlugin, LoggerPlugin } from './plugins';
-
-// Export schemas for validation
-export { AgentCardSchema, MessageSchema, TaskSchema, PartSchema } from './types/schemas';
+// Note: Advanced A2A protocol types are available in the React module but
+// are considered implementation details. Use the React-friendly types above.

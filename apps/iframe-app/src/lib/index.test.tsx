@@ -2,11 +2,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { mountChatWidget, ChatWidget } from '.';
-import type { ChatWidgetProps } from '@microsoft/a2achat-core/react';
+import type { ChatWidgetProps } from '@microsoft/logicAppsChat';
 
 // Mock dependencies
 vi.mock('react-dom/client');
-vi.mock('@microsoft/a2achat-core/react', () => ({
+vi.mock('@microsoft/logicAppsChat', () => ({
   ChatWidget: vi.fn(() => null),
 }));
 vi.mock('../styles/base.css', () => ({}));

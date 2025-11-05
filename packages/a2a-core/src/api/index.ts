@@ -10,7 +10,7 @@
  *
  * @example
  * ```typescript
- * import { createHistoryApi, transformContext } from '@microsoft/a2achat-core/api';
+ * import { createHistoryApi, transformContext } from '@microsoft/logicAppsChat/api';
  *
  * const historyApi = createHistoryApi({
  *   agentUrl: 'https://example.com/api/agents/MyAgent',

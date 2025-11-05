@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { UnauthorizedHandler } from '@microsoft/a2achat-core';
+import type { UnauthorizedHandler } from '@microsoft/logicAppsChat';
 
 export const useSessionExpiredHandler = () => {
   const [isSessionExpired, setIsSessionExpired] = useState(false);
