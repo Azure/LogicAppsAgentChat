@@ -83,6 +83,46 @@ export interface Branding {
   name?: string;
 }
 
+/**
+ * Configuration for connecting to an agent
+ */
+export interface AgentConfig {
+  /** Agent URL or agent card URL */
+  url: string;
+  /** Agent display name (optional, will be fetched from agent card if not provided) */
+  name?: string;
+  /** Authentication configuration */
+  auth?: AuthConfig;
+}
+
+/**
+ * Main configuration for the chat interface
+ */
+export interface ChatConfig {
+  /** Agent configuration */
+  agent: AgentConfig;
+  /** Custom theme */
+  theme?: Partial<ChatTheme>;
+  /** User ID for tracking */
+  userId?: string;
+  /** Custom metadata */
+  metadata?: Record<string, any>;
+  /** Placeholder text for message input */
+  placeholder?: string;
+  /** Welcome message to show on first load */
+  welcomeMessage?: string;
+  /** Enable file uploads */
+  allowFileUpload?: boolean;
+  /** Maximum file size in bytes */
+  maxFileSize?: number;
+  /** Allowed file types */
+  allowedFileTypes?: string[];
+  /** Custom display name for the user */
+  userName?: string;
+  /** Server-side storage configuration */
+  storageConfig?: StorageConfig;
+}
+
 export interface ChatWidgetProps {
   agentCard: string | AgentCard;
   auth?: AuthConfig;
