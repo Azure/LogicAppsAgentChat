@@ -7,12 +7,19 @@ import { createHistoryStorage } from '../storage';
 import type { StorageConfig } from '../storage/history-storage';
 import { useChatStore } from './store/chatStore';
 
+export interface FileAttachment {
+  name: string;
+  mimeType: string;
+  data: string; // base64 encoded
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  files?: FileAttachment[]; // For files sent by the backend (images, etc.)
   metadata?: {
     taskId?: string;
     artifacts?: any[];
@@ -485,34 +492,77 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                   // Handle artifacts based on their structure - they may come in different formats
                   const artifactAny = artifact as any;
                   if (artifactAny.parts && artifactAny.parts.length > 0) {
-                    for (const part of artifactAny.parts) {
-                      if (part.kind === 'text' && part.text) {
-                        const artifactMessage: ChatMessage = {
-                          id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
-                          role: 'assistant',
-                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
-                          timestamp: new Date(),
-                          isStreaming: false,
-                          metadata: {
-                            taskId: task.id,
-                            artifacts: [artifact],
-                          },
-                        };
+                    // Extract text and file parts
+                    const textParts = artifactAny.parts.filter(
+                      (p: any) => p.kind === 'text' && p.text
+                    );
+                    const fileParts = artifactAny.parts.filter(
+                      (p: any) => p.kind === 'file' && p.bytes && p.mimeType
+                    );
 
-                        setMessages((prev) => {
-                          const newMessages = [...prev, artifactMessage];
+                    // Handle text parts
+                    for (const part of textParts) {
+                      const artifactMessage: ChatMessage = {
+                        id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
+                        role: 'assistant',
+                        content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
+                        timestamp: new Date(),
+                        isStreaming: false,
+                        metadata: {
+                          taskId: task.id,
+                          artifacts: [artifact],
+                        },
+                      };
 
-                          // Persist messages when artifact message is added
-                          if (options.persistSession && options.sessionKey) {
-                            const storageKey = getMessagesStorageKey();
-                            if (storageKey) {
-                              localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                            }
+                      setMessages((prev) => {
+                        const newMessages = [...prev, artifactMessage];
+
+                        // Persist messages when artifact message is added
+                        if (options.persistSession && options.sessionKey) {
+                          const storageKey = getMessagesStorageKey();
+                          if (storageKey) {
+                            localStorage.setItem(storageKey, JSON.stringify(newMessages));
                           }
+                        }
 
-                          return newMessages;
-                        });
-                      }
+                        return newMessages;
+                      });
+                    }
+
+                    // Handle file parts (images, etc.)
+                    if (fileParts.length > 0) {
+                      const files: FileAttachment[] = fileParts.map((part: any) => ({
+                        name: part.name || 'file',
+                        mimeType: part.mimeType,
+                        data: part.bytes, // base64 encoded
+                      }));
+
+                      const fileMessage: ChatMessage = {
+                        id: `artifact-file-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
+                        role: 'assistant',
+                        content: ' ', // Space to ensure message renders
+                        timestamp: new Date(),
+                        isStreaming: false,
+                        files,
+                        metadata: {
+                          taskId: task.id,
+                          artifacts: [artifact],
+                        },
+                      };
+
+                      setMessages((prev) => {
+                        const newMessages = [...prev, fileMessage];
+
+                        // Persist messages when artifact message is added
+                        if (options.persistSession && options.sessionKey) {
+                          const storageKey = getMessagesStorageKey();
+                          if (storageKey) {
+                            localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                          }
+                        }
+
+                        return newMessages;
+                      });
                     }
                   } else if (artifactAny.content) {
                     // Handle older format with direct content
