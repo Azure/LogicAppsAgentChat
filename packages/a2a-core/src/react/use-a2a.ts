@@ -7,12 +7,19 @@ import { createHistoryStorage } from '../storage';
 import type { StorageConfig } from '../storage/history-storage';
 import { useChatStore } from './store/chatStore';
 
+export interface FileAttachment {
+  name: string;
+  mimeType: string;
+  data: string; // base64 encoded
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  files?: FileAttachment[]; // For files sent by the backend (images, etc.)
   metadata?: {
     taskId?: string;
     artifacts?: any[];
@@ -481,43 +488,65 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
               if (!addedMessageIds.has(artifactMessageKey)) {
                 addedMessageIds.add(artifactMessageKey);
 
+                // Batch all artifact messages to avoid multiple re-renders and localStorage writes
+                const artifactMessagesToAdd: ChatMessage[] = [];
+
                 for (const artifact of task.artifacts) {
                   // Handle artifacts based on their structure - they may come in different formats
                   const artifactAny = artifact as any;
                   if (artifactAny.parts && artifactAny.parts.length > 0) {
-                    for (const part of artifactAny.parts) {
-                      if (part.kind === 'text' && part.text) {
-                        const artifactMessage: ChatMessage = {
-                          id: `artifact-${Date.now()}-${artifactAny.artifactId || artifactAny.id}`,
-                          role: 'assistant',
-                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
-                          timestamp: new Date(),
-                          isStreaming: false,
-                          metadata: {
-                            taskId: task.id,
-                            artifacts: [artifact],
-                          },
-                        };
+                    // Extract text and file parts
+                    const textParts = artifactAny.parts.filter(
+                      (p: any) => p.kind === 'text' && p.text
+                    );
+                    const fileParts = artifactAny.parts.filter(
+                      (p: any) => p.kind === 'file' && p.bytes && p.mimeType
+                    );
 
-                        setMessages((prev) => {
-                          const newMessages = [...prev, artifactMessage];
+                    // Collect text part messages (process text first to match chatStore ordering)
+                    if (textParts.length > 0) {
+                      // Combine all text parts into a single message to avoid duplicate IDs
+                      const combinedText = textParts.map((p: any) => p.text).join('\n\n');
+                      const artifactMessage: ChatMessage = {
+                        id: `artifact-text-${artifactAny.artifactId || artifactAny.id}`,
+                        role: 'assistant',
+                        content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${combinedText}\n\`\`\``,
+                        timestamp: new Date(),
+                        isStreaming: false,
+                        metadata: {
+                          taskId: task.id,
+                          artifacts: [artifact],
+                        },
+                      };
+                      artifactMessagesToAdd.push(artifactMessage);
+                    }
 
-                          // Persist messages when artifact message is added
-                          if (options.persistSession && options.sessionKey) {
-                            const storageKey = getMessagesStorageKey();
-                            if (storageKey) {
-                              localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                            }
-                          }
+                    // Collect file part messages (process files second to match chatStore ordering)
+                    if (fileParts.length > 0) {
+                      const files: FileAttachment[] = fileParts.map((part: any) => ({
+                        name: part.name || 'file',
+                        mimeType: part.mimeType,
+                        data: part.bytes, // base64 encoded
+                      }));
 
-                          return newMessages;
-                        });
-                      }
+                      const fileMessage: ChatMessage = {
+                        id: `artifact-file-${artifactAny.artifactId || artifactAny.id}`,
+                        role: 'assistant',
+                        content: ' ', // Space to ensure message renders
+                        timestamp: new Date(),
+                        isStreaming: false,
+                        files,
+                        metadata: {
+                          taskId: task.id,
+                          artifacts: [artifact],
+                        },
+                      };
+                      artifactMessagesToAdd.push(fileMessage);
                     }
                   } else if (artifactAny.content) {
                     // Handle older format with direct content
                     const artifactMessage: ChatMessage = {
-                      id: `artifact-${Date.now()}-${artifactAny.id}`,
+                      id: `artifact-${artifactAny.id}`,
                       role: 'assistant',
                       content: `📄 ${artifactAny.title || artifactAny.id}:\n\`\`\`\n${artifactAny.content}\n\`\`\``,
                       timestamp: new Date(),
@@ -527,21 +556,25 @@ export function useA2A(options: UseA2AOptions = {}): UseA2AReturn {
                         artifacts: [artifact],
                       },
                     };
-
-                    setMessages((prev) => {
-                      const newMessages = [...prev, artifactMessage];
-
-                      // Persist messages when artifact message is added
-                      if (options.persistSession && options.sessionKey) {
-                        const storageKey = getMessagesStorageKey();
-                        if (storageKey) {
-                          localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                        }
-                      }
-
-                      return newMessages;
-                    });
+                    artifactMessagesToAdd.push(artifactMessage);
                   }
+                }
+
+                // Single state update for all artifact messages - reduces re-renders and localStorage writes
+                if (artifactMessagesToAdd.length > 0) {
+                  setMessages((prev) => {
+                    const newMessages = [...prev, ...artifactMessagesToAdd];
+
+                    // Persist messages when artifact messages are added (single write)
+                    if (options.persistSession && options.sessionKey) {
+                      const storageKey = getMessagesStorageKey();
+                      if (storageKey) {
+                        localStorage.setItem(storageKey, JSON.stringify(newMessages));
+                      }
+                    }
+
+                    return newMessages;
+                  });
                 }
               }
             }

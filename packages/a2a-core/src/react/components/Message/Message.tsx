@@ -110,6 +110,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     ...shorthands.gap(tokens.spacingVerticalS),
   },
+  messageContainerWithFiles: {
+    maxWidth: '85%',
+  },
   senderName: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
@@ -335,6 +338,49 @@ const useStyles = makeStyles({
     ...shorthands.gap(tokens.spacingHorizontalXS),
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
+  },
+  fileContainer: {
+    marginTop: tokens.spacingVerticalM,
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalS),
+    width: '100%',
+  },
+  imageWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap(tokens.spacingVerticalXS),
+    width: '100%',
+  },
+  imageFileName: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground2,
+    textAlign: 'center',
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalS),
+  },
+  imageContainer: {
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.overflow('hidden'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground3,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shorthands.padding(tokens.spacingVerticalS),
+    width: '100%',
+  },
+  image: {
+    display: 'block',
+    maxWidth: '600px',
+    width: '100%',
+    height: 'auto',
+    ...shorthands.borderRadius(tokens.borderRadiusSmall),
+  },
+  fileName: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    marginTop: tokens.spacingVerticalXS,
   },
 });
 
@@ -586,7 +632,12 @@ function MessageComponent({
         isUser ? styles.userMessage : styles.assistantMessage
       )}
     >
-      <div className={styles.messageContainer}>
+      <div
+        className={mergeClasses(
+          styles.messageContainer,
+          message.files && message.files.length > 0 && styles.messageContainerWithFiles
+        )}
+      >
         <Text className={styles.senderName}>{senderName}</Text>
         <div className={styles.messageBubble}>
           <div className={isUser ? styles.userBubble : styles.assistantBubble}>
@@ -723,6 +774,45 @@ function MessageComponent({
               </Card>
             ) : (
               renderContent()
+            )}
+            {message.files && message.files.length > 0 && (
+              <div className={styles.fileContainer}>
+                {message.files.map((file, index) => {
+                  // Validate that mimeType is a safe image type
+                  const allowedImageTypes = [
+                    'image/png',
+                    'image/jpeg',
+                    'image/jpg',
+                    'image/gif',
+                    'image/webp',
+                    'image/svg+xml',
+                  ];
+                  const isImage =
+                    file.mimeType && allowedImageTypes.includes(file.mimeType.toLowerCase());
+
+                  if (isImage) {
+                    return (
+                      <div key={index} className={styles.imageWrapper}>
+                        {file.name && <div className={styles.imageFileName}>{file.name}</div>}
+                        <div className={styles.imageContainer}>
+                          <img
+                            src={`data:${file.mimeType};base64,${file.data}`}
+                            alt={file.name || 'Attached image'}
+                            className={styles.image}
+                          />
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div key={index} className={styles.attachment}>
+                        <DocumentRegular fontSize={16} />
+                        <Caption1>{file.name || 'Attached file'}</Caption1>
+                      </div>
+                    );
+                  }
+                })}
+              </div>
             )}
             {message.attachments && message.attachments.length > 0 && (
               <div className={styles.attachments}>

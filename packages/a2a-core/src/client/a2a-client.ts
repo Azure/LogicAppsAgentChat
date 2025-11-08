@@ -585,10 +585,33 @@ export class A2AClient {
 
                         // Handle streaming text content from artifacts
                         if (result.artifact && result.artifact.parts) {
+                          // Store the artifact in currentTask.artifacts (for both text and file parts)
+                          const artifact = result.artifact;
+                          const artifactId = (artifact as any).artifactId || (artifact as any).id;
+                          const existingArtifactIndex = currentTask.artifacts?.findIndex(
+                            (a) =>
+                              (a as any).artifactId === artifactId || (a as any).id === artifactId
+                          );
+
+                          if (existingArtifactIndex === -1 || existingArtifactIndex === undefined) {
+                            // Add new artifact
+                            currentTask.artifacts = [...(currentTask.artifacts || []), artifact];
+                          } else {
+                            // Update existing artifact
+                            const updatedArtifacts = [...(currentTask.artifacts || [])];
+                            updatedArtifacts[existingArtifactIndex] = artifact;
+                            currentTask.artifacts = updatedArtifacts;
+                          }
+
                           const textParts = result.artifact.parts
                             .filter((part: any) => part.kind === 'Text' || part.kind === 'text')
                             .map((part: any) => part.text || '')
                             .join('');
+
+                          // Check if artifact has file parts (images, etc.)
+                          const hasFileParts = result.artifact.parts.some(
+                            (part: any) => part.kind === 'file' && part.bytes && part.mimeType
+                          );
 
                           if (!result.append) {
                             // Start new message - this is the first chunk
@@ -629,23 +652,28 @@ export class A2AClient {
                             }
                           }
 
-                          // Queue a task update with the current message state
-                          messageQueue.push({
-                            ...currentTask,
-                            messages: [...(currentTask.messages || [])],
-                            artifacts: currentTask.artifacts ? [...currentTask.artifacts] : [],
-                            // Pass through contextId to the consumer
-                            ...((currentTask as any).contextId
-                              ? { contextId: (currentTask as any).contextId }
-                              : {}),
-                          });
+                          // Only queue task update if artifact has file parts
+                          // Text-only artifacts will be included in the next status-update
+                          if (hasFileParts) {
+                            messageQueue.push({
+                              ...currentTask,
+                              messages: [...(currentTask.messages || [])],
+                              artifacts: currentTask.artifacts ? [...currentTask.artifacts] : [],
+                              // Pass through contextId to the consumer
+                              ...((currentTask as any).contextId
+                                ? { contextId: (currentTask as any).contextId }
+                                : {}),
+                            });
+                          }
                         } else if (result.artifact) {
                           // Handle complete artifacts (not streaming parts)
                           const artifact = result.artifact;
 
                           // Check if this artifact already exists (avoid duplicates)
+                          const artifactId = (artifact as any).artifactId || (artifact as any).id;
                           const existingArtifactIndex = currentTask.artifacts?.findIndex(
-                            (a) => a.id === artifact.id
+                            (a) =>
+                              (a as any).artifactId === artifactId || (a as any).id === artifactId
                           );
 
                           if (existingArtifactIndex === -1 || existingArtifactIndex === undefined) {
@@ -658,8 +686,9 @@ export class A2AClient {
                             currentTask.artifacts = updatedArtifacts;
                           }
 
-                          // Note: Don't queue a task update for artifact-only updates
+                          // Don't queue a task update for artifact-only updates
                           // Artifacts will be included in the next status-update
+                          // This preserves message accumulation behavior
                         }
 
                         // Check if this is the final artifact chunk

@@ -11,6 +11,12 @@ export type MessageStatus = 'sending' | 'sent' | 'error';
 export type AttachmentStatus = 'uploading' | 'uploaded' | 'error';
 export type AuthenticationStatus = 'pending' | 'completed' | 'failed' | 'canceled';
 
+export interface FileAttachment {
+  name: string;
+  mimeType: string;
+  data: string; // base64 encoded
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -19,6 +25,7 @@ export interface Message {
   status?: MessageStatus;
   metadata?: Record<string, any>;
   attachments?: Attachment[];
+  files?: FileAttachment[]; // For files sent by the backend (images, etc.)
   authEvent?: {
     authParts: AuthRequiredPart[];
     status: AuthenticationStatus;

@@ -161,6 +161,7 @@ export function useChatWidget({
         // Streaming update
         updateMessage(existingInternalId, {
           content: sdkMessage.content,
+          files: sdkMessage.files,
           metadata: {
             ...sdkMessage.metadata,
             isStreaming: sdkMessage.isStreaming,
@@ -174,6 +175,7 @@ export function useChatWidget({
         if (existingInternalId && !sdkMessage.isStreaming) {
           updateMessage(existingInternalId, {
             content: sdkMessage.content,
+            files: sdkMessage.files,
             metadata: {
               ...sdkMessage.metadata,
               isStreaming: false,
@@ -219,6 +221,11 @@ export function useChatWidget({
         // Include authEvent if present
         if (sdkMessage.authEvent) {
           internalMessage.authEvent = sdkMessage.authEvent;
+        }
+
+        // Include files if present (images, etc.)
+        if (sdkMessage.files) {
+          internalMessage.files = sdkMessage.files;
         }
 
         // Ensure the message has proper timestamp
