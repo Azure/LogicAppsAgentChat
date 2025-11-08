@@ -406,7 +406,6 @@ describe('A2AClient - Artifact File Processing', () => {
       },
     };
 
-    const updates: Task[] = [];
     const stream = client.message.stream(request);
     const iterator = stream[Symbol.asyncIterator]();
 

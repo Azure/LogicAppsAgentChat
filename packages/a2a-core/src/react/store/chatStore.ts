@@ -797,11 +797,59 @@ export const useChatStore = create<ChatState>()(
                 const artifactAny = artifact as any;
                 if (artifactAny.parts && artifactAny.parts.length > 0) {
                   // Extract file parts (images, etc.)
+                  // Extract text parts from artifacts (existing artifact handling for text files)
+                  // Process text parts FIRST to match use-a2a.ts ordering
+                  const textParts = artifactAny.parts.filter(
+                    (p: any) => p.kind === 'text' && p.text
+                  );
+
+                  if (textParts.length > 0) {
+                    const artifactId = artifactAny.artifactId || artifactAny.id;
+                    const artifactMessageId = `artifact-text-${artifactId}`;
+
+                    // Combine all text parts into a single message to avoid duplicate IDs
+                    const combinedText = textParts.map((p: any) => p.text).join('\n\n');
+
+                    set((draft) => {
+                      const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
+                      const existingIndex = sessionMsgs.findIndex(
+                        (msg) =>
+                          msg.metadata?.artifactId === artifactId || msg.id === artifactMessageId
+                      );
+
+                      if (existingIndex < 0) {
+                        const artifactMessage: Message = {
+                          id: artifactMessageId,
+                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${combinedText}\n\`\`\``,
+                          sender: 'assistant',
+                          timestamp: new Date(),
+                          status: 'sent',
+                          metadata: {
+                            taskId: task.id,
+                            contextId,
+                            isArtifact: true,
+                            artifactName: artifactAny.name || artifactAny.artifactId,
+                            rawContent: combinedText,
+                            artifactId, // Store artifactId for duplicate detection
+                          },
+                        };
+
+                        const newMessages = [...sessionMsgs, artifactMessage];
+                        const newSessionMessages = new Map(draft.sessionMessages);
+                        newSessionMessages.set(sessionId, newMessages);
+
+                        return { sessionMessages: newSessionMessages };
+                      }
+                      return {};
+                    });
+                  }
+
+                  // Handle file parts (images, etc.)
+                  // Process file parts SECOND to match use-a2a.ts ordering
                   const fileParts = artifactAny.parts.filter(
                     (p: any) => p.kind === 'file' && p.bytes && p.mimeType
                   );
 
-                  // Handle file parts (images, etc.)
                   if (fileParts.length > 0) {
                     const files = fileParts.map((part: any) => ({
                       name: part.name || 'file',
@@ -836,49 +884,6 @@ export const useChatStore = create<ChatState>()(
                         };
 
                         const newMessages = [...sessionMsgs, fileMessage];
-                        const newSessionMessages = new Map(draft.sessionMessages);
-                        newSessionMessages.set(sessionId, newMessages);
-
-                        return { sessionMessages: newSessionMessages };
-                      }
-                      return {};
-                    });
-                  }
-
-                  // Extract text parts from artifacts (existing artifact handling for text files)
-                  const textParts = artifactAny.parts.filter(
-                    (p: any) => p.kind === 'text' && p.text
-                  );
-
-                  for (const part of textParts) {
-                    const artifactId = artifactAny.artifactId || artifactAny.id;
-                    const artifactMessageId = `artifact-text-${artifactId}`;
-
-                    set((draft) => {
-                      const sessionMsgs = draft.sessionMessages.get(sessionId) || [];
-                      const existingIndex = sessionMsgs.findIndex(
-                        (msg) =>
-                          msg.metadata?.artifactId === artifactId || msg.id === artifactMessageId
-                      );
-
-                      if (existingIndex < 0) {
-                        const artifactMessage: Message = {
-                          id: artifactMessageId,
-                          content: `📄 ${artifactAny.name || artifactAny.artifactId || artifactAny.title}:\n\`\`\`${artifactAny.name?.split('.').pop() || ''}\n${part.text}\n\`\`\``,
-                          sender: 'assistant',
-                          timestamp: new Date(),
-                          status: 'sent',
-                          metadata: {
-                            taskId: task.id,
-                            contextId,
-                            isArtifact: true,
-                            artifactName: artifactAny.name || artifactAny.artifactId,
-                            rawContent: part.text,
-                            artifactId, // Store artifactId for duplicate detection
-                          },
-                        };
-
-                        const newMessages = [...sessionMsgs, artifactMessage];
                         const newSessionMessages = new Map(draft.sessionMessages);
                         newSessionMessages.set(sessionId, newMessages);
 

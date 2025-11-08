@@ -778,7 +778,18 @@ function MessageComponent({
             {message.files && message.files.length > 0 && (
               <div className={styles.fileContainer}>
                 {message.files.map((file, index) => {
-                  const isImage = file.mimeType.startsWith('image/');
+                  // Validate that mimeType is a safe image type
+                  const allowedImageTypes = [
+                    'image/png',
+                    'image/jpeg',
+                    'image/jpg',
+                    'image/gif',
+                    'image/webp',
+                    'image/svg+xml',
+                  ];
+                  const isImage =
+                    file.mimeType && allowedImageTypes.includes(file.mimeType.toLowerCase());
+
                   if (isImage) {
                     return (
                       <div key={index} className={styles.imageWrapper}>
@@ -786,7 +797,7 @@ function MessageComponent({
                         <div className={styles.imageContainer}>
                           <img
                             src={`data:${file.mimeType};base64,${file.data}`}
-                            alt={file.name}
+                            alt={file.name || 'Attached image'}
                             className={styles.image}
                           />
                         </div>
@@ -796,7 +807,7 @@ function MessageComponent({
                     return (
                       <div key={index} className={styles.attachment}>
                         <DocumentRegular fontSize={16} />
-                        <Caption1>{file.name}</Caption1>
+                        <Caption1>{file.name || 'Attached file'}</Caption1>
                       </div>
                     );
                   }

@@ -225,6 +225,67 @@ describe('Message - File and Image Rendering', () => {
     });
   });
 
+  describe('Security and Validation', () => {
+    it('rejects files with invalid/unsafe mime types', () => {
+      const messageWithInvalidMime: MessageType = {
+        ...baseMessage,
+        files: [
+          {
+            name: 'suspicious.exe',
+            mimeType: 'application/x-executable',
+            data: 'base64data',
+          },
+        ],
+      };
+
+      const { container } = render(<Message message={messageWithInvalidMime} />);
+
+      // Should not render as image
+      const img = container.querySelector('img');
+      expect(img).not.toBeInTheDocument();
+
+      // Should show as non-image file
+      expect(screen.getByText('suspicious.exe')).toBeInTheDocument();
+    });
+
+    it('provides fallback alt text for images without names', () => {
+      const messageWithUnnamedImage: MessageType = {
+        ...baseMessage,
+        files: [
+          {
+            name: '',
+            mimeType: 'image/png',
+            data: 'base64data',
+          },
+        ],
+      };
+
+      const { container } = render(<Message message={messageWithUnnamedImage} />);
+
+      const img = container.querySelector('img');
+      expect(img).toBeInTheDocument();
+      expect(img).toHaveAttribute('alt', 'Attached image');
+    });
+
+    it('validates mime type case-insensitively', () => {
+      const messageWithUppercaseMime: MessageType = {
+        ...baseMessage,
+        files: [
+          {
+            name: 'test.PNG',
+            mimeType: 'IMAGE/PNG',
+            data: 'base64data',
+          },
+        ],
+      };
+
+      const { container } = render(<Message message={messageWithUppercaseMime} />);
+
+      const img = container.querySelector('img');
+      expect(img).toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('handles empty files array', () => {
       const messageWithEmptyFiles: MessageType = {
