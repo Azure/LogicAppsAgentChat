@@ -1,8 +1,8 @@
 # A2A Chat Monorepo
 
-[![CI](https://github.com/travisvu/a2achat/actions/workflows/ci.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/ci.yml)
-[![PR Checks](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/pr-checks.yml)
-[![Security](https://github.com/travisvu/a2achat/actions/workflows/security.yml/badge.svg)](https://github.com/travisvu/a2achat/actions/workflows/security.yml)
+[![CI](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/ci.yml/badge.svg)](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/ci.yml)
+[![PR Checks](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/pr-checks.yml)
+[![Security](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/security.yml/badge.svg)](https://github.com/Azure/LogicAppsAgentChat/actions/workflows/security.yml)
 
 A TypeScript SDK for building chat interfaces that connect to A2A (Agent-to-Agent) protocol agents. Available as both a library and an embeddable iframe widget.
 
@@ -33,68 +33,36 @@ This monorepo contains:
 └── docs/                  # Architecture & design docs
 ```
 
-## Development
+## Quick Start
 
-### Prerequisites
-
-- Node.js >= 18
-- PNPM >= 10.12.4
-
-### Setup
+### Installation
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm run build
-
-# Run development mode
-pnpm run dev
-
-# Run tests
-pnpm run test
-
-# Type checking
-pnpm run type-check
-
-# Linting
-pnpm run lint
-
-# Format code with Prettier
-pnpm run format
-
-# Format check (CI)
-pnpm run format:check
+npm install @microsoft/a2achat-core
+# or
+pnpm add @microsoft/a2achat-core
+# or
+yarn add @microsoft/a2achat-core
 ```
 
-### Working with Packages
+### Basic Usage
 
-```bash
-# Build a specific package
-pnpm --filter @a2achat/core build
+```tsx
+import { ChatWidget } from '@microsoft/a2achat-core/react';
+import '@microsoft/a2achat-core/react/styles.css';
 
-# Run tests for a specific package
-pnpm --filter @a2achat/react test
-
-# Add a dependency to a package
-pnpm --filter @a2achat/core add some-package
+function App() {
+  return (
+    <ChatWidget
+      agentCard="https://my-agent.example.com"
+      auth={{ type: 'bearer', token: 'your-token' }}
+      welcomeMessage="Hello! How can I help you today?"
+    />
+  );
+}
 ```
 
-## Deployment
-
-### Publishing Packages
-
-```bash
-# Create a changeset
-pnpm changeset
-
-# Version packages
-pnpm version-packages
-
-# Publish to npm
-pnpm release
-```
+For detailed development instructions, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## 📖 Examples
 
@@ -271,66 +239,11 @@ for await (const chunk of stream) {
 - 🪟 **Azure Portal**: Frame Blade protocol support
 - 🔌 **Plugin system**: Extensible with custom analytics, logging, and more
 
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-npm install @microsoft/a2achat-core
-# or
-pnpm add @microsoft/a2achat-core
-# or
-yarn add @microsoft/a2achat-core
-```
-
-### Library Usage (React)
-
-```tsx
-import { ChatWidget } from '@microsoft/a2achat-core/react';
-import '@microsoft/a2achat-core/react/styles.css';
-
-function App() {
-  return (
-    <ChatWidget
-      agentCard="https://my-agent.example.com"
-      auth={{ type: 'bearer', token: 'your-token' }}
-      welcomeMessage="Hello! How can I help you today?"
-      allowFileUpload={true}
-      theme={{
-        colors: {
-          primary: '#0066cc',
-          primaryText: '#ffffff',
-          background: '#f5f5f5',
-        },
-        branding: {
-          logoUrl: 'https://example.com/logo.png',
-          logoSize: 'medium',
-          logoPosition: 'header',
-        },
-      }}
-      onMessage={(message) => console.log('New message:', message)}
-      onConnectionChange={(connected) => console.log('Connected:', connected)}
-    />
-  );
-}
-```
-
-### Iframe Usage
-
-```html
-<iframe
-  src="https://your-domain.com/iframe.html?agentCard=https://api.example.com"
-  width="400"
-  height="600"
-  style="border: none;"
-></iframe>
-```
-
 ## 📚 Documentation
 
-### Library Usage
+### Entry Points
 
-The `@microsoft/a2achat-core` package provides three entry points for different use cases:
+The `@microsoft/a2achat-core` package provides multiple entry points for different use cases:
 
 #### 1. React Components (`/react`)
 
@@ -637,81 +550,7 @@ Wildcard subdomain matching supported: `*.example.com`
 
 ## 🛠️ Development
 
-### Prerequisites
-
-- Node.js >= 18
-- pnpm >= 10.12.4
-
-### Getting Started
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/a2achat.git
-cd a2achat
-
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Start development mode for all packages
-pnpm dev
-```
-
-### Monorepo Commands
-
-```bash
-# Run commands for all packages
-pnpm test              # Run all tests
-pnpm typecheck         # Type check all packages
-pnpm lint              # Lint all packages
-pnpm format            # Format all files
-pnpm build             # Build all packages
-
-# Run commands for specific package
-pnpm --filter @microsoft/a2achat-core test
-pnpm --filter @microsoft/a2achat-core build
-pnpm --filter @a2achat/iframe-app dev
-
-# Add dependencies to specific package
-pnpm --filter @microsoft/a2achat-core add lodash
-pnpm --filter @microsoft/a2achat-core add -D @types/lodash
-```
-
-### Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests for specific package
-pnpm --filter @microsoft/a2achat-core test
-
-# Run tests in watch mode
-pnpm --filter @microsoft/a2achat-core test:watch
-
-# Run tests with UI
-pnpm --filter @microsoft/a2achat-core test:ui
-
-# Run tests with coverage
-pnpm test:coverage
-```
-
-### Publishing
-
-```bash
-# Create a changeset (document changes)
-pnpm changeset
-
-# Version packages based on changesets
-pnpm version-packages
-
-# Build and publish to npm
-pnpm release
-```
-
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed development guidelines.
+For development setup, testing, publishing, and contributing guidelines, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## ⚙️ Configuration
 
@@ -931,40 +770,13 @@ Requires support for:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+Contributions are welcome! For detailed contribution guidelines, code quality standards, development workflow, and testing requirements, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
-### Code Quality Standards
+**Quick Summary:**
 
-- **TypeScript**: Strict mode enabled, no `any` types
-- **Testing**: Comprehensive test coverage with behavior-driven tests
-  - Lines: 70%
-  - Functions: 85%
-  - Branches: 70%
-  - Statements: 70%
-- **Formatting**: Prettier enforced via pre-commit hooks
-- **Linting**: ESLint rules must pass
-- **Type Safety**: No `@ts-ignore` without justification
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes with tests
-4. Run quality checks: `pnpm typecheck && pnpm lint && pnpm test`
-5. Commit your changes: `git commit -m "feat: add my feature"`
-6. Push to your fork: `git push origin feature/my-feature`
-7. Create a Pull Request
-
-### CI/CD
-
-All PRs are automatically checked for:
-
-- TypeScript type errors
-- Prettier formatting
-- ESLint violations
-- Test failures
-- Build errors
-- Bundle size regression
+- TypeScript strict mode, comprehensive test coverage required
+- Follow Conventional Commits format
+- All PRs require passing CI checks (types, lint, tests, build)
 
 ## 📚 Additional Resources
 
