@@ -81,6 +81,47 @@ pnpm --filter @a2achat/iframe-app dev     # Iframe app on :3001
 pnpm --filter @microsoft/a2achat-core dev # Core library in watch mode
 ```
 
+### Testing with Azure Logic Apps
+
+To connect your local development environment to a deployed Logic App agent in Azure, you need to configure CORS:
+
+**Configure CORS on Your Logic App:**
+
+1. In the Azure Portal, navigate to your Logic App
+2. Go to **API** → **CORS** in your Logic App settings
+3. Add the following allowed origins:
+   - `http://localhost:3001` (for iframe app development)
+   - `http://localhost:3000` (for core library development)
+4. Enable **"Access-Control-Allow-Credentials"** if using cookie-based authentication
+5. Click **Save**
+
+![CORS Configuration](./docs/images/logic-app-cors-config.png)
+
+Once CORS is configured, start the development server and connect to your Logic App:
+
+**Start the Development Server:**
+
+```bash
+# Start the iframe app
+pnpm dev
+```
+
+**Connect to Your Logic App:**
+
+Open your browser and navigate to:
+
+```
+http://localhost:3001/?agentCard=YOUR_LOGIC_APP_URL&apiKey=YOUR_API_KEY
+```
+
+Example:
+
+```
+http://localhost:3001/?agentCard=https://your-logic-app.azurewebsites.net/api/agent&apiKey=abc123xyz
+```
+
+The chat interface will load and connect to your deployed Logic App agent.
+
 ## Monorepo Structure
 
 ```
