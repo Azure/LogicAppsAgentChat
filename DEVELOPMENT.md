@@ -60,8 +60,8 @@ This guide covers development workflows, tooling, testing, and contributing guid
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/a2achat.git
-cd a2achat
+git clone https://github.com/Azure/LogicAppsAgentChat.git
+cd LogicAppsAgentChat
 
 # Install dependencies
 pnpm install
